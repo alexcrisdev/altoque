@@ -47,3 +47,21 @@ insert into public.products (restaurant_id, category_id, name, description, pric
   ('10000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000002', 'Chicharrón de pota',   'Con zarza criolla',                         28.00, true),
   ('10000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000003', 'Chicha morada',        'Jarra de 1 litro',                          12.00, true),
   ('10000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000003', 'Inca Kola 500 ml',     null,                                         6.00, true);
+
+-- Segundo restaurante para pruebas negativas de acceso entre restaurantes.
+insert into public.restaurants (id, name, slug) values
+  ('10000000-0000-0000-0000-000000000002', 'Pollería Demo', 'polleria-demo');
+
+insert into public.branches (id, restaurant_id, name, address) values
+  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'Local Demo', 'Lima');
+
+insert into public.dining_tables (id, restaurant_id, branch_id, number, capacity) values
+  ('30000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 1, 4),
+  ('30000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 2, 4);
+
+insert into public.categories (id, restaurant_id, name, sort_order) values
+  ('40000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 'Pollos', 1);
+
+insert into public.products (id, restaurant_id, category_id, name, description, price) values
+  ('50000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000004', 'Pollo a la brasa', 'Pollo entero con papas', 65.00),
+  ('50000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000004', 'Cuarto de pollo', 'Con papas y ensalada', 22.00);
