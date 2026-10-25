@@ -72,6 +72,42 @@ Las claves de desarrollo van en `.env.local`. Las de staging y producción se co
 | `npm run build` | Compila para producción |
 | `npm run lint` | Revisa errores de código |
 
+## Base de datos
+
+El esquema vive en `supabase/migrations/` y se aplica con la Supabase CLI (incluida en el proyecto).
+
+### Primera vez
+
+```bash
+npx supabase login
+npx supabase link --project-ref <ref-del-proyecto>   # pedir el ref y la contraseña al equipo
+```
+
+### Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `npx supabase migration new <nombre>` | Crea un archivo de migración vacío |
+| `npx supabase db push --linked` | Aplica las migraciones nuevas al proyecto enlazado |
+| `npx supabase db reset --linked` | **Borra todo** y reconstruye desde cero: migraciones + `seed.sql` (solo en *altoque-dev*) |
+| `npx supabase migration list --linked` | Muestra qué migraciones están aplicadas |
+
+### Reglas
+
+- Todo cambio al esquema es una **migración nueva**. Nunca se edita una que ya se subió.
+- Todas las tablas tienen RLS activado. Las políticas de acceso se definen en US-028.
+- Los tokens de QR se guardan solo como hash SHA-256 (`qr_codes.token_hash`).
+
+### Datos de prueba (`supabase/seed.sql`)
+
+Sin información personal real. Restaurante *Cevichería Demo*, 1 local, 4 mesas y carta con 7 productos.
+
+| Token para `/m/<token>` | Caso |
+|---|---|
+| `demo-mesa-1`, `demo-mesa-2`, `demo-mesa-3` | QR de mesa válido |
+| `demo-mesa-4` | QR anulado (mesa desactivada) |
+| `demo-mostrador` | QR de mostrador (para llevar) |
+
 ## Estructura
 
 ```
