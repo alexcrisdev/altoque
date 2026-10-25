@@ -18,6 +18,20 @@ Los restaurantes pequeños pierden tiempo y ventas por la toma manual de pedidos
 | Cajero | Registra pagos y cierra la cuenta |
 | Dueño / admin | Gestiona mesas, QR, carta y personal, y consulta el dashboard |
 
+### Permisos del personal
+
+Las políticas RLS separan los datos por restaurante. La aplicación comprueba además el rol antes de mostrar cada panel.
+
+| Rol | Panel | Permisos de la matriz |
+|---|---|---|
+| OWNER | `/admin` | Gestionar restaurante, atender mesas, gestionar pedidos y registrar pagos |
+| ADMIN | `/admin` | Gestionar restaurante, atender mesas, gestionar pedidos y registrar pagos |
+| WAITER | `/mesero` y `/caja` | Atender mesas y registrar pagos |
+| KITCHEN | `/cocina` | Gestionar pedidos |
+| CASHIER | `/caja` | Registrar pagos |
+
+El acceso a `/m/<token>` sigue siendo público para clientes que escanean el QR. Las páginas privadas requieren una sesión de Supabase y validan el rol también en el servidor.
+
 ## Stack
 
 | Etapa | Herramienta |
@@ -100,13 +114,28 @@ npx supabase link --project-ref <ref-del-proyecto>   # pedir el ref y la contras
 
 ### Datos de prueba (`supabase/seed.sql`)
 
-Sin información personal real. Restaurante *Cevichería Demo*, 1 local, 4 mesas y carta con 7 productos.
+Sin información personal real. Incluye *Cevichería Demo* (1 local, 4 mesas y 7 productos) y *Pollería Demo* (1 local, 2 mesas y 2 productos) para probar el aislamiento entre restaurantes.
 
 | Token para `/m/<token>` | Caso |
 |---|---|
 | `demo-mesa-1`, `demo-mesa-2`, `demo-mesa-3` | QR de mesa válido |
 | `demo-mesa-4` | QR anulado (mesa desactivada) |
 | `demo-mostrador` | QR de mostrador (para llevar) |
+
+### Usuarios demo y pruebas
+
+Después de cargar el seed en el entorno de desarrollo, agrega una contraseña de prueba en `.env.local` como `DEMO_PASSWORD=...`. Usa una contraseña ficticia segura y no la subas al repositorio. Ejecuta `node --env-file=.env.local scripts/usuarios-demo.mjs` para crear o completar los cinco usuarios demo. El script usa la clave secreta solo en Node, no imprime credenciales y se puede repetir.
+
+| Correo | Restaurante | Rol |
+|---|---|---|
+| `dueno@demo.altoque.pe` | Cevichería Demo | OWNER |
+| `admin@demo.altoque.pe` | Cevichería Demo | ADMIN |
+| `mesero@demo.altoque.pe` | Cevichería Demo | WAITER |
+| `cocina@demo.altoque.pe` | Cevichería Demo | KITCHEN |
+| `caja@demo.altoque.pe` | Cevichería Demo | CASHIER |
+| `dueno@polleria.demo` | Pollería Demo | OWNER |
+
+`npm test` ejecuta los casos unitarios de permisos. `npm run test:rls` ejecuta pruebas de integración contra el proyecto enlazado; requiere `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD` en `.env.local`, además del esquema y usuarios demo preparados.
 
 ## Estructura
 
