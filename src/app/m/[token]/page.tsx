@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CartaRestaurante } from "@/features/carta/carta-restaurante";
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 
 type Props = { params: Promise<{ token: string }> };
@@ -43,7 +44,7 @@ async function Contenido({ params }: Props) {
       <h1 className="text-2xl font-bold">
         {acceso.mesa ? `Mesa ${acceso.mesa.numero}` : "Pedido para llevar"}
       </h1>
-      <p>Aquí irá la carta (US-004).</p>
+      <CartaRestaurante restauranteId={acceso.restauranteId} />
     </section>
   );
 }
