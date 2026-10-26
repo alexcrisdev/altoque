@@ -40,14 +40,14 @@ El acceso a `/m/<token>` sigue siendo público para clientes que escanean el QR.
 | Código | Git + GitHub, VS Code |
 | App | Next.js (App Router), React, TypeScript, Tailwind CSS |
 | Datos | Supabase: PostgreSQL, Auth, Realtime y RLS |
-| Pruebas | Vitest (unitarias) y Playwright (extremo a extremo) |
+| Pruebas | Vitest (unitarias e integración RLS); Playwright pendiente para pruebas de extremo a extremo |
 | CI | GitHub Actions |
 | Despliegue | Vercel |
-| Monitoreo | Sentry y UptimeRobot |
+| Monitoreo | Sentry y UptimeRobot (previstos; configuración pendiente de verificar) |
 
 ## Cómo correrlo
 
-Requisitos: **Node 20 o superior** y **Git**.
+Requisitos: **Node.js 22** (la misma versión que usa el CI) y **Git**.
 
 ```bash
 git clone https://github.com/alexcrisdev/altoque.git
@@ -67,6 +67,7 @@ Abre http://localhost:3000. Las claves de Supabase se piden al equipo por un med
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave pública de Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servidor (nunca en el navegador) |
+| `DEMO_PASSWORD` | Contraseña ficticia para preparar usuarios demo y ejecutar pruebas RLS en desarrollo |
 
 ### Entornos
 
@@ -85,6 +86,9 @@ Las claves de desarrollo van en `.env.local`. Las de staging y producción se co
 | `npm run dev` | Levanta el proyecto en desarrollo |
 | `npm run build` | Compila para producción |
 | `npm run lint` | Revisa errores de código |
+| `npm run typecheck` | Genera los tipos de Next.js y verifica TypeScript |
+| `npm test` | Ejecuta las pruebas unitarias de permisos |
+| `npm run test:rls` | Ejecuta las pruebas de aislamiento en Supabase; requiere preparar los datos y usuarios demo |
 
 ## Base de datos
 
@@ -109,7 +113,7 @@ npx supabase link --project-ref <ref-del-proyecto>   # pedir el ref y la contras
 ### Reglas
 
 - Todo cambio al esquema es una **migración nueva**. Nunca se edita una que ya se subió.
-- Todas las tablas tienen RLS activado. Las políticas de acceso se definen en US-028.
+- Todas las tablas tienen RLS activado. Las políticas de acceso de US-028 están implementadas en `supabase/migrations/20261025213951_politicas_rls.sql`.
 - Los tokens de QR se guardan solo como hash SHA-256 (`qr_codes.token_hash`).
 
 ### Datos de prueba (`supabase/seed.sql`)
@@ -124,7 +128,7 @@ Sin información personal real. Incluye *Cevichería Demo* (1 local, 4 mesas y 7
 
 ### Usuarios demo y pruebas
 
-Después de cargar el seed en el entorno de desarrollo, agrega una contraseña de prueba en `.env.local` como `DEMO_PASSWORD=...`. Usa una contraseña ficticia segura y no la subas al repositorio. Ejecuta `node --env-file=.env.local scripts/usuarios-demo.mjs` para crear o completar los cinco usuarios demo. El script usa la clave secreta solo en Node, no imprime credenciales y se puede repetir.
+Después de cargar el seed en el entorno de desarrollo, agrega una contraseña de prueba en `.env.local` como `DEMO_PASSWORD=...`. Usa una contraseña ficticia segura y no la subas al repositorio. Ejecuta `node --env-file=.env.local scripts/usuarios-demo.mjs` para crear o completar los seis usuarios demo. El script usa la clave secreta solo en Node, no imprime credenciales y se puede repetir.
 
 | Correo | Restaurante | Rol |
 |---|---|---|
@@ -136,6 +140,22 @@ Después de cargar el seed en el entorno de desarrollo, agrega una contraseña d
 | `dueno@polleria.demo` | Pollería Demo | OWNER |
 
 `npm test` ejecuta los casos unitarios de permisos. `npm run test:rls` ejecuta pruebas de integración contra el proyecto enlazado; requiere `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD` en `.env.local`, además del esquema y usuarios demo preparados.
+
+## CI/CD
+
+El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `develop` y `main`, y en cada push a esas ramas. Con Node.js 22, instala las dependencias con `npm ci` y ejecuta, en orden, npm run lint, npm run typecheck, npm test y npm run build para revisar el código, verificar los tipos, correr las pruebas unitarias y comprobar que la aplicación compila. El check se llama verificar. Las pruebas RLS (npm run test:rls) no corren en CI porque necesitan la base de datos; se ejecutan localmente. Las ejecuciones anteriores del mismo PR se cancelan cuando llega una nueva.
+
+| Origen | Entorno en Vercel |
+|---|---|
+| Pull Request (PR) | Vista previa (Preview) para revisar los cambios |
+| `develop` | Staging con URL fija |
+| `main` | Producción |
+
+URL de staging: https://altoque-app-usil-git-develop-alexandercris-projects.vercel.app
+
+Las variables de entorno de staging y producción se configuran en Vercel, no en el repositorio. El CI compila sin secretos y usa `NEXT_PUBLIC_APP_URL=http://localhost:3000` para el build.
+
+Para ver el resultado de una ejecución, abre la pestaña **Actions** del repositorio en GitHub y selecciona el workflow **CI**, o revisa los **checks** del PR y abre `verificar`. Allí puedes consultar el estado y el detalle de cada paso.
 
 ## Estructura
 
