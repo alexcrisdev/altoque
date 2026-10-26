@@ -30,6 +30,7 @@ async function MeseroPanel() {
               ? new Date(mesa.sesion.abiertaDesde).toLocaleTimeString("es-PE", {
                   hour: "2-digit",
                   minute: "2-digit",
+                   timeZone: "America/Lima",
                 })
               : null;
 
