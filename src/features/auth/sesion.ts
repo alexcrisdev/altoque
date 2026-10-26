@@ -1,10 +1,12 @@
 import "server-only";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { Permiso, Rol } from "./permisos";
 import { tieneAlgunoDeLosRoles, tienePermiso } from "./permisos";
 
 export async function obtenerSesion() {
+  await connection(); // la sesión depende de la hora actual: solo se calcula en cada petición real
   const supabase = await crearClienteServidor();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
