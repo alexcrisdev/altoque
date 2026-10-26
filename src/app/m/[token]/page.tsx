@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { CartaRestaurante } from "@/features/carta/carta-restaurante";
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
+import { buscarSesionAbierta } from "@/features/mesero/sesiones";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -36,7 +37,15 @@ async function Contenido({ params }: Props) {
     );
   }
 
-    return (
+  let sesionId: string | null = null;
+  if (acceso.modalidad === "DINE_IN" && acceso.mesa) {
+    const sesionAbierta = await buscarSesionAbierta(acceso.mesa.id);
+    // La sesión siempre se obtiene en el servidor desde la mesa resuelta por el QR.
+    // US-009 deberá resolverla otra vez en servidor; no confiar en un ID del navegador.
+    sesionId = sesionAbierta?.id ?? null;
+  }
+
+  return (
     <section className="space-y-2">
       <p className="text-sm text-gray-500">
         {acceso.restauranteNombre} · {acceso.localNombre}
@@ -44,6 +53,12 @@ async function Contenido({ params }: Props) {
       <h1 className="text-2xl font-bold">
         {acceso.mesa ? `Mesa ${acceso.mesa.numero}` : "Pedido para llevar"}
       </h1>
+      {acceso.modalidad === "DINE_IN" && !sesionId && (
+        <Aviso
+          titulo="Esta mesa todavía no está habilitada"
+          mensaje="Pide al mesero que la abra para poder hacer tu pedido. Para llamar al personal, levanta la mano o haz una señal al mesero."
+        />
+      )}
       <CartaRestaurante restauranteId={acceso.restauranteId} />
     </section>
   );
