@@ -143,7 +143,7 @@ Después de cargar el seed en el entorno de desarrollo, agrega una contraseña d
 
 ## CI/CD
 
-El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `develop` y `main`, y en cada push a esas ramas. Con Node.js 22, instala las dependencias con `npm ci` y ejecuta, en orden, `npm run lint`, `npm run typecheck` y `npm run build` para revisar el código, verificar los tipos y comprobar que la aplicación compila. El check se llama `verificar`. Actualmente el CI no ejecuta `npm test` ni las pruebas RLS; estas se ejecutan por separado. Las ejecuciones anteriores del mismo PR se cancelan cuando llega una nueva.
+El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `develop` y `main`, y en cada push a esas ramas. Con Node.js 22, instala las dependencias con `npm ci` y ejecuta, en orden, npm run lint, npm run typecheck, npm test y npm run build para revisar el código, verificar los tipos, correr las pruebas unitarias y comprobar que la aplicación compila. El check se llama verificar. Las pruebas RLS (npm run test:rls) no corren en CI porque necesitan la base de datos; se ejecutan localmente. Las ejecuciones anteriores del mismo PR se cancelan cuando llega una nueva.
 
 | Origen | Entorno en Vercel |
 |---|---|
@@ -151,7 +151,7 @@ El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `deve
 | `develop` | Staging con URL fija |
 | `main` | Producción |
 
-URL de staging: (pendiente)
+URL de staging: https://altoque-app-usil-git-develop-alexandercris-projects.vercel.app
 
 Las variables de entorno de staging y producción se configuran en Vercel, no en el repositorio. El CI compila sin secretos y usa `NEXT_PUBLIC_APP_URL=http://localhost:3000` para el build.
 
