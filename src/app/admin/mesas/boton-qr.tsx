@@ -48,6 +48,9 @@ export function BotonQr({ mesaId, tieneQr }: { mesaId: string; tieneQr: boolean 
           >
             Descargar para imprimir
           </a>
+          <a href={resultado.url} target="_blank" rel="noreferrer" className="text-sm underline">
+            Probar enlace
+          </a>
           <p className="text-sm text-zinc-600">
             Guárdalo ahora: por seguridad este QR no se vuelve a mostrar. Si lo pierdes, regenéralo.
           </p>
