@@ -11,6 +11,8 @@ export type Producto = {
   price: number;
   image_url: string | null;
   available: boolean;
+  ingredients?: string | null;
+  allergens?: string[];
 };
 
 export type CategoriaConProductos = Categoria & { productos: Producto[] };
