@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 
 vi.mock("server-only", () => ({}));
+vi.mock("../../src/features/pedidos/actions", () => ({ registrarPedidoQrAction: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ crearClienteAdmin: vi.fn() }));
 
 import { crearClienteAdmin } from "@/lib/supabase/admin";
@@ -53,6 +54,8 @@ describe("disponibilidad en la carta QR", () => {
 
     const markup = renderToStaticMarkup(createElement(CartaInteractiva, {
       categorias: [{ ...categoria, productos: carta.productos }],
+      token: "token-demo",
+      pedidosHabilitados: true,
     }));
     expect(markup).toContain("Agotado");
   });

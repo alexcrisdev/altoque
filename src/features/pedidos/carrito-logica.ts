@@ -1,5 +1,25 @@
 import type { Producto } from "../carta/tipos";
-import { LIMITES, type ItemCarrito } from "./tipos";
+import { LIMITES, type ItemCarrito, type ItemPedido } from "./tipos";
+
+// El precio mostrado sirve para detectar cambios; el servidor recalcula el pedido.
+export function aItemsPedido(
+  items: readonly ItemCarrito[],
+  productos: readonly Producto[],
+): ItemPedido[] {
+  const porId = new Map(productos.map((producto) => [producto.id, producto]));
+  return items.map((item) => {
+    const producto = porId.get(item.productoId);
+    if (!producto) {
+      throw new Error("Un producto del carrito ya no está en la carta. Elimínalo antes de confirmar.");
+    }
+    return {
+      productoId: item.productoId,
+      cantidad: item.cantidad,
+      observacion: item.observacion,
+      precioMostradoCentimos: calcularSubtotalCentimos(producto.price, 1),
+    };
+  });
+}
 
 export function cantidadValida(cantidad: number): boolean {
   return (

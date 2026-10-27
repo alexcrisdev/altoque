@@ -4,8 +4,14 @@ import { useRef, type ComponentProps } from "react";
 import { Carrito } from "./carrito";
 import { calcularTotalCentimos } from "./carrito-logica";
 import { formatearPrecio } from "../carta/formato";
+import type { ResultadoRegistroPedido } from "./actions";
 
-type Props = Omit<ComponentProps<typeof Carrito>, "enPanel">;
+type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
+  pedidosHabilitados: boolean;
+  enviando: boolean;
+  resultado: ResultadoRegistroPedido | null;
+  onConfirmar: () => void;
+};
 
 export function PanelCarrito(props: Props) {
   const dialogo = useRef<HTMLDialogElement>(null);
@@ -101,11 +107,13 @@ export function PanelCarrito(props: Props) {
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">
+          <fieldset disabled={props.enviando} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 disabled:opacity-60">
+            <legend className="sr-only">Productos del carrito</legend>
             <Carrito {...props} enPanel />
-          </div>
+          </fieldset>
 
           <footer className="shrink-0 space-y-4 border-t border-gray-300 bg-background px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            <p className="text-sm">{unidades} {unidades === 1 ? "unidad" : "unidades"} · {props.items.length} {props.items.length === 1 ? "producto" : "productos"}</p>
             <div
               aria-live="polite"
               aria-atomic="true"
@@ -116,6 +124,52 @@ export function PanelCarrito(props: Props) {
                 {totalFormateado}
               </span>
             </div>
+
+            {!props.pedidosHabilitados && (
+              <p role="status">Pide al mesero que habilite la mesa</p>
+            )}
+
+            {props.resultado && (
+              props.resultado.ok ? (
+                <p role="status" className="font-semibold text-teal-700">
+                  Tu número de pedido es {props.resultado.numero}
+                </p>
+              ) : (
+                <div role="alert" className="space-y-2 rounded-lg border border-amber-400 p-3 text-sm">
+                  <p>{props.resultado.mensaje}</p>
+                  {props.resultado.problemas && (
+                    <ul className="list-disc space-y-1 pl-5">
+                      {props.resultado.problemas.map((problema, indice) => {
+                        // La validación del servidor incluye el ID incluso si ya no existe el producto.
+                        const id = "productoId" in problema && typeof problema.productoId === "string"
+                          ? problema.productoId : undefined;
+                        const nombre = problema.nombre
+                          ?? props.productos.find((producto) => producto.id === id)?.name
+                          ?? (id ? `Producto ${id}` : "Producto solicitado");
+                        const mensajes: Record<string, string> = {
+                          PRECIO_CAMBIO: problema.precioActualCentimos === undefined
+                            ? "El precio cambió. Actualiza la carta antes de confirmar."
+                            : `El precio cambió a ${formatearPrecio(problema.precioActualCentimos / 100)}. Actualiza la carta antes de confirmar.`,
+                          AGOTADO: "Está agotado. Elimínalo del carrito para continuar.",
+                          INACTIVO: "Ya no está activo en la carta. Elimínalo del carrito.",
+                          NO_EXISTE: "Ya no existe en la carta. Elimínalo del carrito.",
+                        };
+                        return <li key={`${id ?? nombre}-${indice}`}><strong>{nombre}:</strong> {mensajes[problema.motivo] ?? problema.motivo}</li>;
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )
+            )}
+
+            <button
+              type="button"
+              onClick={props.onConfirmar}
+              disabled={props.enviando || !props.pedidosHabilitados || unidades === 0 || hayProductosAusentes}
+              className="min-h-12 w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {props.enviando ? "Confirmando pedido..." : "Confirmar pedido"}
+            </button>
 
             <button
               type="button"

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   agregarAlCarrito,
+  aItemsPedido,
   cambiarCantidad,
   cambiarObservacion,
   cantidadValida,
@@ -36,6 +37,35 @@ function crearItem(
     ...cambios,
   };
 }
+
+describe("aItemsPedido", () => {
+  it("conserva cantidades, observaciones y orden sin modificar los originales", () => {
+    const items = [crearItem({ cantidad: 3, observacion: "Sin hielo" }), crearItem({ productoId: "chicha" })];
+    const productos = [producto, { ...producto, id: "chicha", price: 0.29 }];
+    const original = structuredClone({ items, productos });
+    expect(aItemsPedido(items, productos)).toEqual([
+      { ...items[0], precioMostradoCentimos: 850 },
+      { ...items[1], precioMostradoCentimos: 29 },
+    ]);
+    expect({ items, productos }).toEqual(original);
+  });
+
+  it("redondea el precio unitario y no lo multiplica por la cantidad", () => {
+    expect(aItemsPedido([crearItem({ cantidad: 20 })], [{ ...producto, price: 8.567 }])[0].precioMostradoCentimos).toBe(857);
+  });
+
+  it("devuelve una lista vacía para un carrito vacío", () => {
+    expect(aItemsPedido([], [])).toEqual([]);
+  });
+
+  it("impide enviar un pedido incompleto cuando falta un producto", () => {
+    expect(() => aItemsPedido([crearItem(), crearItem({ productoId: "ausente" })], [producto])).toThrow("ya no está en la carta");
+  });
+
+  it.each([-1, NaN, Infinity])("rechaza un precio inválido: %s", (price) => {
+    expect(() => aItemsPedido([crearItem()], [{ ...producto, price }])).toThrow();
+  });
+});
 
 describe("cantidadValida", () => {
   it.each([1, 3, 20])("acepta la cantidad %s", (cantidad) => {

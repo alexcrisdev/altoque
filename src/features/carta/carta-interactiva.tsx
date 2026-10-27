@@ -5,8 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { formatearPrecio } from "./formato";
 import { DetalleProducto } from "./detalle-producto";
 import { PanelCarrito } from "../pedidos/panel-carrito";
+import { registrarPedidoQrAction, type ResultadoRegistroPedido } from "../pedidos/actions";
 import {
   agregarAlCarrito,
+  aItemsPedido,
   cambiarCantidad as actualizarCantidad,
   quitarDelCarrito,
   cambiarObservacion as actualizarObservacion,
@@ -16,17 +18,26 @@ import type { CategoriaConProductos, Producto } from "./tipos";
 
 type Props = {
   categorias: CategoriaConProductos[];
+  token: string;
+  pedidosHabilitados: boolean;
   observacionesHabilitadas?: boolean;
 };
 
 export function CartaInteractiva({
   categorias,
+  token,
+  pedidosHabilitados,
   observacionesHabilitadas = false,
 }: Props) {
   const [seleccionado, setSeleccionado] = useState<Producto | null>(null);
   const dialogo = useRef<HTMLDialogElement>(null);
 
   const [items, setItems] = useState<ItemCarrito[]>([]);
+  const [enviando, setEnviando] = useState(false);
+  const [resultado, setResultado] = useState<ResultadoRegistroPedido | null>(null);
+  const clavePedido = useRef<string | null>(null);
+  // El bloqueo es inmediato, incluso antes del siguiente render de React.
+  const envioEnCurso = useRef(false);
   const [aviso, setAviso] = useState("");
   const itemsAnteriores = useRef<ItemCarrito[]>([]);
 
@@ -84,7 +95,44 @@ export function CartaInteractiva({
   }
 
   function agregarProducto(producto: Producto) {
-    setItems((actuales) => agregarAlCarrito(actuales, producto));
+    actualizarCarrito((actuales) => agregarAlCarrito(actuales, producto));
+  }
+
+  function actualizarCarrito(cambiar: (actuales: ItemCarrito[]) => ItemCarrito[]) {
+    if (envioEnCurso.current) return;
+    const nuevos = cambiar(items);
+    if (JSON.stringify(nuevos) === JSON.stringify(items)) return;
+    clavePedido.current = null;
+    setResultado(null);
+    setItems(nuevos);
+  }
+
+  async function confirmar() {
+    if (envioEnCurso.current || !pedidosHabilitados || items.length === 0) return;
+    envioEnCurso.current = true;
+    setEnviando(true);
+    setResultado(null);
+    try {
+      const entrada = aItemsPedido(items, productos);
+      clavePedido.current ??= crypto.randomUUID();
+      const respuesta = await registrarPedidoQrAction(token, clavePedido.current, entrada);
+      setResultado(respuesta);
+      if (respuesta.ok) {
+        setItems([]);
+        setAviso("");
+        clavePedido.current = null;
+      }
+    } catch (error) {
+      setResultado({
+        ok: false,
+        mensaje: error instanceof Error && error.message.includes("ya no está en la carta")
+          ? error.message
+          : "No se pudo confirmar el pedido. Revisa tu conexión e inténtalo otra vez.",
+      });
+    } finally {
+      envioEnCurso.current = false;
+      setEnviando(false);
+    }
   }
 
   function cambiarCantidad(productoId: string, cantidad: number) {
@@ -94,13 +142,13 @@ export function CartaInteractiva({
 
     if (!producto) return;
 
-    setItems((actuales) =>
+    actualizarCarrito((actuales) =>
       actualizarCantidad(actuales, producto, cantidad),
     );
   }
 
   function eliminarProducto(productoId: string) {
-    setItems((actuales) =>
+    actualizarCarrito((actuales) =>
       quitarDelCarrito(actuales, productoId),
     );
 
@@ -111,7 +159,7 @@ export function CartaInteractiva({
     productoId: string,
     observacion: string,
   ) {
-    setItems((actuales) =>
+    actualizarCarrito((actuales) =>
       actualizarObservacion(
         actuales,
         productoId,
@@ -211,7 +259,17 @@ export function CartaInteractiva({
         onCambiarCantidad={cambiarCantidad}
         onEliminar={eliminarProducto}
         onCambiarObservacion={cambiarObservacion}
+        pedidosHabilitados={pedidosHabilitados}
+        enviando={enviando}
+        resultado={resultado}
+        onConfirmar={confirmar}
       />
+
+      {resultado?.ok && (
+        <p role="status" className="my-4 rounded-xl border border-teal-600 p-4 font-semibold">
+          Tu número de pedido es {resultado.numero}
+        </p>
+      )}
 
       <DetalleProducto
         producto={seleccionado}
