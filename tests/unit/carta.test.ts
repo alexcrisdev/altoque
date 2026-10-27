@@ -9,7 +9,7 @@ const categorias = [
 ];
 const producto: Producto = {
   id: "limonada", category_id: "bebidas", name: "Limonada",
-  description: null, price: 8.5, image_url: null, available: true,
+  description: null, price: 8.5, image_url: null, available: true, ingredients: null, allergens: [],
 };
 
 describe("formatearPrecio", () => {

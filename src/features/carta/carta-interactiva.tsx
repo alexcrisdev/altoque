@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { formatearPrecio } from "./formato";
+import { DetalleProducto } from "./detalle-producto";
 import type { CategoriaConProductos, Producto } from "./tipos";
 
 export function CartaInteractiva({ categorias }: { categorias: CategoriaConProductos[] }) {
@@ -49,22 +50,10 @@ export function CartaInteractiva({ categorias }: { categorias: CategoriaConProdu
         ))}
       </div>
 
-      <dialog ref={dialogo} aria-labelledby="detalle-producto-titulo" className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl bg-background p-6 text-foreground shadow-xl backdrop:bg-black/50">
-        <form method="dialog" className="mb-4 flex justify-end">
-          <button className="rounded-lg border border-gray-300 px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-teal-700">Cerrar detalle</button>
-        </form>
-        {seleccionado && (
-          <div className="space-y-4">
-            {seleccionado.image_url && (
-              <Image src={seleccionado.image_url} alt={seleccionado.name} width={600} height={400} unoptimized className="max-h-72 w-full rounded-xl object-cover" />
-            )}
-            <h2 id="detalle-producto-titulo" className="break-words text-2xl font-bold">{seleccionado.name}</h2>
-            <p className="text-lg font-semibold">{formatearPrecio(seleccionado.price)}</p>
-            {seleccionado.description && <p className="break-words">{seleccionado.description}</p>}
-            {!seleccionado.available && <p className="inline-block rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">Agotado</p>}
-          </div>
-        )}
-      </dialog>
+      <DetalleProducto
+        producto={seleccionado}
+        dialogoRef={dialogo}
+      />
     </div>
   );
 }

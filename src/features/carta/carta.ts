@@ -19,7 +19,7 @@ export async function obtenerCarta(restauranteId: string): Promise<{
         .returns<Categoria[]>(),
       supabase
         .from("products")
-        .select("id, category_id, name, description, price, image_url, available")
+        .select("id, category_id, name, description, price, image_url, available, ingredients, allergens")
         .eq("restaurant_id", restauranteId)
         .eq("active", true)
         .order("name")
