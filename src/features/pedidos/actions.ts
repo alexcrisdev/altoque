@@ -1,9 +1,6 @@
 "use server";
 
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
-import { requerirRol } from "@/features/auth/sesion";
-import type { Rol } from "@/features/auth/permisos";
-import { listarPedidos, type PedidoListado } from "./pedidos";
 import { buscarPedidoIdempotente, guardarPedidoQr } from "./registro";
 import { validarPedido } from "./validar-pedido";
 
@@ -12,26 +9,6 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export type ResultadoRegistroPedido =
   | { ok: true; numero: number }
   | { ok: false; mensaje: string; problemas?: { nombre?: string; motivo: string; precioActualCentimos?: number }[] };
-
-async function listarPedidosAutorizados(
-  restauranteId: string,
-  rolesPermitidos: readonly Rol[],
-): Promise<PedidoListado[]> {
-  const sesion = await requerirRol(rolesPermitidos);
-  const perteneceAlRestaurante = sesion.membresias.some(
-    (membresia) => membresia.restaurantId === restauranteId && rolesPermitidos.includes(membresia.rol),
-  );
-  if (!perteneceAlRestaurante) throw new Error("Sin permiso para consultar estos pedidos.");
-  return listarPedidos(restauranteId);
-}
-
-export async function listarPedidosMeseroAction(restauranteId: string): Promise<PedidoListado[]> {
-  return listarPedidosAutorizados(restauranteId, ["WAITER", "OWNER", "ADMIN"]);
-}
-
-export async function listarPedidosCocinaAction(restauranteId: string): Promise<PedidoListado[]> {
-  return listarPedidosAutorizados(restauranteId, ["KITCHEN", "OWNER", "ADMIN"]);
-}
 
 export async function registrarPedidoQrAction(
   token: string,

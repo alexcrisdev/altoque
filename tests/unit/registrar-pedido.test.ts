@@ -2,10 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/features/acceso-qr/acceso", () => ({ resolverAccesoQr: vi.fn() }));
-vi.mock("@/features/auth/sesion", () => ({ requerirRol: vi.fn() }));
 vi.mock("../../src/features/pedidos/validar-pedido", () => ({ validarPedido: vi.fn() }));
 vi.mock("../../src/features/pedidos/registro", () => ({ buscarPedidoIdempotente: vi.fn(), guardarPedidoQr: vi.fn() }));
-vi.mock("../../src/features/pedidos/pedidos", () => ({ listarPedidos: vi.fn() }));
 
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { buscarPedidoIdempotente, guardarPedidoQr } from "../../src/features/pedidos/registro";

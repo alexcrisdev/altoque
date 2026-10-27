@@ -59,7 +59,7 @@ async function Contenido({ params }: Props) {
           mensaje="Pide al mesero que la abra para poder hacer tu pedido. Para llamar al personal, levanta la mano o haz una señal al mesero."
         />
       )}
-      <CartaRestaurante restauranteId={acceso.restauranteId} token={token} pedidosHabilitados={acceso.modalidad === "TAKEAWAY" || Boolean(sesionId)} />
+      <CartaRestaurante restauranteId={acceso.restauranteId} />
     </section>
   );
 }
