@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { cerrarSesion } from "@/features/auth/actions";
 import { requerirRol } from "@/features/auth/sesion";
@@ -19,6 +20,13 @@ async function MeseroPanel() {
           <button className="min-h-11 rounded-lg border px-4 py-2">Cerrar sesión</button>
         </form>
       </header>
+
+      <Link
+        href="/mesero/pedido"
+        className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-teal-700 px-4 py-2 font-medium text-white"
+      >
+        Registrar pedido asistido
+      </Link>
 
       <h2 className="mt-8 text-xl font-semibold">Mesas</h2>
       {mesas.length === 0 ? (

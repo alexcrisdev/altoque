@@ -2,7 +2,11 @@
 
 import { refresh } from "next/cache";
 import { requerirRol } from "@/features/auth/sesion";
+import type { ResultadoRegistroPedido } from "@/features/pedidos/actions";
+import { validarPedido } from "@/features/pedidos/validar-pedido";
+import { buscarPedidoAsistido, guardarPedidoAsistido } from "./pedido-asistido";
 import { abrirSesion, cerrarSesion } from "./sesiones";
+import { esUuid, mensajeRechazo, validarSolicitudAsistida } from "./solicitud-asistida";
 
 type EstadoAccion = { tipo: "inicial" | "exito" | "error"; mensaje: string };
 const ROLES_MESERO = ["WAITER", "OWNER", "ADMIN"] as const;
@@ -55,4 +59,43 @@ export async function cerrarSesionAction(
     return { tipo: "error", mensaje: "No se encontró una sesión abierta para esa mesa." };
   }
   return { tipo: "error", mensaje: "No se pudo cerrar la sesión. Inténtalo de nuevo." };
+}
+
+// US-003: el mesero registra el pedido de un cliente sin celular o que pidió ayuda.
+// El restaurante y el autor salen de la sesión; precios y disponibilidad se validan
+// en el servidor igual que en un pedido por QR.
+export async function registrarPedidoAsistidoAction(
+  clave: string,
+  solicitud: unknown,
+  items: unknown,
+): Promise<ResultadoRegistroPedido> {
+  const sesion = await requerirRol(ROLES_MESERO);
+  const restauranteId = obtenerRestaurante(sesion);
+
+  if (!esUuid(clave)) {
+    return { ok: false, mensaje: "No se pudo validar la solicitud. Recarga la página e inténtalo otra vez." };
+  }
+
+  const datos = validarSolicitudAsistida(solicitud);
+  if (!datos) {
+    return { ok: false, mensaje: "Elige una mesa con sesión abierta o un local para llevar." };
+  }
+
+  try {
+    const previo = await buscarPedidoAsistido(sesion.usuario.id, clave);
+    if (previo !== null) return { ok: true, numero: previo };
+  } catch {
+    return { ok: false, mensaje: "No se pudo verificar el pedido. Intenta de nuevo." };
+  }
+
+  const validacion = await validarPedido(restauranteId, items);
+  if (!validacion.ok) {
+    return validacion.problemas.length
+      ? { ok: false, mensaje: "Revisa los productos marcados antes de registrar.", problemas: validacion.problemas }
+      : { ok: false, mensaje: "El pedido contiene datos inválidos." };
+  }
+
+  const resultado = await guardarPedidoAsistido(restauranteId, clave, datos, validacion.lineas);
+  if (!resultado.ok) return { ok: false, mensaje: mensajeRechazo(resultado.motivo) };
+  return { ok: true, numero: resultado.numero };
 }
