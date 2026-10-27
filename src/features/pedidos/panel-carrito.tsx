@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ComponentProps } from "react";
+import { useRef, type ComponentProps, type ReactNode } from "react";
 import { Carrito } from "./carrito";
 import { calcularTotalCentimos } from "./carrito-logica";
 import { formatearPrecio } from "../carta/formato";
@@ -11,6 +11,10 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
   enviando: boolean;
   resultado: ResultadoRegistroPedido | null;
   onConfirmar: () => void;
+  // US-002: selector de modalidad y datos para llevar.
+  opciones?: ReactNode;
+  // Qué dato falta para poder confirmar (null si está completo).
+  faltaDato?: string | null;
 };
 
 export function PanelCarrito(props: Props) {
@@ -125,6 +129,16 @@ export function PanelCarrito(props: Props) {
               </span>
             </div>
 
+            {props.opciones && (
+              <fieldset disabled={props.enviando} className="disabled:opacity-60">
+                {props.opciones}
+              </fieldset>
+            )}
+
+            {props.faltaDato && unidades > 0 && (
+              <p className="text-sm text-amber-800">{props.faltaDato}</p>
+            )}
+
             {!props.pedidosHabilitados && (
               <p role="status">Pide al mesero que habilite la mesa</p>
             )}
@@ -165,7 +179,7 @@ export function PanelCarrito(props: Props) {
             <button
               type="button"
               onClick={props.onConfirmar}
-              disabled={props.enviando || !props.pedidosHabilitados || unidades === 0 || hayProductosAusentes}
+              disabled={props.enviando || !props.pedidosHabilitados || unidades === 0 || hayProductosAusentes || Boolean(props.faltaDato)}
               className="min-h-12 w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {props.enviando ? "Confirmando pedido..." : "Confirmar pedido"}

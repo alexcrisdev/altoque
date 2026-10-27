@@ -35,6 +35,7 @@ import { CartaInteractiva } from "../../src/features/carta/carta-interactiva";
 function preparar(habilitados = true) {
   renderToStaticMarkup(createElement(CartaInteractiva, {
     token: "token-qr", pedidosHabilitados: habilitados,
+    pedido: { modalidadQr: "DINE_IN", mesaNumero: 1, paraLlevar: { pideNombre: true, pideTelefono: false } },
     categorias: [{ id: "bebidas", name: "Bebidas", productos: [{
       id: "limonada", category_id: "bebidas", name: "Limonada", price: 8.5,
       available: true, description: null, image_url: null, ingredients: null, allergens: [],
@@ -54,7 +55,7 @@ describe("envío del carrito desde la carta", () => {
     await preparar().onConfirmar();
     expect(registrarPedidoQrAction).toHaveBeenCalledWith("token-qr", expect.any(String), [
       { productoId: "limonada", cantidad: 2, observacion: null, precioMostradoCentimos: 850 },
-    ]);
+    ], { modalidad: "DINE_IN", nombre: "", telefono: "" });
     expect(registrarPedidoQrAction).toHaveBeenCalledTimes(1);
     expect(controles.setItems).toHaveBeenCalledWith([]);
   });
