@@ -6,6 +6,8 @@ import { formatearPrecio } from "./formato";
 import { DetalleProducto } from "./detalle-producto";
 import { PanelCarrito } from "../pedidos/panel-carrito";
 import { registrarPedidoQrAction, type ResultadoRegistroPedido } from "../pedidos/actions";
+import { datosFaltantes, type ConfigParaLlevar, type Modalidad } from "../pedidos/modalidad";
+import { SelectorModalidad } from "../pedidos/selector-modalidad";
 import {
   agregarAlCarrito,
   aItemsPedido,
@@ -16,10 +18,18 @@ import {
 import { LIMITES, type ItemCarrito } from "../pedidos/tipos";
 import type { CategoriaConProductos, Producto } from "./tipos";
 
+// US-002: de dónde viene el cliente y qué datos pide el restaurante para llevar.
+export type DatosPedidoCliente = {
+  modalidadQr: Modalidad;
+  mesaNumero: number | null;
+  paraLlevar: ConfigParaLlevar;
+};
+
 type Props = {
   categorias: CategoriaConProductos[];
   token: string;
   pedidosHabilitados: boolean;
+  pedido: DatosPedidoCliente;
   observacionesHabilitadas?: boolean;
 };
 
@@ -27,6 +37,7 @@ export function CartaInteractiva({
   categorias,
   token,
   pedidosHabilitados,
+  pedido,
   observacionesHabilitadas = false,
 }: Props) {
   const [seleccionado, setSeleccionado] = useState<Producto | null>(null);
@@ -38,6 +49,10 @@ export function CartaInteractiva({
   const clavePedido = useRef<string | null>(null);
   // El bloqueo es inmediato, incluso antes del siguiente render de React.
   const envioEnCurso = useRef(false);
+  const [modalidad, setModalidad] = useState<Modalidad>(pedido.modalidadQr);
+  const [nombre, setNombre] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const faltaDato = datosFaltantes(modalidad, nombre, telefono, pedido.paraLlevar);
   const [aviso, setAviso] = useState("");
   const itemsAnteriores = useRef<ItemCarrito[]>([]);
 
@@ -107,15 +122,27 @@ export function CartaInteractiva({
     setItems(nuevos);
   }
 
+  // Cambiar la modalidad o los datos es otro pedido: nueva clave.
+  function cambiarOpciones(cambiar: () => void) {
+    if (envioEnCurso.current) return;
+    cambiar();
+    clavePedido.current = null;
+    setResultado(null);
+  }
+
   async function confirmar() {
-    if (envioEnCurso.current || !pedidosHabilitados || items.length === 0) return;
+    if (envioEnCurso.current || !pedidosHabilitados || items.length === 0 || faltaDato) return;
     envioEnCurso.current = true;
     setEnviando(true);
     setResultado(null);
     try {
       const entrada = aItemsPedido(items, productos);
       clavePedido.current ??= crypto.randomUUID();
-      const respuesta = await registrarPedidoQrAction(token, clavePedido.current, entrada);
+      const respuesta = await registrarPedidoQrAction(token, clavePedido.current, entrada, {
+        modalidad,
+        nombre,
+        telefono,
+      });
       setResultado(respuesta);
       if (respuesta.ok) {
         setItems([]);
@@ -263,6 +290,20 @@ export function CartaInteractiva({
         enviando={enviando}
         resultado={resultado}
         onConfirmar={confirmar}
+        faltaDato={faltaDato}
+        opciones={
+          <SelectorModalidad
+            modalidadQr={pedido.modalidadQr}
+            mesaNumero={pedido.mesaNumero}
+            config={pedido.paraLlevar}
+            modalidad={modalidad}
+            nombre={nombre}
+            telefono={telefono}
+            onModalidad={(valor) => cambiarOpciones(() => setModalidad(valor))}
+            onNombre={(valor) => cambiarOpciones(() => setNombre(valor))}
+            onTelefono={(valor) => cambiarOpciones(() => setTelefono(valor))}
+          />
+        }
       />
 
       {resultado?.ok && (

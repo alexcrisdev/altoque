@@ -56,6 +56,7 @@ describe("disponibilidad en la carta QR", () => {
       categorias: [{ ...categoria, productos: carta.productos }],
       token: "token-demo",
       pedidosHabilitados: true,
+      pedido: { modalidadQr: "DINE_IN", mesaNumero: 1, paraLlevar: { pideNombre: true, pideTelefono: false } },
     }));
     expect(markup).toContain("Agotado");
   });

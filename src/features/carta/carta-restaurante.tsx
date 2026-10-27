@@ -2,9 +2,14 @@
 import { Suspense } from "react";
 import { obtenerCarta } from "./carta";
 import { agruparPorCategoria } from "./formato";
-import { CartaInteractiva } from "./carta-interactiva";
+import { CartaInteractiva, type DatosPedidoCliente } from "./carta-interactiva";
 
-type Props = { restauranteId: string; token: string; pedidosHabilitados: boolean };
+type Props = {
+  restauranteId: string;
+  token: string;
+  pedidosHabilitados: boolean;
+  pedido: DatosPedidoCliente;
+};
 
 export function CartaRestaurante(props: Props) {
   return (
@@ -14,7 +19,7 @@ export function CartaRestaurante(props: Props) {
   );
 }
 
-async function ContenidoCarta({ restauranteId, token, pedidosHabilitados }: Props) {
+async function ContenidoCarta({ restauranteId, token, pedidosHabilitados, pedido }: Props) {
   let carta;
   try {
     carta = await obtenerCarta(restauranteId);
@@ -31,5 +36,13 @@ async function ContenidoCarta({ restauranteId, token, pedidosHabilitados }: Prop
     return <p className="py-6">Este restaurante aún no tiene productos en la carta.</p>;
   }
 
-  return <CartaInteractiva categorias={categorias} token={token} pedidosHabilitados={pedidosHabilitados} observacionesHabilitadas={true} />;
+  return (
+    <CartaInteractiva
+      categorias={categorias}
+      token={token}
+      pedidosHabilitados={pedidosHabilitados}
+      pedido={pedido}
+      observacionesHabilitadas={true}
+    />
+  );
 }

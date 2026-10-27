@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { CartaRestaurante } from "@/features/carta/carta-restaurante";
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { buscarSesionAbierta } from "@/features/mesero/sesiones";
+import { obtenerConfigParaLlevar } from "@/features/pedidos/para-llevar";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -45,6 +46,8 @@ async function Contenido({ params }: Props) {
     sesionId = sesionAbierta?.id ?? null;
   }
 
+  const paraLlevar = await obtenerConfigParaLlevar(acceso.restauranteId);
+
   return (
     <section className="space-y-2">
       <p className="text-sm text-gray-500">
@@ -66,6 +69,11 @@ async function Contenido({ params }: Props) {
         restauranteId={acceso.restauranteId}
         token={token}
         pedidosHabilitados={acceso.modalidad === "TAKEAWAY" || sesionId !== null}
+        pedido={{
+          modalidadQr: acceso.modalidad,
+          mesaNumero: acceso.mesa?.numero ?? null,
+          paraLlevar,
+        }}
       />
     </section>
   );
