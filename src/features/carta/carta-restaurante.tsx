@@ -29,5 +29,5 @@ async function ContenidoCarta({ restauranteId }: { restauranteId: string }) {
     return <p className="py-6">Este restaurante aún no tiene productos en la carta.</p>;
   }
 
-  return <CartaInteractiva categorias={categorias} />;
+  return <CartaInteractiva categorias={categorias} observacionesHabilitadas={true} />;
 }
