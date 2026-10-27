@@ -1,11 +1,16 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatearPrecio } from "./formato";
 import { DetalleProducto } from "./detalle-producto";
 import { PanelCarrito } from "../pedidos/panel-carrito";
-import { cantidadValida } from "../pedidos/carrito-logica";
+import {
+  agregarAlCarrito,
+  cambiarCantidad as actualizarCantidad,
+  quitarDelCarrito,
+  cambiarObservacion as actualizarObservacion,
+} from "../pedidos/carrito-logica";
 import { LIMITES, type ItemCarrito } from "../pedidos/tipos";
 import type { CategoriaConProductos, Producto } from "./tipos";
 
@@ -23,10 +28,44 @@ export function CartaInteractiva({
 
   const [items, setItems] = useState<ItemCarrito[]>([]);
   const [aviso, setAviso] = useState("");
+  const itemsAnteriores = useRef<ItemCarrito[]>([]);
 
-  const productos = categorias.flatMap(
-    (categoria) => categoria.productos,
+  const productos = useMemo(
+    () => categorias.flatMap((categoria) => categoria.productos),
+    [categorias],
   );
+
+  // Notifica únicamente los aumentos efectivos del carrito.
+  useEffect(() => {
+    const anteriores = itemsAnteriores.current;
+    itemsAnteriores.current = items;
+
+    const incrementado = items.find((item) => {
+      const anterior = anteriores.find(
+        (previo) => previo.productoId === item.productoId,
+      );
+
+      return item.cantidad > (anterior?.cantidad ?? 0);
+    });
+
+    if (!incrementado) return;
+
+    const producto = productos.find(
+      (producto) => producto.id === incrementado.productoId,
+    );
+
+    if (!producto) return;
+
+    const temporizador = window.setTimeout(() => {
+      setAviso(
+        `${producto.name}: ${incrementado.cantidad} ${
+          incrementado.cantidad === 1 ? "unidad" : "unidades"
+        } en el carrito.`,
+      );
+    }, 0);
+
+    return () => window.clearTimeout(temporizador);
+  }, [items, productos]);
 
   useEffect(() => {
     if (!aviso) return;
@@ -45,106 +84,24 @@ export function CartaInteractiva({
   }
 
   function agregarProducto(producto: Producto) {
-    if (!producto.available) {
-      setAviso("Este producto está agotado.");
-      return;
-    }
-
-    const existente = items.find(
-      (item) => item.productoId === producto.id,
-    );
-
-    if (existente && existente.cantidad >= LIMITES.cantidadMax) {
-      setAviso(
-        `Puedes agregar hasta ${LIMITES.cantidadMax} unidades por producto.`,
-      );
-      return;
-    }
-
-    if (!existente && items.length >= LIMITES.itemsMax) {
-      setAviso(
-        `Puedes agregar hasta ${LIMITES.itemsMax} productos distintos.`,
-      );
-      return;
-    }
-
-    setItems((actuales) => {
-      const encontrado = actuales.find(
-        (item) => item.productoId === producto.id,
-      );
-
-      if (encontrado) {
-        if (encontrado.cantidad >= LIMITES.cantidadMax) {
-          return actuales;
-        }
-
-        return actuales.map((item) =>
-          item.productoId === producto.id
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item,
-        );
-      }
-
-      if (actuales.length >= LIMITES.itemsMax) {
-        return actuales;
-      }
-
-      return [
-        ...actuales,
-        {
-          productoId: producto.id,
-          cantidad: LIMITES.cantidadMin,
-          observacion: null,
-        },
-      ];
-    });
-
-    const cantidadNueva = existente
-      ? existente.cantidad + 1
-      : LIMITES.cantidadMin;
-
-    setAviso(
-      `${producto.name} agregado al carrito. Cantidad: ${cantidadNueva}.`,
-    );
+    setItems((actuales) => agregarAlCarrito(actuales, producto));
   }
 
   function cambiarCantidad(productoId: string, cantidad: number) {
-    if (!cantidadValida(cantidad, LIMITES.cantidadMax)) {
-      setAviso(
-        `La cantidad debe estar entre 1 y ${LIMITES.cantidadMax}.`,
-      );
-      return;
-    }
-
     const producto = productos.find(
       (producto) => producto.id === productoId,
     );
 
-    if (!producto) {
-      setAviso("Este producto ya no está en la carta.");
-      return;
-    }
+    if (!producto) return;
 
     setItems((actuales) =>
-      actuales.map((item) => {
-        if (item.productoId !== productoId) {
-          return item;
-        }
-
-        if (!producto.available && cantidad > item.cantidad) {
-          return item;
-        }
-
-        return { ...item, cantidad };
-      }),
+      actualizarCantidad(actuales, producto, cantidad),
     );
-
-    setAviso("");
   }
 
   function eliminarProducto(productoId: string) {
     setItems((actuales) =>
-      actuales.filter((item) => item.productoId !== productoId),
+      quitarDelCarrito(actuales, productoId),
     );
 
     setAviso("");
@@ -154,29 +111,14 @@ export function CartaInteractiva({
     productoId: string,
     observacion: string,
   ) {
-    if (!observacionesHabilitadas) {
-      return;
-    }
-
-    if (observacion.length > LIMITES.observacionMax) {
-      setAviso(
-        `La observación admite hasta ${LIMITES.observacionMax} caracteres.`,
-      );
-      return;
-    }
-
     setItems((actuales) =>
-      actuales.map((item) =>
-        item.productoId === productoId
-          ? {
-              ...item,
-              observacion: observacion === "" ? null : observacion,
-            }
-          : item,
+      actualizarObservacion(
+        actuales,
+        productoId,
+        observacion,
+        observacionesHabilitadas,
       ),
     );
-
-    setAviso("");
   }
 
   return (

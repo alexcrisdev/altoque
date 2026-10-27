@@ -1,20 +1,94 @@
 import type { Producto } from "../carta/tipos";
-import type { ItemCarrito } from "./tipos";
+import { LIMITES, type ItemCarrito } from "./tipos";
 
-// El máximo se recibe como parámetro hasta acordarlo con US-008.
-export function cantidadValida(
-  cantidad: number,
-  cantidadMaxima: number,
-): boolean {
+export function cantidadValida(cantidad: number): boolean {
   return (
     Number.isInteger(cantidad) &&
-    cantidad >= 1 &&
-    cantidad <= cantidadMaxima
+    cantidad >= LIMITES.cantidadMin &&
+    cantidad <= LIMITES.cantidadMax
   );
 }
 
-// Los cálculos se hacen en céntimos.
-// Estos importes son visuales; el servidor deberá recalcularlos.
+export function agregarAlCarrito(
+  items: ItemCarrito[],
+  producto: Producto,
+): ItemCarrito[] {
+  if (!producto.available) return items;
+
+  const existente = items.find(
+    (item) => item.productoId === producto.id,
+  );
+
+  if (existente) {
+    const cantidad = existente.cantidad + 1;
+
+    if (!cantidadValida(cantidad)) return items;
+
+    return items.map((item) =>
+      item.productoId === producto.id
+        ? { ...item, cantidad }
+        : item,
+    );
+  }
+
+  if (items.length >= LIMITES.itemsMax) return items;
+
+  return [
+    ...items,
+    {
+      productoId: producto.id,
+      cantidad: LIMITES.cantidadMin,
+      observacion: null,
+    },
+  ];
+}
+
+export function cambiarCantidad(
+  items: ItemCarrito[],
+  producto: Producto,
+  cantidad: number,
+): ItemCarrito[] {
+  if (!cantidadValida(cantidad)) return items;
+
+  return items.map((item) => {
+    if (item.productoId !== producto.id) return item;
+
+    // Un producto agotado puede reducirse, pero no aumentarse.
+    if (!producto.available && cantidad > item.cantidad) {
+      return item;
+    }
+
+    return { ...item, cantidad };
+  });
+}
+
+export function quitarDelCarrito(
+  items: ItemCarrito[],
+  productoId: string,
+): ItemCarrito[] {
+  return items.filter((item) => item.productoId !== productoId);
+}
+
+export function cambiarObservacion(
+  items: ItemCarrito[],
+  productoId: string,
+  texto: string,
+  habilitada: boolean,
+): ItemCarrito[] {
+  if (!habilitada || texto.length > LIMITES.observacionMax) {
+    return items;
+  }
+
+  const observacion = texto.trim() === "" ? null : texto;
+
+  return items.map((item) =>
+    item.productoId === productoId
+      ? { ...item, observacion }
+      : item,
+  );
+}
+
+// Importes visuales. El servidor debe recalcularlos al confirmar.
 export function calcularSubtotalCentimos(
   precio: number,
   cantidad: number,
@@ -23,7 +97,7 @@ export function calcularSubtotalCentimos(
     throw new Error("El precio no es válido.");
   }
 
-  if (!Number.isInteger(cantidad) || cantidad < 1) {
+  if (!cantidadValida(cantidad)) {
     throw new Error("La cantidad no es válida.");
   }
 
