@@ -8,9 +8,10 @@ import type { Producto } from "./tipos";
 type Props = {
   producto: Producto | null;
   dialogoRef: RefObject<HTMLDialogElement | null>;
+  alAgregar: (producto: Producto) => void;
 };
 
-export function DetalleProducto({ producto, dialogoRef }: Props) {
+export function DetalleProducto({ producto, dialogoRef, alAgregar }: Props) {
   const ingredientes = producto?.ingredients?.trim();
 
   const alergenos = (producto?.allergens ?? [])
@@ -91,7 +92,7 @@ export function DetalleProducto({ producto, dialogoRef }: Props) {
             </p>
           )}
 
-          {/* US-006: aquí se conectarán las acciones del carrito. */}
+          {producto.available && <button type="button" onClick={() => { alAgregar(producto); dialogoRef.current?.close(); }} className="min-h-11 w-full rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800">Agregar al pedido</button>}
         </div>
       )}
     </dialog>

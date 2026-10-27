@@ -4,15 +4,15 @@ import { obtenerCarta } from "./carta";
 import { agruparPorCategoria } from "./formato";
 import { CartaInteractiva } from "./carta-interactiva";
 
-export function CartaRestaurante({ restauranteId }: { restauranteId: string }) {
+export function CartaRestaurante({ restauranteId, token, pedidosHabilitados = true }: { restauranteId: string; token: string; pedidosHabilitados?: boolean }) {
   return (
     <Suspense fallback={<p role="status" className="py-6">Cargando la carta...</p>}>
-      <ContenidoCarta restauranteId={restauranteId} />
+      <ContenidoCarta restauranteId={restauranteId} token={token} pedidosHabilitados={pedidosHabilitados} />
     </Suspense>
   );
 }
 
-async function ContenidoCarta({ restauranteId }: { restauranteId: string }) {
+async function ContenidoCarta({ restauranteId, token, pedidosHabilitados }: { restauranteId: string; token: string; pedidosHabilitados: boolean }) {
   let carta;
   try {
     carta = await obtenerCarta(restauranteId);
@@ -29,5 +29,5 @@ async function ContenidoCarta({ restauranteId }: { restauranteId: string }) {
     return <p className="py-6">Este restaurante aún no tiene productos en la carta.</p>;
   }
 
-  return <CartaInteractiva categorias={categorias} />;
+  return <CartaInteractiva categorias={categorias} token={token} pedidosHabilitados={pedidosHabilitados} />;
 }

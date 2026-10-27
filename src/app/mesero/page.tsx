@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { cerrarSesion } from "@/features/auth/actions";
 import { requerirRol } from "@/features/auth/sesion";
 import { listarMesasConSesion } from "@/features/mesero/sesiones";
+import { listarPedidosMeseroAction } from "@/features/pedidos/actions";
+import { PedidosLista } from "@/features/pedidos/pedidos-lista";
 import { BotonAbrirSesion, BotonCerrarSesion } from "./acciones-sesion";
 
 async function MeseroPanel() {
@@ -10,6 +12,7 @@ async function MeseroPanel() {
   if (!membresia) return null;
 
   const mesas = await listarMesasConSesion(membresia.restaurantId);
+  const pedidos = await listarPedidosMeseroAction(membresia.restaurantId);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
@@ -55,6 +58,7 @@ async function MeseroPanel() {
           })}
         </ul>
       )}
+      <PedidosLista pedidos={pedidos} />
     </main>
   );
 }
