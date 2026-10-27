@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { cerrarSesion } from "@/features/auth/actions";
 import { requerirRol } from "@/features/auth/sesion";
+import { formatearPrecio } from "@/features/carta/formato";
+import { listarPedidosRecientes } from "@/features/mesero/pedidos-recientes";
 import { listarMesasConSesion } from "@/features/mesero/sesiones";
+import { describirDestino } from "@/features/pedidos/modalidad";
 import { BotonAbrirSesion, BotonCerrarSesion } from "./acciones-sesion";
 
 async function MeseroPanel() {
@@ -10,7 +13,10 @@ async function MeseroPanel() {
   const membresia = sesion.membresias.find((m) => ["WAITER", "OWNER", "ADMIN"].includes(m.rol));
   if (!membresia) return null;
 
-  const mesas = await listarMesasConSesion(membresia.restaurantId);
+  const [mesas, pedidos] = await Promise.all([
+    listarMesasConSesion(membresia.restaurantId),
+    listarPedidosRecientes(membresia.restaurantId),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
@@ -61,6 +67,34 @@ async function MeseroPanel() {
               </li>
             );
           })}
+        </ul>
+      )}
+
+      <h2 className="mt-10 text-xl font-semibold">Pedidos recientes</h2>
+      {pedidos.length === 0 ? (
+        <p className="mt-3 rounded-lg border p-4 text-zinc-700">Todavía no hay pedidos.</p>
+      ) : (
+        <ul className="mt-4 grid gap-2">
+          {pedidos.map((pedido) => (
+            <li key={pedido.numero} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3">
+              <div>
+                <p className="font-semibold">
+                  N.º {pedido.numero} · {describirDestino(pedido)}
+                </p>
+                <p className="text-sm text-zinc-600">
+                  {new Date(pedido.creadoEn).toLocaleTimeString("es-PE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "America/Lima",
+                  })}
+                  {" · "}
+                  {pedido.modalidad === "TAKEAWAY" ? "Para llevar" : "En el local"}
+                  {pedido.asistido ? " · Registrado por mesero" : " · Desde QR"}
+                </p>
+              </div>
+              <p className="font-semibold">{formatearPrecio(pedido.totalCentimos / 100)}</p>
+            </li>
+          ))}
         </ul>
       )}
     </main>
