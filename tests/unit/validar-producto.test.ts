@@ -63,7 +63,14 @@ describe("validarProducto", () => {
   });
 
   it("exige una categoría válida", () => {
-    expect(validarProducto({ ...entradaBase, categoriaId: "otra" })).toMatchObject({ ok: false, errores: { categoriaId: expect.any(String) } });
+    expect(validarProducto({ ...entradaBase, categoriaId: "abc" })).toMatchObject({ ok: false, errores: { categoriaId: expect.any(String) } });
+  });
+
+  it("acepta el ID de categoría del seed aunque no indique una versión RFC", () => {
+    expect(validarProducto({ ...entradaBase, categoriaId: "40000000-0000-0000-0000-000000000001" })).toMatchObject({
+      ok: true,
+      producto: { categoryId: "40000000-0000-0000-0000-000000000001" },
+    });
   });
 
   it("permite URL vacía y exige HTTPS para imágenes", () => {
