@@ -53,6 +53,9 @@ async function Contenido({ params }: Props) {
       <h1 className="text-2xl font-bold">
         {acceso.mesa ? `Mesa ${acceso.mesa.numero}` : "Pedido para llevar"}
       </h1>
+      <p className="rounded-lg bg-zinc-100 p-3 text-sm text-zinc-700">
+        ¿Prefieres que te atiendan? Llama al mesero y él registra tu pedido desde su panel.
+      </p>
       {acceso.modalidad === "DINE_IN" && !sesionId && (
         <Aviso
           titulo="Esta mesa todavía no está habilitada"
