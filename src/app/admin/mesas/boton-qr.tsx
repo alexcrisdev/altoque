@@ -2,17 +2,36 @@
 
 import Image from "next/image";
 import { useActionState } from "react";
-import { generarQrAction, type ResultadoQr } from "@/features/acceso-qr/actions";
+import type { ResultadoQr } from "@/features/acceso-qr/actions";
 
 const inicial: ResultadoQr = { estado: "inicial" };
 
-export function BotonQr({ mesaId, tieneQr }: { mesaId: string; tieneQr: boolean }) {
-  const [resultado, accion, pendiente] = useActionState(generarQrAction, inicial);
+type Props = {
+  // Acción del servidor que genera el QR (de mesa o de mostrador).
+  generar: (anterior: ResultadoQr, formData: FormData) => Promise<ResultadoQr>;
+  // Campo oculto que identifica qué se genera: "mesaId" o "localId".
+  campo: "mesaId" | "localId";
+  valor: string;
+  tieneQr: boolean;
+};
+
+// "mostrador Local Centro" -> "mostrador-local-centro" (nombre del archivo PNG)
+function nombreArchivo(etiqueta: string): string {
+  return etiqueta
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export function BotonQr({ generar, campo, valor, tieneQr }: Props) {
+  const [resultado, accion, pendiente] = useActionState(generar, inicial);
 
   return (
     <div className="grid gap-2">
       <form action={accion}>
-        <input type="hidden" name="mesaId" value={mesaId} />
+        <input type="hidden" name={campo} value={valor} />
         <button
           disabled={pendiente}
           onClick={(evento) => {
@@ -36,14 +55,14 @@ export function BotonQr({ mesaId, tieneQr }: { mesaId: string; tieneQr: boolean 
         <div className="grid justify-items-start gap-2 rounded border border-teal-700 p-3">
           <Image
             src={resultado.imagen}
-            alt={`QR de la mesa ${resultado.numero}`}
+            alt={`QR de ${resultado.etiqueta}`}
             width={192}
             height={192}
             unoptimized
           />
           <a
             href={resultado.imagen}
-            download={`qr-mesa-${resultado.numero}.png`}
+            download={`qr-${nombreArchivo(resultado.etiqueta)}.png`}
             className="font-semibold underline"
           >
             Descargar para imprimir

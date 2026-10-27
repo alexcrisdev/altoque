@@ -39,7 +39,15 @@ export async function crearMesaAction(
 export type ResultadoQr =
   | { estado: "inicial" }
   | { estado: "error"; mensaje: string }
-  | { estado: "listo"; numero: number; url: string; imagen: string };
+  | { estado: "listo"; etiqueta: string; url: string; imagen: string };
+
+// Arma el enlace /m/<token> y su imagen QR. El token solo vive en esta respuesta.
+async function armarQr(token: string): Promise<{ url: string; imagen: string }> {
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const url = `${base}/m/${token}`;
+  const imagen = await QRCode.toDataURL(url, { width: 512, margin: 2 });
+  return { url, imagen };
+}
 
 export async function generarQrAction(
   _anterior: ResultadoQr,
@@ -59,12 +67,10 @@ export async function generarQrAction(
     return { estado: "error", mensaje };
   }
 
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  const url = `${base}/m/${token}`;
-  const imagen = await QRCode.toDataURL(url, { width: 512, margin: 2 });
+  const { url, imagen } = await armarQr(token);
 
   refresh();
-  return { estado: "listo", numero: resultado.numero, url, imagen };
+  return { estado: "listo", etiqueta: `mesa ${resultado.numero}`, url, imagen };
 }
 
 export async function desactivarQrAction(formData: FormData): Promise<void> {

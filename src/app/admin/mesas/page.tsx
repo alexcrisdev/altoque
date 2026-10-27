@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { cambiarEstadoMesaAction, desactivarQrAction } from "@/features/acceso-qr/actions";
+import {
+  cambiarEstadoMesaAction,
+  desactivarQrAction,
+  generarQrAction,
+} from "@/features/acceso-qr/actions";
 import { listarLocales, listarMesas } from "@/features/acceso-qr/mesas";
 import { requerirRol } from "@/features/auth/sesion";
 import { BotonQr } from "./boton-qr";
@@ -37,7 +41,14 @@ async function PanelMesas() {
             </div>
 
             <div className="flex flex-wrap items-start gap-2">
-              {mesa.activa && <BotonQr mesaId={mesa.id} tieneQr={mesa.tieneQrActivo} />}
+              {mesa.activa && (
+                <BotonQr
+                  generar={generarQrAction}
+                  campo="mesaId"
+                  valor={mesa.id}
+                  tieneQr={mesa.tieneQrActivo}
+                />
+              )}
 
               {mesa.tieneQrActivo && (
                 <form action={desactivarQrAction}>
