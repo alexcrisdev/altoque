@@ -9,6 +9,12 @@ export type ItemPedido = {
   precioMostradoCentimos: number;
 };
 
+// Selección local antes de confirmar el pedido.
+export type ItemCarrito = Omit<
+  ItemPedido,
+  "precioMostradoCentimos"
+>;
+
 export const LIMITES = {
   cantidadMin: 1,
   cantidadMax: 20,

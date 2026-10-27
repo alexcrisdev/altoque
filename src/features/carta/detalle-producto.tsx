@@ -8,9 +8,11 @@ import type { Producto } from "./tipos";
 type Props = {
   producto: Producto | null;
   dialogoRef: RefObject<HTMLDialogElement | null>;
+  onAgregar: (producto: Producto) => void;
+  aviso: string;
 };
 
-export function DetalleProducto({ producto, dialogoRef }: Props) {
+export function DetalleProducto({ producto, dialogoRef, onAgregar, aviso }: Props) {
   const ingredientes = producto?.ingredients?.trim();
 
   const alergenos = (producto?.allergens ?? [])
@@ -91,7 +93,18 @@ export function DetalleProducto({ producto, dialogoRef }: Props) {
             </p>
           )}
 
-          {/* US-006: aquí se conectarán las acciones del carrito. */}
+          <button
+            type="button"
+            disabled={!producto.available}
+            onClick={() => onAgregar(producto)}
+            className="min-h-11 w-full rounded-lg bg-teal-700 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {producto.available ? "Agregar al carrito" : "Producto agotado"}
+          </button>
+
+          <p role="status" className="text-sm">
+            {aviso}
+          </p>
         </div>
       )}
     </dialog>
