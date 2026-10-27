@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { cambiarEstadoMesaAction, desactivarQrAction } from "@/features/acceso-qr/actions";
+import {
+  cambiarEstadoMesaAction,
+  desactivarQrAction,
+  desactivarQrMostradorAction,
+  generarQrAction,
+  generarQrMostradorAction,
+} from "@/features/acceso-qr/actions";
 import { listarLocales, listarMesas } from "@/features/acceso-qr/mesas";
+import { listarMostradores } from "@/features/acceso-qr/mostrador";
 import { requerirRol } from "@/features/auth/sesion";
 import { BotonQr } from "./boton-qr";
 import { FormularioNuevaMesa } from "./formulario-nueva-mesa";
@@ -12,9 +19,10 @@ async function PanelMesas() {
     (m) => m.rol === "OWNER" || m.rol === "ADMIN",
   )!.restaurantId;
 
-  const [mesas, locales] = await Promise.all([
+  const [mesas, locales, mostradores] = await Promise.all([
     listarMesas(restauranteId),
     listarLocales(restauranteId),
+    listarMostradores(restauranteId),
   ]);
 
   return (
@@ -37,7 +45,14 @@ async function PanelMesas() {
             </div>
 
             <div className="flex flex-wrap items-start gap-2">
-              {mesa.activa && <BotonQr mesaId={mesa.id} tieneQr={mesa.tieneQrActivo} />}
+              {mesa.activa && (
+                <BotonQr
+                  generar={generarQrAction}
+                  campo="mesaId"
+                  valor={mesa.id}
+                  tieneQr={mesa.tieneQrActivo}
+                />
+              )}
 
               {mesa.tieneQrActivo && (
                 <form action={desactivarQrAction}>
@@ -57,6 +72,51 @@ async function PanelMesas() {
           </li>
         ))}
       </ul>
+
+      <section aria-labelledby="titulo-mostrador" className="mt-10">
+        <h2 id="titulo-mostrador" className="text-2xl font-bold">
+          QR de mostrador (para llevar)
+        </h2>
+        <p className="mt-1 text-sm text-zinc-600">
+          Un QR por local. El cliente lo escanea en caja y pide sin ocupar una mesa.
+        </p>
+
+        <ul className="mt-4 grid gap-3">
+          {mostradores.map((mostrador) => (
+            <li
+              key={mostrador.localId}
+              className="flex flex-wrap items-start justify-between gap-4 rounded border p-4"
+            >
+              <div>
+                <p className="text-lg font-semibold">{mostrador.local}</p>
+                <p className="mt-1 text-sm">
+                  {mostrador.tieneQrActivo ? (
+                    "QR activo"
+                  ) : (
+                    <span className="text-amber-700">Sin QR</span>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-start gap-2">
+                <BotonQr
+                  generar={generarQrMostradorAction}
+                  campo="localId"
+                  valor={mostrador.localId}
+                  tieneQr={mostrador.tieneQrActivo}
+                />
+
+                {mostrador.tieneQrActivo && (
+                  <form action={desactivarQrMostradorAction}>
+                    <input type="hidden" name="localId" value={mostrador.localId} />
+                    <button className="rounded border px-3 py-1">Desactivar QR</button>
+                  </form>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
     </>
   );
 }

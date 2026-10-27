@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { requerirRol } from "@/features/auth/sesion";
 import { generarToken, hashToken } from "./token";
 import { cambiarEstadoMesa, crearMesa, desactivarQr, reemplazarQr } from "./mesas";
+import { desactivarQrMostrador, reemplazarQrMostrador } from "./mostrador";
 
 // Solo OWNER o ADMIN. Devuelve el restaurante que administra.
 async function restauranteDelAdmin(): Promise<string> {
@@ -39,7 +40,15 @@ export async function crearMesaAction(
 export type ResultadoQr =
   | { estado: "inicial" }
   | { estado: "error"; mensaje: string }
-  | { estado: "listo"; numero: number; url: string; imagen: string };
+  | { estado: "listo"; etiqueta: string; url: string; imagen: string };
+
+// Arma el enlace /m/<token> y su imagen QR. El token solo vive en esta respuesta.
+async function armarQr(token: string): Promise<{ url: string; imagen: string }> {
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const url = `${base}/m/${token}`;
+  const imagen = await QRCode.toDataURL(url, { width: 512, margin: 2 });
+  return { url, imagen };
+}
 
 export async function generarQrAction(
   _anterior: ResultadoQr,
@@ -59,12 +68,10 @@ export async function generarQrAction(
     return { estado: "error", mensaje };
   }
 
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  const url = `${base}/m/${token}`;
-  const imagen = await QRCode.toDataURL(url, { width: 512, margin: 2 });
+  const { url, imagen } = await armarQr(token);
 
   refresh();
-  return { estado: "listo", numero: resultado.numero, url, imagen };
+  return { estado: "listo", etiqueta: `mesa ${resultado.numero}`, url, imagen };
 }
 
 export async function desactivarQrAction(formData: FormData): Promise<void> {
@@ -78,5 +85,35 @@ export async function cambiarEstadoMesaAction(formData: FormData): Promise<void>
   const mesaId = String(formData.get("mesaId") ?? "");
   const activa = formData.get("activa") === "true";
   await cambiarEstadoMesa(restauranteId, mesaId, activa);
+  refresh();
+}
+
+export async function generarQrMostradorAction(
+  _anterior: ResultadoQr,
+  formData: FormData,
+): Promise<ResultadoQr> {
+  const restauranteId = await restauranteDelAdmin();
+  const localId = String(formData.get("localId") ?? "");
+
+  const token = generarToken();
+  const resultado = await reemplazarQrMostrador(restauranteId, localId, hashToken(token));
+
+  if (!resultado.ok) {
+    const mensaje =
+      resultado.motivo === "LOCAL_NO_DISPONIBLE"
+        ? "Este local no está disponible."
+        : "No se pudo generar el QR. Intenta de nuevo.";
+    return { estado: "error", mensaje };
+  }
+
+  const { url, imagen } = await armarQr(token);
+
+  refresh();
+  return { estado: "listo", etiqueta: `mostrador ${resultado.local}`, url, imagen };
+}
+
+export async function desactivarQrMostradorAction(formData: FormData): Promise<void> {
+  const restauranteId = await restauranteDelAdmin();
+  await desactivarQrMostrador(restauranteId, String(formData.get("localId") ?? ""));
   refresh();
 }
