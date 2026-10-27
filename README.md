@@ -141,6 +141,12 @@ Después de cargar el seed en el entorno de desarrollo, agrega una contraseña d
 
 `npm test` ejecuta los casos unitarios de permisos. `npm run test:rls` ejecuta pruebas de integración contra el proyecto enlazado; requiere `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD` en `.env.local`, además del esquema y usuarios demo preparados.
 
+### Sesión de mesa
+
+Para pedidos en mesa, el mesero abre la sesión desde `/mesero`; después el cliente escanea el QR, consulta la carta y realiza su pedido. Al terminar, el mesero cierra la sesión desde el mismo panel. En el MVP, la sesión la abre el mesero.
+
+Para probarlo en desarrollo, inicia sesión en `/login` como `mesero@demo.altoque.pe` con la contraseña ficticia configurada en `DEMO_PASSWORD`, abre una mesa y visita `/m/demo-mesa-1`. Si la mesa no tiene sesión abierta, la carta sigue visible y se indica pedir ayuda al personal. El QR de mostrador `/m/demo-mostrador` no necesita sesión.
+
 ## CI/CD
 
 El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `develop` y `main`, y en cada push a esas ramas. Con Node.js 22, instala las dependencias con `npm ci` y ejecuta, en orden, npm run lint, npm run typecheck, npm test y npm run build para revisar el código, verificar los tipos, correr las pruebas unitarias y comprobar que la aplicación compila. El check se llama verificar. Las pruebas RLS (npm run test:rls) no corren en CI porque necesitan la base de datos; se ejecutan localmente. Las ejecuciones anteriores del mismo PR se cancelan cuando llega una nueva.

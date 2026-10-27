@@ -1,24 +1,213 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatearPrecio } from "./formato";
+import { DetalleProducto } from "./detalle-producto";
+import { PanelCarrito } from "../pedidos/panel-carrito";
+import { registrarPedidoQrAction, type ResultadoRegistroPedido } from "../pedidos/actions";
+import { datosFaltantes, type ConfigParaLlevar, type Modalidad } from "../pedidos/modalidad";
+import { SelectorModalidad } from "../pedidos/selector-modalidad";
+import {
+  agregarAlCarrito,
+  aItemsPedido,
+  cambiarCantidad as actualizarCantidad,
+  quitarDelCarrito,
+  cambiarObservacion as actualizarObservacion,
+} from "../pedidos/carrito-logica";
+import { LIMITES, type ItemCarrito } from "../pedidos/tipos";
 import type { CategoriaConProductos, Producto } from "./tipos";
 
-export function CartaInteractiva({ categorias }: { categorias: CategoriaConProductos[] }) {
+// US-002: de dónde viene el cliente y qué datos pide el restaurante para llevar.
+export type DatosPedidoCliente = {
+  modalidadQr: Modalidad;
+  mesaNumero: number | null;
+  paraLlevar: ConfigParaLlevar;
+};
+
+type Props = {
+  categorias: CategoriaConProductos[];
+  token: string;
+  pedidosHabilitados: boolean;
+  pedido: DatosPedidoCliente;
+  observacionesHabilitadas?: boolean;
+};
+
+export function CartaInteractiva({
+  categorias,
+  token,
+  pedidosHabilitados,
+  pedido,
+  observacionesHabilitadas = false,
+}: Props) {
   const [seleccionado, setSeleccionado] = useState<Producto | null>(null);
   const dialogo = useRef<HTMLDialogElement>(null);
 
+  const [items, setItems] = useState<ItemCarrito[]>([]);
+  const [enviando, setEnviando] = useState(false);
+  const [resultado, setResultado] = useState<ResultadoRegistroPedido | null>(null);
+  const clavePedido = useRef<string | null>(null);
+  // El bloqueo es inmediato, incluso antes del siguiente render de React.
+  const envioEnCurso = useRef(false);
+  const [modalidad, setModalidad] = useState<Modalidad>(pedido.modalidadQr);
+  const [nombre, setNombre] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const faltaDato = datosFaltantes(modalidad, nombre, telefono, pedido.paraLlevar);
+  const [aviso, setAviso] = useState("");
+  const itemsAnteriores = useRef<ItemCarrito[]>([]);
+
+  const productos = useMemo(
+    () => categorias.flatMap((categoria) => categoria.productos),
+    [categorias],
+  );
+
+  // Notifica únicamente los aumentos efectivos del carrito.
+  useEffect(() => {
+    const anteriores = itemsAnteriores.current;
+    itemsAnteriores.current = items;
+
+    const incrementado = items.find((item) => {
+      const anterior = anteriores.find(
+        (previo) => previo.productoId === item.productoId,
+      );
+
+      return item.cantidad > (anterior?.cantidad ?? 0);
+    });
+
+    if (!incrementado) return;
+
+    const producto = productos.find(
+      (producto) => producto.id === incrementado.productoId,
+    );
+
+    if (!producto) return;
+
+    const temporizador = window.setTimeout(() => {
+      setAviso(
+        `${producto.name}: ${incrementado.cantidad} ${
+          incrementado.cantidad === 1 ? "unidad" : "unidades"
+        } en el carrito.`,
+      );
+    }, 0);
+
+    return () => window.clearTimeout(temporizador);
+  }, [items, productos]);
+
+  useEffect(() => {
+    if (!aviso) return;
+
+    const temporizador = window.setTimeout(() => {
+      setAviso("");
+    }, 3000);
+
+    return () => window.clearTimeout(temporizador);
+  }, [aviso]);
+
   function abrirDetalle(producto: Producto) {
+    setAviso("");
     setSeleccionado(producto);
     dialogo.current?.showModal();
   }
 
+  function agregarProducto(producto: Producto) {
+    actualizarCarrito((actuales) => agregarAlCarrito(actuales, producto));
+  }
+
+  function actualizarCarrito(cambiar: (actuales: ItemCarrito[]) => ItemCarrito[]) {
+    if (envioEnCurso.current) return;
+    const nuevos = cambiar(items);
+    if (JSON.stringify(nuevos) === JSON.stringify(items)) return;
+    clavePedido.current = null;
+    setResultado(null);
+    setItems(nuevos);
+  }
+
+  // Cambiar la modalidad o los datos es otro pedido: nueva clave.
+  function cambiarOpciones(cambiar: () => void) {
+    if (envioEnCurso.current) return;
+    cambiar();
+    clavePedido.current = null;
+    setResultado(null);
+  }
+
+  async function confirmar() {
+    if (envioEnCurso.current || !pedidosHabilitados || items.length === 0 || faltaDato) return;
+    envioEnCurso.current = true;
+    setEnviando(true);
+    setResultado(null);
+    try {
+      const entrada = aItemsPedido(items, productos);
+      clavePedido.current ??= crypto.randomUUID();
+      const respuesta = await registrarPedidoQrAction(token, clavePedido.current, entrada, {
+        modalidad,
+        nombre,
+        telefono,
+      });
+      setResultado(respuesta);
+      if (respuesta.ok) {
+        setItems([]);
+        setAviso("");
+        clavePedido.current = null;
+      }
+    } catch (error) {
+      setResultado({
+        ok: false,
+        mensaje: error instanceof Error && error.message.includes("ya no está en la carta")
+          ? error.message
+          : "No se pudo confirmar el pedido. Revisa tu conexión e inténtalo otra vez.",
+      });
+    } finally {
+      envioEnCurso.current = false;
+      setEnviando(false);
+    }
+  }
+
+  function cambiarCantidad(productoId: string, cantidad: number) {
+    const producto = productos.find(
+      (producto) => producto.id === productoId,
+    );
+
+    if (!producto) return;
+
+    actualizarCarrito((actuales) =>
+      actualizarCantidad(actuales, producto, cantidad),
+    );
+  }
+
+  function eliminarProducto(productoId: string) {
+    actualizarCarrito((actuales) =>
+      quitarDelCarrito(actuales, productoId),
+    );
+
+    setAviso("");
+  }
+
+  function cambiarObservacion(
+    productoId: string,
+    observacion: string,
+  ) {
+    actualizarCarrito((actuales) =>
+      actualizarObservacion(
+        actuales,
+        productoId,
+        observacion,
+        observacionesHabilitadas,
+      ),
+    );
+  }
+
   return (
-    <div className="pt-4">
-      <nav aria-label="Categorías de la carta" className="sticky top-0 z-10 -mx-1 mb-6 flex gap-2 overflow-x-auto border-b border-gray-200 bg-background px-1 py-3">
+    <div className="pt-4 pb-28">
+      <nav
+        aria-label="Categorías de la carta"
+        className="sticky top-0 z-10 -mx-1 mb-6 flex gap-2 overflow-x-auto border-b border-gray-200 bg-background px-1 py-3"
+      >
         {categorias.map((categoria) => (
-          <a key={categoria.id} href={`#categoria-${categoria.id}`} className="shrink-0 rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+          <a
+            key={categoria.id}
+            href={`#categoria-${categoria.id}`}
+            className="shrink-0 rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+          >
             {categoria.name}
           </a>
         ))}
@@ -26,20 +215,59 @@ export function CartaInteractiva({ categorias }: { categorias: CategoriaConProdu
 
       <div className="space-y-8">
         {categorias.map((categoria) => (
-          <section key={categoria.id} id={`categoria-${categoria.id}`} aria-labelledby={`titulo-${categoria.id}`} className="scroll-mt-24">
-            <h2 id={`titulo-${categoria.id}`} className="mb-3 text-xl font-bold">{categoria.name}</h2>
+          <section
+            key={categoria.id}
+            id={`categoria-${categoria.id}`}
+            aria-labelledby={`titulo-${categoria.id}`}
+            className="scroll-mt-24"
+          >
+            <h2
+              id={`titulo-${categoria.id}`}
+              className="mb-3 text-xl font-bold"
+            >
+              {categoria.name}
+            </h2>
+
             <ul className="grid gap-3">
               {categoria.productos.map((producto) => (
                 <li key={producto.id}>
-                  <button type="button" onClick={() => abrirDetalle(producto)} aria-haspopup="dialog" className="flex w-full gap-4 rounded-xl border border-gray-200 p-4 text-left transition hover:border-teal-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+                  <button
+                    type="button"
+                    onClick={() => abrirDetalle(producto)}
+                    aria-haspopup="dialog"
+                    className="flex w-full gap-4 rounded-xl border border-gray-200 p-4 text-left transition hover:border-teal-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+                  >
                     {producto.image_url && (
-                      <Image src={producto.image_url} alt={producto.name} width={88} height={88} unoptimized className="h-22 w-22 shrink-0 rounded-lg object-cover" />
+                      <Image
+                        src={producto.image_url}
+                        alt={producto.name}
+                        width={88}
+                        height={88}
+                        unoptimized
+                        className="h-22 w-22 shrink-0 rounded-lg object-cover"
+                      />
                     )}
+
                     <span className="min-w-0 flex-1 space-y-2">
-                      <span className="block break-words font-semibold">{producto.name}</span>
-                      {producto.description && <span className="block break-words text-sm opacity-80">{producto.description}</span>}
-                      <span className="block font-semibold">{formatearPrecio(producto.price)}</span>
-                      {!producto.available && <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">Agotado</span>}
+                      <span className="block break-words font-semibold">
+                        {producto.name}
+                      </span>
+
+                      {producto.description && (
+                        <span className="block break-words text-sm opacity-80">
+                          {producto.description}
+                        </span>
+                      )}
+
+                      <span className="block font-semibold">
+                        {formatearPrecio(producto.price)}
+                      </span>
+
+                      {!producto.available && (
+                        <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+                          Agotado
+                        </span>
+                      )}
                     </span>
                   </button>
                 </li>
@@ -49,22 +277,59 @@ export function CartaInteractiva({ categorias }: { categorias: CategoriaConProdu
         ))}
       </div>
 
-      <dialog ref={dialogo} aria-labelledby="detalle-producto-titulo" className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl bg-background p-6 text-foreground shadow-xl backdrop:bg-black/50">
-        <form method="dialog" className="mb-4 flex justify-end">
-          <button className="rounded-lg border border-gray-300 px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-teal-700">Cerrar detalle</button>
-        </form>
-        {seleccionado && (
-          <div className="space-y-4">
-            {seleccionado.image_url && (
-              <Image src={seleccionado.image_url} alt={seleccionado.name} width={600} height={400} unoptimized className="max-h-72 w-full rounded-xl object-cover" />
-            )}
-            <h2 id="detalle-producto-titulo" className="break-words text-2xl font-bold">{seleccionado.name}</h2>
-            <p className="text-lg font-semibold">{formatearPrecio(seleccionado.price)}</p>
-            {seleccionado.description && <p className="break-words">{seleccionado.description}</p>}
-            {!seleccionado.available && <p className="inline-block rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">Agotado</p>}
-          </div>
-        )}
-      </dialog>
+      <PanelCarrito
+        items={items}
+        productos={productos}
+        cantidadMaxima={LIMITES.cantidadMax}
+        observacionesHabilitadas={observacionesHabilitadas}
+        observacionMaxima={LIMITES.observacionMax}
+        onCambiarCantidad={cambiarCantidad}
+        onEliminar={eliminarProducto}
+        onCambiarObservacion={cambiarObservacion}
+        pedidosHabilitados={pedidosHabilitados}
+        enviando={enviando}
+        resultado={resultado}
+        onConfirmar={confirmar}
+        faltaDato={faltaDato}
+        opciones={
+          <SelectorModalidad
+            modalidadQr={pedido.modalidadQr}
+            mesaNumero={pedido.mesaNumero}
+            config={pedido.paraLlevar}
+            modalidad={modalidad}
+            nombre={nombre}
+            telefono={telefono}
+            onModalidad={(valor) => cambiarOpciones(() => setModalidad(valor))}
+            onNombre={(valor) => cambiarOpciones(() => setNombre(valor))}
+            onTelefono={(valor) => cambiarOpciones(() => setTelefono(valor))}
+          />
+        }
+      />
+
+      {resultado?.ok && (
+        <p role="status" className="my-4 rounded-xl border border-teal-600 p-4 font-semibold">
+          Tu número de pedido es {resultado.numero}
+        </p>
+      )}
+
+      <DetalleProducto
+        producto={seleccionado}
+        dialogoRef={dialogo}
+        onAgregar={agregarProducto}
+        aviso={aviso}
+      />
+
+      <div
+        role="status"
+        aria-atomic="true"
+        className={
+          aviso
+            ? "pointer-events-none fixed inset-x-4 bottom-24 z-40 mx-auto max-w-md rounded-xl border border-teal-600 bg-background px-4 py-3 text-sm font-medium text-foreground shadow-lg"
+            : "sr-only"
+        }
+      >
+        {aviso}
+      </div>
     </div>
   );
 }
