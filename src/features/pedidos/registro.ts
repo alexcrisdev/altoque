@@ -1,5 +1,6 @@
 import "server-only";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
+import type { OpcionesPedido } from "./modalidad";
 import type { LineaValidada } from "./validacion";
 
 export type PedidoRegistrado = { id: string; numero: number; repetido: boolean };
@@ -23,10 +24,12 @@ export async function guardarPedidoQr(
   qrId: string,
   clave: string,
   lineas: LineaValidada[],
+  opciones: OpcionesPedido,
 ): Promise<PedidoRegistrado> {
   try {
     const supabase = crearClienteAdmin();
-    const { data, error } = await supabase.rpc("registrar_pedido_qr", {
+    // US-002: la modalidad la elige el cliente; la base la vuelve a validar.
+    const { data, error } = await supabase.rpc("registrar_pedido_cliente", {
       p_qr_code_id: qrId,
       p_idempotency_key: clave,
       p_items: lineas.map((linea) => ({
@@ -34,6 +37,9 @@ export async function guardarPedidoQr(
         cantidad: linea.cantidad,
         observacion: linea.observacion,
       })),
+      p_modality: opciones.modalidad,
+      p_customer_name: opciones.nombre,
+      p_customer_phone: opciones.telefono,
     }).single();
 
     if (error || !data) {
