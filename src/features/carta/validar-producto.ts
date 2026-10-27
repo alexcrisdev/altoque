@@ -23,7 +23,8 @@ export type ResultadoValidacionProducto =
   | { ok: true; producto: ProductoValidado }
   | { ok: false; errores: Partial<Record<CampoProducto, string>> };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Forma de UUID sin exigir versión: los IDs del seed no son v4 y Postgres valida el resto.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PRECIO_SOLES = /^\d+(?:\.\d{1,2})?$/;
 const PRECIO_MAXIMO = 99_999_999.99;
 
