@@ -40,7 +40,6 @@ dev/<nombre> ──PR──► develop ──(cierre de sprint) PR──► main
      │                  │                                  │
   CI "verificar"     staging                          producción
   + vista previa     + smoke                          + smoke
-  + smoke
 ```
 
 1. **Pull Request a `develop`.** GitHub Actions ejecuta el job `verificar` (lint, tipos, pruebas unitarias y build) y Vercel publica una vista previa. Si `verificar` falla, el PR no se puede unir porque la rama está protegida.
@@ -54,7 +53,7 @@ dev/<nombre> ──PR──► develop ──(cierre de sprint) PR──► main
 
 ## Comprobación después de publicar (smoke test)
 
-Cada vez que Vercel termina un despliegue, el workflow **Smoke despliegue** (`.github/workflows/smoke.yml`) prueba la URL publicada con `scripts/smoke.mjs`. Solo hace lecturas y no crea datos. El resultado aparece en la pestaña **Actions** y en el commit.
+Después de cada push a `develop` o a `main`, el workflow **Smoke despliegue** (`.github/workflows/smoke.yml`) espera a que Vercel termine de publicar y prueba staging o producción con `scripts/smoke.mjs`. Solo hace lecturas y no crea datos. El resultado aparece en la pestaña **Actions**. También se puede lanzar a mano con cualquier URL, por ejemplo la vista previa de un PR: **Actions → Smoke despliegue → Run workflow**.
 
 | Prueba | Qué comprueba |
 |---|---|
