@@ -74,10 +74,10 @@ Abre http://localhost:3000. Las claves de Supabase se piden al equipo por un med
 | Entorno | Dónde corre | Rama | Base de datos | Para qué |
 |---|---|---|---|---|
 | Desarrollo | PC de cada integrante (`npm run dev`) | `dev/<nombre>` | Supabase *altoque-dev* | Programar y probar cada historia |
-| Pruebas (staging) | Vercel | `develop` | Supabase *altoque-staging* | Probar la integración antes de entregar |
-| Producción | Vercel | `main` | Se define en el Sprint 4 | Versión que se presenta |
+| Pruebas (staging) | Vercel | `develop` | Supabase *altoque-dev* | Probar la integración antes de entregar |
+| Producción | Vercel | `main` | Supabase *altoque-dev* | Versión que se presenta |
 
-Las claves de desarrollo van en `.env.local`. Las de staging y producción se configuran en Vercel.
+Las claves de desarrollo van en `.env.local`. Las de staging y producción se configuran en Vercel. Para el MVP todos los entornos comparten la base *altoque-dev*, que solo tiene datos ficticios. Cómo publicar, comprobar y revertir: [docs/despliegue.md](docs/despliegue.md).
 
 ### Comandos
 
@@ -89,6 +89,7 @@ Las claves de desarrollo van en `.env.local`. Las de staging y producción se co
 | `npm run typecheck` | Genera los tipos de Next.js y verifica TypeScript |
 | `npm test` | Ejecuta las pruebas unitarias de permisos |
 | `npm run test:rls` | Ejecuta las pruebas de aislamiento en Supabase; requiere preparar los datos y usuarios demo |
+| `npm run smoke -- <url>` | Comprueba una URL publicada: páginas, login, rutas protegidas y cabeceras de seguridad |
 
 ## Base de datos
 
