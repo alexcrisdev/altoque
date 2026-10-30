@@ -17,6 +17,9 @@ async function AdminPanel() {
       <Link href="/admin/para-llevar" className="mt-4 block underline">
         Pedidos para llevar
       </Link>
+      <Link href="/admin/pedidos" className="mt-4 block underline">
+        Pedidos
+      </Link>
       <form action={cerrarSesion}>
         <button className="mt-4 underline">Cerrar sesión</button>
       </form>
