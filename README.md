@@ -87,8 +87,9 @@ Las claves de desarrollo van en `.env.local`. Las de staging y producción se co
 | `npm run build` | Compila para producción |
 | `npm run lint` | Revisa errores de código |
 | `npm run typecheck` | Genera los tipos de Next.js y verifica TypeScript |
-| `npm test` | Ejecuta las pruebas unitarias de permisos |
+| `npm test` | Ejecuta todas las pruebas unitarias de `tests/unit` |
 | `npm run test:rls` | Ejecuta las pruebas de aislamiento en Supabase; requiere preparar los datos y usuarios demo |
+| `npm run test:cobertura` | Ejecuta las unitarias con cobertura V8 y muestra el reporte |
 | `npm run smoke -- <url>` | Comprueba una URL publicada: páginas, login, rutas protegidas y cabeceras de seguridad |
 
 ## Base de datos
@@ -140,13 +141,29 @@ Después de cargar el seed en el entorno de desarrollo, agrega una contraseña d
 | `caja@demo.altoque.pe` | Cevichería Demo | CASHIER |
 | `dueno@polleria.demo` | Pollería Demo | OWNER |
 
-`npm test` ejecuta los casos unitarios de permisos. `npm run test:rls` ejecuta pruebas de integración contra el proyecto enlazado; requiere `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD` en `.env.local`, además del esquema y usuarios demo preparados.
+`npm test` ejecuta todas las pruebas unitarias. `npm run test:rls` ejecuta pruebas de integración contra la URL de Supabase configurada en `.env.local`; requiere `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD`, además del esquema y usuarios demo preparados. Consulta las condiciones del entorno en el [plan de pruebas](docs/pruebas/plan-de-pruebas.md).
 
 ### Sesión de mesa
 
 Para pedidos en mesa, el mesero abre la sesión desde `/mesero`; después el cliente escanea el QR, consulta la carta y realiza su pedido. Al terminar, el mesero cierra la sesión desde el mismo panel. En el MVP, la sesión la abre el mesero.
 
 Para probarlo en desarrollo, inicia sesión en `/login` como `mesero@demo.altoque.pe` con la contraseña ficticia configurada en `DEMO_PASSWORD`, abre una mesa y visita `/m/demo-mesa-1`. Si la mesa no tiene sesión abierta, la carta sigue visible y se indica pedir ayuda al personal. El QR de mostrador `/m/demo-mostrador` no necesita sesión.
+
+## Pruebas
+
+El [plan de pruebas del sistema](docs/pruebas/plan-de-pruebas.md) define los niveles bottom-up, responsables, datos, criterios de entrada/salida y Definición de Hecho. La [matriz de trazabilidad](docs/pruebas/matriz-trazabilidad.md) identifica qué pruebas cubren cada historia y qué queda pendiente.
+
+| Comando | Alcance y ejecución |
+|---|---|
+| `npm test` | Unitarias de `tests/unit`, incluyendo las variantes parametrizadas. Se ejecutan localmente y en el job `verificar` del CI |
+| `npm run test:rls` | Integración real de permisos y sesiones en `tests/rls`. Manual por ahora; Alina automatiza en US-039. Requiere verificar el entorno, preparar seed/usuarios demo y configurar `.env.local`; puede escribir datos |
+| `npm run test:cobertura` | Unitarias con `@vitest/coverage-v8`; imprime cobertura por sentencias, ramas, funciones y líneas. Los reportes se generan en `coverage/`, ignorado por Git |
+
+La [evidencia de cobertura al inicio del Sprint 3](docs/pruebas/evidencias/cobertura-sprint3-inicio.txt) conserva el resumen obtenido. El reporte predeterminado mide los archivos importados por las unitarias, no todo el sistema, y no sustituye pruebas RLS ni recorridos de navegador. No se añade un umbral ni se modifica el CI en US-038.
+
+Las pruebas funcionales E2E con Playwright se implementarán en US-040 (Erick, Sprint 4); todavía no hay suite `tests/e2e`. La aceptación manual se realizará con guion y evidencia en US-030, y los defectos corregidos se incorporarán a la regresión de US-031.
+
+**Entorno:** la guía actual de [despliegue](docs/despliegue.md#entornos) indica que staging y producción comparten `altoque-dev`. Verifica el destino antes de probar integración; no uses datos reales. La preparación del staging aislado y la automatización se coordinan en US-039. Las credenciales nunca se guardan en la documentación ni en las evidencias.
 
 ## CI/CD
 
