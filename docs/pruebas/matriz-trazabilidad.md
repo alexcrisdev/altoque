@@ -73,7 +73,7 @@ Asignación y títulos confirmados por el equipo para Sprint 3 (30/10–01/11/20
 | US-015 | 3 | Visualizar pedidos en la pantalla de cocina | Verónica | | | | | |
 | US-016 | 3 | Actualizar el estado de preparación | Verónica | | | | | |
 | US-017 | 3 | Identificar incidencias durante la preparación | Verónica | | | | | |
-| US-021 | 3 | Consultar el importe pendiente de pago | Alexander | | | | | |
+| US-021 | 3 | Consultar el importe pendiente de pago | Alexander | `tests/unit/cuenta.test.ts`; prueba manual con usuarios demo contra `altoque-dev` (31/10) | Unitaria + integración manual | 10 unitarios + 8 pasos manuales | Aprobado (parcial; falta E2E) | Unitarias en CI `verificar`. Manual: mesa con saldo → cierre bloqueado (`SALDO_PENDIENTE`); cajero lee la cuenta; anónimo no ve pagos; saldo 0 → cierre permitido |
 | US-029 | 3 | Preparar la publicación de la plataforma | Alexander | `scripts/smoke.mjs` | Funcional/smoke | 9 comprobaciones | Aprobado | [Smoke en GitHub Actions](https://github.com/alexcrisdev/altoque/actions/runs/41140071382) |
 | US-037 | 3 | Consultar el estado de mi pedido | Fabrizio | | | | | |
 | US-038 | 3 | Definir el plan de pruebas del sistema | Erick | | | | | |
