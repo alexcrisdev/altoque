@@ -1,0 +1,54 @@
+US-038 - Cobertura unitaria al inicio del Sprint 3
+Fecha: 30/10/2026, 18:37:46 America/Lima
+Rama: dev/erick. Base integrada: f02180c. Estado: cambios locales US-038, antes del commit.
+Node: v24.22.1
+Vitest: 5.0.5; @vitest/coverage-v8: 5.0.5
+Comando: npm run test:cobertura
+Alcance predeterminado: archivos importados por tests/unit; no equivale a todo src.
+No incluye ejecucion RLS real, SQL, E2E ni aceptacion.
+Exit code: 0
+
+
+> altoque@0.1.0 test:cobertura
+> vitest run tests/unit --coverage
+
+
+ RUN  v5.0.5 C:/Users/erick/altoque
+      Coverage enabled with v8
+
+
+ Test Files  13 passed (13)
+      Tests  192 passed (192)
+   Start at  18:37:44
+   Duration  1.21s (transform 51%, import 26%, worker 17%, tests 6%)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   77.23 |    74.66 |   66.37 |   79.39 |                   
+ carta             |    69.1 |    60.74 |    46.8 |   74.83 |                   
+  ...teractiva.tsx |    55.1 |    53.65 |   34.28 |   61.44 | ...89-190,236-304 
+  carta.ts         |   54.54 |    29.41 |     100 |      60 | 30,42-45          
+  ...-producto.tsx |   66.66 |    18.75 |   33.33 |   66.66 | 19,99             
+  ...r-producto.ts |   92.45 |    83.63 |     100 |     100 | ...44,50,54-60,74 
+ mesero            |   56.47 |    59.15 |   77.77 |   56.33 |                   
+  actions.ts       |   46.15 |     37.5 |      60 |   45.65 | 24-61,88          
+  ...d-asistida.ts |   72.72 |    76.92 |     100 |      76 | 52-54,58-64       
+ pedidos           |   91.11 |    86.69 |   78.94 |   90.59 |                   
+  actions.ts       |   85.18 |    88.88 |     100 |      84 | 32,39,48,66       
+  ...ito-logica.ts |   97.91 |    94.87 |     100 |     100 | 74,105            
+  carrito.tsx      |    62.5 |     61.9 |   44.44 |    62.5 | 63-71,114-168     
+  estados.ts       |      80 |       50 |      75 |   77.77 | 46-53             
+  modalidad.ts     |     100 |    97.95 |     100 |     100 | 88                
+  ...l-carrito.tsx |   84.21 |    80.85 |      75 |   84.21 | 46-52             
+  productos.ts     |     100 |    84.61 |     100 |     100 | 31,41             
+  ...modalidad.tsx |   42.85 |       30 |      20 |   42.85 | 32-67             
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 77.23% ( 380/492 )
+Branches     : 74.66% ( 339/454 )
+Functions    : 66.37% ( 77/116 )
+Lines        : 79.39% ( 339/427 )
+================================================================================
