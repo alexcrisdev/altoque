@@ -1,15 +1,29 @@
 import { Suspense } from "react";
+import {
+  EncabezadoPantalla,
+  MensajeEstado,
+  Tarjeta,
+} from "@/components/ui";
 import { CartaRestaurante } from "@/features/carta/carta-restaurante";
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { buscarSesionAbierta } from "@/features/mesero/sesiones";
 import { obtenerConfigParaLlevar } from "@/features/pedidos/para-llevar";
 
-type Props = { params: Promise<{ token: string }> };
+type Props = {
+  params: Promise<{ token: string }>;
+};
 
 export default function PaginaQr({ params }: Props) {
   return (
-    <main className="mx-auto max-w-md p-6">
-      <Suspense fallback={<p>Cargando...</p>}>
+    <main className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
+      <Suspense
+        fallback={
+          <MensajeEstado
+            tipo="cargando"
+            titulo="Cargando..."
+          />
+        }
+      >
         <Contenido params={params} />
       </Suspense>
     </main>
@@ -22,68 +36,76 @@ async function Contenido({ params }: Props) {
 
   if (acceso.estado === "INVALIDO") {
     return (
-      <Aviso
+      <MensajeEstado
+        tipo="error"
         titulo="Código QR no válido"
-        mensaje="Este código no pertenece a ninguna mesa. Pide ayuda al personal."
+        descripcion="Este código no pertenece a ninguna mesa. Pide ayuda al personal."
       />
     );
   }
 
   if (acceso.estado === "DESHABILITADO") {
     return (
-      <Aviso
+      <MensajeEstado
+        tipo="error"
         titulo="Mesa no disponible"
-        mensaje="Esta mesa o este código QR está deshabilitado. Pide ayuda al personal."
+        descripcion="Esta mesa o este código QR está deshabilitado. Pide ayuda al personal."
       />
     );
   }
 
   let sesionId: string | null = null;
+
   if (acceso.modalidad === "DINE_IN" && acceso.mesa) {
     const sesionAbierta = await buscarSesionAbierta(acceso.mesa.id);
+
     // La sesión siempre se obtiene en el servidor desde la mesa resuelta por el QR.
     // US-009 deberá resolverla otra vez en servidor; no confiar en un ID del navegador.
     sesionId = sesionAbierta?.id ?? null;
   }
 
-  const paraLlevar = await obtenerConfigParaLlevar(acceso.restauranteId);
+  const paraLlevar = await obtenerConfigParaLlevar(
+    acceso.restauranteId,
+  );
 
   return (
-    <section className="space-y-2">
-      <p className="text-sm text-gray-500">
-        {acceso.restauranteNombre} · {acceso.localNombre}
-      </p>
-      <h1 className="text-2xl font-bold">
-        {acceso.mesa ? `Mesa ${acceso.mesa.numero}` : "Pedido para llevar"}
-      </h1>
-      <p className="rounded-lg bg-zinc-100 p-3 text-sm text-zinc-700">
-        ¿Prefieres que te atiendan? Llama al mesero y él registra tu pedido desde su panel.
-      </p>
+    <section className="space-y-4">
+      <EncabezadoPantalla
+        titulo={
+          acceso.mesa
+            ? `Mesa ${acceso.mesa.numero}`
+            : "Pedido para llevar"
+        }
+        subtitulo={`${acceso.restauranteNombre} · ${acceso.localNombre}`}
+      />
+
+      <Tarjeta>
+        <p className="text-sm text-texto-suave">
+          ¿Prefieres que te atiendan? Llama al mesero y él registra
+          tu pedido desde su panel.
+        </p>
+      </Tarjeta>
+
       {acceso.modalidad === "DINE_IN" && !sesionId && (
-        <Aviso
+        <MensajeEstado
+          tipo="vacio"
           titulo="Esta mesa todavía no está habilitada"
-          mensaje="Pide al mesero que la abra para poder hacer tu pedido. Para llamar al personal, levanta la mano o haz una señal al mesero."
+          descripcion="Pide al mesero que la abra para poder hacer tu pedido. Para llamar al personal, levanta la mano o haz una señal al mesero."
         />
       )}
+
       <CartaRestaurante
         restauranteId={acceso.restauranteId}
         token={token}
-        pedidosHabilitados={acceso.modalidad === "TAKEAWAY" || sesionId !== null}
+        pedidosHabilitados={
+          acceso.modalidad === "TAKEAWAY" || sesionId !== null
+        }
         pedido={{
           modalidadQr: acceso.modalidad,
           mesaNumero: acceso.mesa?.numero ?? null,
           paraLlevar,
         }}
       />
-    </section>
-  );
-}
-
-function Aviso({ titulo, mensaje }: { titulo: string; mensaje: string }) {
-  return (
-    <section className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900">
-      <h1 className="text-lg font-semibold">{titulo}</h1>
-      <p>{mensaje}</p>
     </section>
   );
 }

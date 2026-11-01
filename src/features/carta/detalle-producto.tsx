@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { RefObject } from "react";
+import { Boton, Insignia } from "../../components/ui";
 import { formatearPrecio } from "./formato";
 import type { Producto } from "./tipos";
 
@@ -12,7 +13,12 @@ type Props = {
   aviso: string;
 };
 
-export function DetalleProducto({ producto, dialogoRef, onAgregar, aviso }: Props) {
+export function DetalleProducto({
+  producto,
+  dialogoRef,
+  onAgregar,
+  aviso,
+}: Props) {
   const ingredientes = producto?.ingredients?.trim();
 
   const alergenos = (producto?.allergens ?? [])
@@ -23,15 +29,12 @@ export function DetalleProducto({ producto, dialogoRef, onAgregar, aviso }: Prop
     <dialog
       ref={dialogoRef}
       aria-labelledby="detalle-producto-titulo"
-      className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl bg-background p-6 text-foreground shadow-xl backdrop:bg-black/50"
+      className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-borde bg-superficie p-6 text-texto shadow-xl backdrop:bg-black/50"
     >
       <form method="dialog" className="mb-4 flex justify-end">
-        <button
-          type="submit"
-          className="min-h-11 rounded-lg border border-gray-300 px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-teal-700"
-        >
+        <Boton type="submit" variante="secundario">
           Cerrar detalle
-        </button>
+        </Boton>
       </form>
 
       {producto && (
@@ -49,25 +52,31 @@ export function DetalleProducto({ producto, dialogoRef, onAgregar, aviso }: Prop
 
           <h2
             id="detalle-producto-titulo"
-            className="break-words text-2xl font-bold"
+            className="break-words text-2xl font-bold text-texto"
           >
             {producto.name}
           </h2>
 
-          <p className="text-lg font-semibold">
+          <p className="text-lg font-semibold text-texto">
             {formatearPrecio(producto.price)}
           </p>
 
           {producto.description && (
-            <p className="break-words">{producto.description}</p>
+            <p className="break-words text-texto-suave">
+              {producto.description}
+            </p>
           )}
 
           {ingredientes && (
             <section aria-labelledby="detalle-ingredientes">
-              <h3 id="detalle-ingredientes" className="font-semibold">
+              <h3
+                id="detalle-ingredientes"
+                className="font-semibold text-texto"
+              >
                 Ingredientes
               </h3>
-              <p className="mt-1 whitespace-pre-line break-words">
+
+              <p className="mt-1 whitespace-pre-line break-words text-texto-suave">
                 {ingredientes}
               </p>
             </section>
@@ -76,11 +85,15 @@ export function DetalleProducto({ producto, dialogoRef, onAgregar, aviso }: Prop
           {alergenos.length > 0 && (
             <section
               aria-labelledby="detalle-alergenos"
-              className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900"
+              className="rounded-xl border border-aviso-borde bg-aviso-fondo p-4 text-aviso-texto"
             >
-              <h3 id="detalle-alergenos" className="font-semibold">
+              <h3
+                id="detalle-alergenos"
+                className="font-semibold"
+              >
                 Advertencias alimentarias
               </h3>
+
               <p className="mt-1 break-words">
                 Contiene: {alergenos.join(", ")}
               </p>
@@ -88,21 +101,25 @@ export function DetalleProducto({ producto, dialogoRef, onAgregar, aviso }: Prop
           )}
 
           {!producto.available && (
-            <p className="inline-block rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
+            <Insignia tono="neutro">
               Agotado
-            </p>
+            </Insignia>
           )}
 
-          <button
+          <Boton
             type="button"
+            variante="primario"
+            tamano="lg"
             disabled={!producto.available}
             onClick={() => onAgregar(producto)}
-            className="min-h-11 w-full rounded-lg bg-teal-700 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full"
           >
-            {producto.available ? "Agregar al carrito" : "Producto agotado"}
-          </button>
+            {producto.available
+              ? "Agregar al carrito"
+              : "Producto agotado"}
+          </Boton>
 
-          <p role="status" className="text-sm">
+          <p role="status" className="text-sm text-texto-suave">
             {aviso}
           </p>
         </div>

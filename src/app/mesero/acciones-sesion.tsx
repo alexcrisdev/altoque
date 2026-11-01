@@ -1,25 +1,51 @@
 "use client";
 
 import { useActionState } from "react";
-import { abrirSesionAction, cerrarSesionAction } from "@/features/mesero/actions";
+import { Boton } from "@/components/ui";
+import {
+  abrirSesionAction,
+  cerrarSesionAction,
+} from "@/features/mesero/actions";
 
-const ESTADO_INICIAL = { tipo: "inicial" as const, mensaje: "" };
+const ESTADO_INICIAL = {
+  tipo: "inicial" as const,
+  mensaje: "",
+};
 
-export function BotonAbrirSesion({ mesaId }: { mesaId: string }) {
-  const [estado, action, pendiente] = useActionState(abrirSesionAction, ESTADO_INICIAL);
+export function BotonAbrirSesion({
+  mesaId,
+}: {
+  mesaId: string;
+}) {
+  const [estado, action, pendiente] = useActionState(
+    abrirSesionAction,
+    ESTADO_INICIAL,
+  );
 
   return (
-    <form action={action} className="flex flex-col items-start gap-2">
+    <form
+      action={action}
+      className="flex flex-col items-start gap-2"
+    >
       <input type="hidden" name="mesaId" value={mesaId} />
-      <button
+
+      <Boton
         type="submit"
+        variante="primario"
         disabled={pendiente}
-        className="min-h-11 rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white disabled:opacity-60"
       >
         {pendiente ? "Abriendo…" : "Abrir sesión"}
-      </button>
+      </Boton>
+
       {estado.mensaje && (
-        <p role="status" className={estado.tipo === "error" ? "text-sm text-red-700" : "text-sm text-emerald-800"}>
+        <p
+          role="status"
+          className={`text-sm ${
+            estado.tipo === "error"
+              ? "text-peligro-texto"
+              : "text-exito-texto"
+          }`}
+        >
           {estado.mensaje}
         </p>
       )}
@@ -27,27 +53,53 @@ export function BotonAbrirSesion({ mesaId }: { mesaId: string }) {
   );
 }
 
-export function BotonCerrarSesion({ sesionId }: { sesionId: string }) {
-  const [estado, action, pendiente] = useActionState(cerrarSesionAction, ESTADO_INICIAL);
+export function BotonCerrarSesion({
+  sesionId,
+}: {
+  sesionId: string;
+}) {
+  const [estado, action, pendiente] = useActionState(
+    cerrarSesionAction,
+    ESTADO_INICIAL,
+  );
 
   return (
     <form
       action={action}
       className="flex flex-col items-start gap-2"
       onSubmit={(evento) => {
-        if (!window.confirm("¿Quieres cerrar la sesión de esta mesa?")) evento.preventDefault();
+        if (
+          !window.confirm(
+            "¿Quieres cerrar la sesión de esta mesa?",
+          )
+        ) {
+          evento.preventDefault();
+        }
       }}
     >
-      <input type="hidden" name="sesionId" value={sesionId} />
-      <button
+      <input
+        type="hidden"
+        name="sesionId"
+        value={sesionId}
+      />
+
+      <Boton
         type="submit"
+        variante="secundario"
         disabled={pendiente}
-        className="min-h-11 rounded-lg border border-zinc-400 px-4 py-2 font-medium disabled:opacity-60"
       >
         {pendiente ? "Cerrando…" : "Cerrar sesión"}
-      </button>
+      </Boton>
+
       {estado.mensaje && (
-        <p role="status" className={estado.tipo === "error" ? "text-sm text-red-700" : "text-sm text-emerald-800"}>
+        <p
+          role="status"
+          className={`text-sm ${
+            estado.tipo === "error"
+              ? "text-peligro-texto"
+              : "text-exito-texto"
+          }`}
+        >
           {estado.mensaje}
         </p>
       )}

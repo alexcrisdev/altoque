@@ -1,22 +1,89 @@
 import { Suspense } from "react";
+import {
+  Boton,
+  EncabezadoPantalla,
+  MensajeEstado,
+  Tarjeta,
+} from "@/components/ui";
 import { iniciarSesion } from "@/features/auth/actions";
 
-async function LoginForm({ searchParams }: PageProps<"/login">) {
+async function LoginForm({
+  searchParams,
+}: PageProps<"/login">) {
   const { error } = await searchParams;
+
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
-      <h1 className="text-3xl font-bold">Iniciar sesión en AlToque</h1>
-      <p className="mt-2 text-zinc-600">Acceso para el equipo del restaurante.</p>
-      {error && <p role="alert" className="mt-4 text-red-700">Correo o contraseña incorrectos.</p>}
-      <form action={iniciarSesion} className="mt-6 grid gap-4">
-        <label className="grid gap-1">Correo<input name="email" type="email" autoComplete="username" required className="rounded border p-2" /></label>
-        <label className="grid gap-1">Contraseña<input name="password" type="password" autoComplete="current-password" required className="rounded border p-2" /></label>
-        <button className="rounded bg-teal-700 px-4 py-2 font-semibold text-white">Entrar</button>
-      </form>
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-12 sm:px-6">
+      <Tarjeta>
+        <EncabezadoPantalla
+          titulo="Iniciar sesión en AlToque"
+          subtitulo="Acceso para el equipo del restaurante."
+        />
+
+        {error && (
+          <MensajeEstado
+            tipo="error"
+            titulo="Correo o contraseña incorrectos."
+          />
+        )}
+
+        <form
+          action={iniciarSesion}
+          className="mt-6 grid gap-4"
+        >
+          <label className="grid gap-2 text-sm font-medium">
+            Correo
+
+            <input
+              name="email"
+              type="email"
+              autoComplete="username"
+              required
+              className="min-h-11 w-full rounded-xl border border-borde bg-superficie px-3 py-2 text-base text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-medium">
+            Contraseña
+
+            <input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="min-h-11 w-full rounded-xl border border-borde bg-superficie px-3 py-2 text-base text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
+            />
+          </label>
+
+          <Boton
+            type="submit"
+            variante="primario"
+            tamano="lg"
+            className="w-full"
+          >
+            Entrar
+          </Boton>
+        </form>
+      </Tarjeta>
     </main>
   );
 }
 
-export default function LoginPage(props: PageProps<"/login">) {
-  return <Suspense fallback={<main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">Cargando…</main>}><LoginForm {...props} /></Suspense>;
+export default function LoginPage(
+  props: PageProps<"/login">,
+) {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-12 sm:px-6">
+          <MensajeEstado
+            tipo="cargando"
+            titulo="Cargando…"
+          />
+        </main>
+      }
+    >
+      <LoginForm {...props} />
+    </Suspense>
+  );
 }
