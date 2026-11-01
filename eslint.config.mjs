@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    // Reportes generados por Vitest; no son código de la aplicación.
+    "coverage/**",
     "next-env.d.ts",
   ]),
 ]);

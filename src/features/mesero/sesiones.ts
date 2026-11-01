@@ -16,7 +16,7 @@ export type SesionAbiertaCliente = { id: string; abiertaDesde: string };
 
 type ResultadoOperacion =
   | { ok: true }
-  | { ok: false; motivo: "MESA_NO_DISPONIBLE" | "SESION_DUPLICADA" | "NO_ENCONTRADA" | "ERROR" };
+  | { ok: false; motivo: "MESA_NO_DISPONIBLE" | "SESION_DUPLICADA" | "NO_ENCONTRADA" | "SALDO_PENDIENTE" | "ERROR" };
 
 // El cliente QR es anónimo, por eso esta consulta de solo lectura se resuelve
 // en el servidor con el cliente admin y únicamente devuelve datos necesarios.
@@ -135,6 +135,8 @@ export async function cerrarSesion(
     .select("id");
 
   if (error) {
+    // US-021: la base no deja cerrar una mesa con saldo pendiente.
+    if (error.message.includes("SALDO_PENDIENTE")) return { ok: false, motivo: "SALDO_PENDIENTE" };
     console.error("cerrarSesion", error.code);
     return { ok: false, motivo: "ERROR" };
   }

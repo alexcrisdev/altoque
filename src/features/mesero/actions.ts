@@ -49,7 +49,7 @@ export async function cerrarSesionAction(
   const sesionId = String(formData.get("sesionId") ?? "");
   if (!sesionId) return { tipo: "error", mensaje: "No se encontró una sesión válida." };
 
-  // TODO US-020: exigir que la cuenta esté pagada antes de cerrar la sesión.
+  // US-021: la base impide cerrar con saldo pendiente. La excepción autorizada llega en US-020.
   const resultado = await cerrarSesion(restauranteId, sesionId, sesion.usuario.id);
   if (resultado.ok) {
     refresh();
@@ -57,6 +57,9 @@ export async function cerrarSesionAction(
   }
   if (resultado.motivo === "NO_ENCONTRADA") {
     return { tipo: "error", mensaje: "No se encontró una sesión abierta para esa mesa." };
+  }
+  if (resultado.motivo === "SALDO_PENDIENTE") {
+    return { tipo: "error", mensaje: "La mesa tiene saldo pendiente. Cobra la cuenta en caja antes de cerrarla." };
   }
   return { tipo: "error", mensaje: "No se pudo cerrar la sesión. Inténtalo de nuevo." };
 }
