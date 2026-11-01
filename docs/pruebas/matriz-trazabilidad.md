@@ -66,7 +66,7 @@ Asignación y títulos confirmados por el equipo para Sprint 3 (30/10–01/11/20
 | Historia | Sprint | Título | Responsable | Archivo(s)/caso(s) | Nivel | Cantidad | Resultado | Evidencia |
 |---|---|---|---|---|---|---|---|---|
 | US-010 | 3 | Consultar el historial de estados del pedido | Alina | `tests/unit/estados-pedido.test.ts` | Unitaria | 16 | Aprobado (parcial; falta E2E) | `npm test`; [ejecución unitaria con cobertura](evidencias/cobertura-sprint3-inicio.txt) |
-| US-011 | 3 | Modificar o cancelar pedidos | Alina | | | | | |
+| US-011 | 3 | Modificar o cancelar pedidos | Alina | `tests/unit/modificar-pedido.test.ts` | Unitaria | 22 | Aprobado (parcial; falta aplicar migración y recorrido en navegador) | `npm test`: 214 casos aprobados en la suite; validación de permisos por estado, motivo, productos, cantidades y totales |
 | US-012 | 3 | Visualizar mesas y pedidos activos | Erick | | | | | |
 | US-013 | 3 | Recibir alertas de nuevos pedidos y solicitudes de ayuda | Erick | | | | | |
 | US-014 | 3 | Confirmar la entrega y registrar incidencias | Alina | | | | | |
