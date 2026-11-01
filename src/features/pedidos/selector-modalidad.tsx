@@ -1,6 +1,11 @@
 "use client";
 
-import { NOMBRE_MAX, type ConfigParaLlevar, type Modalidad } from "./modalidad";
+import { Insignia } from "../../components/ui";
+import {
+  NOMBRE_MAX,
+  type ConfigParaLlevar,
+  type Modalidad,
+} from "./modalidad";
 
 type Props = {
   modalidadQr: Modalidad;
@@ -18,61 +23,104 @@ type Props = {
 export function SelectorModalidad(props: Props) {
   const desdeMesa = props.modalidadQr === "DINE_IN";
 
+  const claseOpcion =
+    "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl " +
+    "border border-borde bg-superficie px-3 py-2 text-sm " +
+    "has-checked:border-marca has-checked:bg-superficie-suave " +
+    "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 " +
+    "has-focus-visible:outline-marca";
+
+  const claseEntrada =
+    "min-h-11 w-full rounded-xl border border-borde " +
+    "bg-superficie px-3 py-2 text-base text-texto " +
+    "focus-visible:outline-2 focus-visible:outline-offset-2 " +
+    "focus-visible:outline-marca";
+
   return (
-    <fieldset className="space-y-3 rounded-xl border border-gray-300 p-3">
-      <legend className="px-1 font-semibold">¿Cómo quieres tu pedido?</legend>
+    <fieldset className="space-y-4 rounded-xl border border-borde bg-superficie p-4 text-texto">
+      <legend className="px-1 font-semibold">
+        ¿Cómo quieres tu pedido?
+      </legend>
 
       {desdeMesa ? (
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="flex min-h-11 items-center gap-2 rounded-lg border px-3">
+          <label className={claseOpcion}>
             <input
               type="radio"
               name="modalidad"
               checked={props.modalidad === "DINE_IN"}
               onChange={() => props.onModalidad("DINE_IN")}
+              className="h-4 w-4 shrink-0 accent-marca"
             />
-            Comer aquí{props.mesaNumero ? ` (Mesa ${props.mesaNumero})` : ""}
+
+            <span>
+              Comer aquí
+              {props.mesaNumero
+                ? ` (Mesa ${props.mesaNumero})`
+                : ""}
+            </span>
           </label>
-          <label className="flex min-h-11 items-center gap-2 rounded-lg border px-3">
+
+          <label className={claseOpcion}>
             <input
               type="radio"
               name="modalidad"
               checked={props.modalidad === "TAKEAWAY"}
               onChange={() => props.onModalidad("TAKEAWAY")}
+              className="h-4 w-4 shrink-0 accent-marca"
             />
-            Para llevar
+
+            <span>Para llevar</span>
           </label>
         </div>
       ) : (
-        <p className="text-sm">Pedido para llevar.</p>
+        <Insignia tono="info">
+          Pedido para llevar.
+        </Insignia>
       )}
 
       {props.modalidad === "TAKEAWAY" && (
-        <div className="grid gap-2">
-          <label className="grid gap-1 text-sm">
-            Nombre{props.config.pideNombre ? "" : " (opcional)"}
+        <div className="grid gap-3">
+          <label className="grid gap-2 text-sm font-medium">
+            <span>
+              Nombre
+              {props.config.pideNombre ? "" : " (opcional)"}
+            </span>
+
             <input
               value={props.nombre}
-              onChange={(e) => props.onNombre(e.target.value)}
+              onChange={(event) =>
+                props.onNombre(event.target.value)
+              }
               maxLength={NOMBRE_MAX}
               autoComplete="given-name"
               required={props.config.pideNombre}
-              className="rounded border p-2 text-base"
+              className={claseEntrada}
             />
           </label>
-          <label className="grid gap-1 text-sm">
-            Teléfono{props.config.pideTelefono ? "" : " (opcional)"}
+
+          <label className="grid gap-2 text-sm font-medium">
+            <span>
+              Teléfono
+              {props.config.pideTelefono ? "" : " (opcional)"}
+            </span>
+
             <input
               value={props.telefono}
-              onChange={(e) => props.onTelefono(e.target.value)}
+              onChange={(event) =>
+                props.onTelefono(event.target.value)
+              }
               inputMode="tel"
               autoComplete="tel"
               maxLength={20}
               required={props.config.pideTelefono}
-              className="rounded border p-2 text-base"
+              className={claseEntrada}
             />
           </label>
-          <p className="text-xs text-zinc-600">Solo se usan para avisarte cuando tu pedido esté listo.</p>
+
+          <p className="text-xs text-texto-suave">
+            Solo se usan para avisarte cuando tu pedido esté listo.
+          </p>
         </div>
       )}
     </fieldset>
