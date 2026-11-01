@@ -4,6 +4,8 @@ import { Boton, clasesBoton, EncabezadoPantalla, Insignia, MensajeEstado, Tarjet
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
 import { obtenerPanelCocina } from "@/features/cocina/actions";
 import { ContenidoConservado } from "@/features/cocina/contenido-conservado";
+import { AvisosCocina } from "@/features/cocina/avisos-cocina";
+import { BotonAvanzarEstado } from "@/features/cocina/boton-avanzar-estado";
 import { agruparPorEstado, filtrarPorEstado, minutosDesde, normalizarFiltro } from "@/features/cocina/cocina-logica";
 import { ESTADOS_ACTIVOS, ETIQUETA_ESTADO, TONO_ESTADO } from "@/features/pedidos/estados";
 import { describirDestino } from "@/features/pedidos/modalidad";
@@ -24,7 +26,7 @@ async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
   return <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
     <EncabezadoPantalla titulo="Cocina" subtitulo="Prepara los pedidos en orden de llegada."
       acciones={<form action={cerrarSesion}><Boton variante="secundario" type="submit">Cerrar sesión</Boton></form>} />
-    <ActualizacionAutomatica />
+    <AvisosCocina><ActualizacionAutomatica />
     <ContenidoConservado key={`${resultado.restauranteId}:${filtro}`} actualizadoEn={ahora} error={!resultado.ok}>
       {!resultado.ok ? <MensajeEstado tipo="error" titulo="No pudimos cargar los pedidos"
         descripcion="Revisa tu conexión. Volveremos a intentarlo automáticamente." /> : <>
@@ -66,11 +68,13 @@ async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
                     </p>}
                   </li>)}
                 </ul>
+                {pedido.estado === "READY" ? <p className="mt-4 text-sm font-semibold text-texto-suave">Esperando al mesero</p>
+                  : <BotonAvanzarEstado key={`${pedido.id}:${pedido.estado}`} pedidoId={pedido.id} estado={pedido.estado} numero={pedido.numero} />}
               </Tarjeta>
             </li>)}
           </ul>}
       </>}
-    </ContenidoConservado>
+    </ContenidoConservado></AvisosCocina>
   </main>;
 }
 
