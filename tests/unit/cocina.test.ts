@@ -1,6 +1,7 @@
 ﻿import { describe, expect, it } from "vitest";
 import { ordenarPorLlegada, agruparPorEstado, filtrarPorEstado, minutosDesde } from "../../src/features/cocina/cocina-logica";
 import type { PedidoCocina } from "../../src/features/cocina/tipos";
+import { renderizarCocinaHtml } from "../../src/features/cocina/html";
 
 function pedido(id: string, estado: PedidoCocina["estado"], minuto: number): PedidoCocina {
   return {
@@ -12,6 +13,32 @@ function pedido(id: string, estado: PedidoCocina["estado"], minuto: number): Ped
 const pedidos = [pedido("nuevo", "PENDING", 20), pedido("preparacion", "IN_PROGRESS", 15),
   pedido("listo", "READY", 10), pedido("aceptado", "ACCEPTED", 5), pedido("antiguo", "PENDING", 1),
   pedido("entregado", "DELIVERED", 0), pedido("cancelado", "CANCELLED", 2)];
+
+describe("vista HTML sin JavaScript", () => {
+  it("muestra los pedidos, observaciones y enlaces sin scripts", () => {
+    const html = renderizarCocinaHtml(pedidos, "PENDING", "2026-10-31T15:30:00Z");
+    expect(html).toContain("N.º 20 · Nuevo");
+    expect(html).toContain("Observación: Sin ají");
+    expect(html).toContain('href="/cocina/html?estado=ACCEPTED"');
+    expect(html).toContain('aria-current="page">Nuevos (2)');
+    expect(html).not.toContain("<script");
+    expect(html.indexOf("N.º 1 · Nuevo")).toBeLessThan(html.indexOf("N.º 20 · Nuevo"));
+  });
+  it("escapa contenido que podría interpretarse como HTML", () => {
+    const peligroso = { ...pedidos[0], nombreCliente: '<script>alert("x")</script>', modalidad: "TAKEAWAY" as const,
+      items: [{ nombre: "<img src=x>", cantidad: 1, observacion: "<script>robar()</script>" }] };
+    const html = renderizarCocinaHtml([peligroso], "TODOS", "2026-10-31T15:30:00Z");
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;script&gt;");
+  });
+  it("distingue un fallo de lectura de una lista vacía", () => {
+    expect(renderizarCocinaHtml([], "TODOS", "2026-10-31T15:30:00Z")).toContain("No hay pedidos pendientes");
+    const error = renderizarCocinaHtml([], "TODOS", "2026-10-31T15:30:00Z", true);
+    expect(error).toContain("No pudimos cargar los pedidos");
+    expect(error).not.toContain("No hay pedidos pendientes");
+  });
+});
 
 describe("orden y agrupación", () => {
   it("ordena por llegada sin modificar la entrada", () => {
