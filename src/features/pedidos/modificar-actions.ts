@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requerirRol } from "@/features/auth/sesion";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { calcularNuevoTotalCentimos, mensajeErrorModificacion, puedeModificar, requiereMotivoModificacion, validarCambios, type CambioPedido } from "./modificacion";
+import { mensajeErrorModificacion, puedeModificar, requiereMotivoModificacion, validarCambios, type CambioPedido } from "./modificacion";
 import { obtenerDetallePedido } from "./pedidos-admin";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -35,6 +35,10 @@ export async function modificarPedido(pedidoId: string, cambios: CambioPedido[],
       p_motivo: motivo?.trim() || null,
     });
     const codigo = error && codigos.find((c) => error.message.includes(c));
+    if (error?.code === "PGRST202") {
+      console.error("modificarPedido: función RPC no disponible", error.code, error.message);
+      return { ok: false, mensaje: "La base aún no tiene disponible modificar_pedido. Solicita a Alexander revisar y aplicar la migración US-011." };
+    }
     return { ok: false, mensaje: mensajeErrorModificacion(codigo ?? "ORDER_NOT_FOUND") };
   }
   const roles = sesion.membresias.filter((m) => m.restaurantId === restaurantePedido && rolesPermitidos.includes(m.rol as typeof rolesPermitidos[number])).map((m) => m.rol);
@@ -42,22 +46,31 @@ export async function modificarPedido(pedidoId: string, cambios: CambioPedido[],
   if (detalle.estado === "READY" || detalle.estado === "DELIVERED" || detalle.estado === "CANCELLED") return { ok: false, mensaje: mensajeErrorModificacion("INVALID_STATE") };
   if (!puedeModificar(detalle.estado, roles)) return { ok: false, mensaje: mensajeErrorModificacion("FORBIDDEN") };
   if (requiereMotivoModificacion(detalle.estado) && !motivo?.trim()) return { ok: false, mensaje: mensajeErrorModificacion("REASON_REQUIRED") };
+  if (motivo?.trim() && motivo.trim().length > 200) return { ok: false, mensaje: mensajeErrorModificacion("INVALID_CHANGES") };
   const validacion = validarCambios(detalle.items, cambios);
   if (!validacion.ok) return { ok: false, mensaje: mensajeErrorModificacion(validacion.codigo) };
 
-  const { error } = await supabase.rpc("modificar_pedido", {
+  const { data, error } = await supabase.rpc("modificar_pedido", {
     p_pedido_id: pedidoId,
     p_cambios: cambios as never,
     p_motivo: motivo?.trim() || null,
   });
   if (error) {
     const codigo = codigos.find((c) => error.message.includes(c));
-    return { ok: false, mensaje: mensajeErrorModificacion(codigo ?? "") };
+    console.error("modificarPedido", error.code, error.message);
+    if (error.code === "PGRST202") {
+      return { ok: false, mensaje: "La base aún no tiene disponible modificar_pedido. Solicita a Alexander revisar y aplicar la migración US-011." };
+    }
+    return { ok: false, mensaje: codigo ? mensajeErrorModificacion(codigo) : `No se guardó el cambio (error ${error.code}). Revisa el registro del servidor.` };
+  }
+  if (data === null) {
+    console.error("modificarPedido: RPC terminó sin devolver el total");
+    return { ok: false, mensaje: "La base no devolvió el total actualizado. El servidor registró el problema." };
   }
   revalidatePath("/cocina");
   revalidatePath("/mesero");
   revalidatePath("/admin/pedidos");
   revalidatePath(`/admin/pedidos/${pedidoId}`);
   revalidatePath(`/mesero/pedidos/${pedidoId}`);
-  return { ok: true, mensaje: "Pedido modificado.", totalCentimos: calcularNuevoTotalCentimos(detalle.items, cambios) };
+  return { ok: true, mensaje: "Pedido modificado.", totalCentimos: Math.round(Number(data) * 100) };
 }

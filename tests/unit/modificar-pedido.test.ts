@@ -42,4 +42,16 @@ describe("modificación de pedidos", () => {
     expect(calcularNuevoTotalCentimos(items, [{ itemId, cantidad: 1 }])).toBe(3000);
     expect(calcularNuevoTotalCentimos(items, [{ itemId, cantidad: 20 }])).toBe(50500);
   });
+
+  it("permite quitar un producto y resta su subtotal del total", () => {
+    const cambios = [{ itemId, cantidad: 0 }];
+    expect(validarCambios(items, cambios)).toEqual({ ok: true });
+    expect(calcularNuevoTotalCentimos(items, cambios)).toBe(500);
+  });
+
+  it("acepta una observación válida sin cambiar el precio guardado", () => {
+    const cambios = [{ itemId, cantidad: 2, observacion: "Sin cebolla" }];
+    expect(validarCambios(items, cambios)).toEqual({ ok: true });
+    expect(calcularNuevoTotalCentimos(items, cambios)).toBe(5500);
+  });
 });
