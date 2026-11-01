@@ -72,6 +72,9 @@ begin
       or (v_cambio ? 'observacion' and jsonb_typeof(v_cambio->'observacion') not in ('string', 'null')) then
       raise exception 'INVALID_CHANGES' using errcode = '22023';
     end if;
+    if length(v_cambio->>'cantidad') > 2 then
+      raise exception 'INVALID_CHANGES' using errcode = '22023';
+    end if;
     v_cantidad := (v_cambio->>'cantidad')::integer;
     if (v_cambio->>'itemId')::uuid = any(v_ids) then
       raise exception 'INVALID_CHANGES' using errcode = '22023';
