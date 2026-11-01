@@ -1,12 +1,12 @@
-﻿import { describe, expect, it } from "vitest";
-import { ordenarPorLlegada, agruparPorEstado, filtrarPorEstado, minutosDesde } from "../../src/features/cocina/cocina-logica";
+import { describe, expect, it } from "vitest";
+import { ordenarPorLlegada, agruparPorEstado, filtrarPorEstado, minutosDesde, siguienteEstadoCocina, textoBotonCocina } from "../../src/features/cocina/cocina-logica";
 import type { PedidoCocina } from "../../src/features/cocina/tipos";
-import { renderizarCocinaHtml } from "../../src/features/cocina/html";
+
 
 function pedido(id: string, estado: PedidoCocina["estado"], minuto: number): PedidoCocina {
   return {
     id, numero: minuto, estado, creadoEn: `2026-10-31T15:${String(minuto).padStart(2, "0")}:00Z`,
-    modalidad: "DINE_IN", asistido: false, mesaNumero: 1, nombreCliente: null, telefono: null,
+    modalidad: "DINE_IN", asistido: false, mesaNumero: 1, nombreCliente: null,
     items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }],
   };
 }
@@ -14,29 +14,18 @@ const pedidos = [pedido("nuevo", "PENDING", 20), pedido("preparacion", "IN_PROGR
   pedido("listo", "READY", 10), pedido("aceptado", "ACCEPTED", 5), pedido("antiguo", "PENDING", 1),
   pedido("entregado", "DELIVERED", 0), pedido("cancelado", "CANCELLED", 2)];
 
-describe("vista HTML sin JavaScript", () => {
-  it("muestra los pedidos, observaciones y enlaces sin scripts", () => {
-    const html = renderizarCocinaHtml(pedidos, "PENDING", "2026-10-31T15:30:00Z");
-    expect(html).toContain("N.º 20 · Nuevo");
-    expect(html).toContain("Observación: Sin ají");
-    expect(html).toContain('href="/cocina/html?estado=ACCEPTED"');
-    expect(html).toContain('aria-current="page">Nuevos (2)');
-    expect(html).not.toContain("<script");
-    expect(html.indexOf("N.º 1 · Nuevo")).toBeLessThan(html.indexOf("N.º 20 · Nuevo"));
+describe("avance de preparación US-016", () => {
+  it.each([
+    ["PENDING", "ACCEPTED"], ["ACCEPTED", "IN_PROGRESS"], ["IN_PROGRESS", "READY"],
+    ["READY", null], ["DELIVERED", null], ["CANCELLED", null],
+  ] as const)("el siguiente estado de %s es %s", (estado, siguiente) => {
+    expect(siguienteEstadoCocina(estado)).toBe(siguiente);
   });
-  it("escapa contenido que podría interpretarse como HTML", () => {
-    const peligroso = { ...pedidos[0], nombreCliente: '<script>alert("x")</script>', modalidad: "TAKEAWAY" as const,
-      items: [{ nombre: "<img src=x>", cantidad: 1, observacion: "<script>robar()</script>" }] };
-    const html = renderizarCocinaHtml([peligroso], "TODOS", "2026-10-31T15:30:00Z");
-    expect(html).not.toContain("<script");
-    expect(html).not.toContain("<img");
-    expect(html).toContain("&lt;script&gt;");
-  });
-  it("distingue un fallo de lectura de una lista vacía", () => {
-    expect(renderizarCocinaHtml([], "TODOS", "2026-10-31T15:30:00Z")).toContain("No hay pedidos pendientes");
-    const error = renderizarCocinaHtml([], "TODOS", "2026-10-31T15:30:00Z", true);
-    expect(error).toContain("No pudimos cargar los pedidos");
-    expect(error).not.toContain("No hay pedidos pendientes");
+  it.each([
+    ["PENDING", "Aceptar pedido"], ["ACCEPTED", "Empezar preparación"], ["IN_PROGRESS", "Marcar listo"],
+    ["READY", null], ["DELIVERED", null], ["CANCELLED", null],
+  ] as const)("el botón de %s muestra %s", (estado, texto) => {
+    expect(textoBotonCocina(estado)).toBe(texto);
   });
 });
 
@@ -102,14 +91,14 @@ vi.mock("../../src/features/auth/sesion", () => ({ requerirRol: vi.fn() }));
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { requerirRol } from "../../src/features/auth/sesion";
 import { ESTADOS_ACTIVOS } from "../../src/features/pedidos/estados";
-import { listarPedidosCocina } from "../../src/features/cocina/pedidos-cocina";
+import { listarPedidosCocina, obtenerEstadoActualCocina } from "../../src/features/cocina/pedidos-cocina";
 import { obtenerPanelCocina } from "../../src/features/cocina/actions";
 
 const restauranteId = "restaurante-cocina";
 const base = {
   id: "pedido-1", restaurant_id: restauranteId, order_number: 42,
   created_at: "2026-10-31T15:00:00Z", status: "PENDING", modality: "DINE_IN", source: "QR",
-  customer_name: null, customer_phone: null, dining_tables: { number: 3 },
+  customer_name: null, dining_tables: { number: 3 },
   order_items: [{ product_name: "Ceviche", quantity: 2, observation: "Sin ají" }],
 };
 
@@ -130,19 +119,34 @@ function consulta(error: { code: string; message: string } | null = null) {
 
 beforeEach(() => vi.resetAllMocks());
 
+describe("comprobación de cambios entre pestañas US-016", () => {
+  it.each(["CANCELLED", "READY", null] as const)("consulta el estado actual %s sin exponer otro restaurante", async (estado) => {
+    const cliente = {
+      from: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockReturnThis(),
+      overrideTypes: vi.fn().mockResolvedValue({ data: estado ? { status: estado } : null, error: null }),
+    };
+    vi.mocked(crearClienteServidor).mockResolvedValue(cliente as unknown as Awaited<ReturnType<typeof crearClienteServidor>>);
+    expect(await obtenerEstadoActualCocina(restauranteId, "pedido-en-prueba")).toBe(estado);
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("status");
+    expect(cliente.eq).toHaveBeenCalledWith("restaurant_id", restauranteId);
+    expect(cliente.eq).toHaveBeenCalledWith("id", "pedido-en-prueba");
+  });
+});
+
 describe("lectura de cocina", () => {
   it("usa sesión, filtra restaurante y estados compartidos y ordena por llegada", async () => {
     const cliente = consulta();
     expect(await listarPedidosCocina(restauranteId)).toEqual([{
       id: "pedido-1", numero: 42, creadoEn: base.created_at, estado: "PENDING", modalidad: "DINE_IN",
-      asistido: false, mesaNumero: 3, nombreCliente: null, telefono: null,
+      asistido: false, mesaNumero: 3, nombreCliente: null,
       items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }],
     }]);
     expect(cliente.from).toHaveBeenCalledWith("orders");
     expect(cliente.eq).toHaveBeenCalledExactlyOnceWith("restaurant_id", restauranteId);
     expect(cliente.in).toHaveBeenCalledExactlyOnceWith("status", ESTADOS_ACTIVOS);
     expect(cliente.order).toHaveBeenCalledExactlyOnceWith("created_at", { ascending: true });
-    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, modality, source, customer_name, customer_phone, dining_tables(number), order_items(product_name, quantity, observation)");
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation)");
   });
 
   it("un error no se confunde con una lista vacía y registra únicamente el código", async () => {
