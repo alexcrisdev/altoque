@@ -1,35 +1,97 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import {
+  Boton,
+  BotonEnlace,
+  EncabezadoPantalla,
+  MensajeEstado,
+  Tarjeta,
+} from "@/components/ui";
 import { cerrarSesion } from "@/features/auth/actions";
 import { requerirRol } from "@/features/auth/sesion";
 
 async function AdminPanel() {
   await requerirRol(["OWNER", "ADMIN"]);
+
   return (
-    <main className="p-8">
-      <h1 className="text-3xl font-bold">Panel administrador</h1>
-      <Link href="/admin/mesas" className="mt-4 block underline">
-        Mesas y códigos QR
-      </Link>
-      <Link href="/admin/productos" className="mt-4 block underline">
-        Administrar productos
-      </Link>
-      <Link href="/admin/para-llevar" className="mt-4 block underline">
-        Pedidos para llevar
-      </Link>
-      <Link href="/admin/pedidos" className="mt-4 block underline">
-        Pedidos
-      </Link>
-      <form action={cerrarSesion}>
-        <button className="mt-4 underline">Cerrar sesión</button>
-      </form>
+    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+      <EncabezadoPantalla
+        titulo="Panel administrador"
+        acciones={
+          <form action={cerrarSesion}>
+            <Boton type="submit" variante="secundario">
+              Cerrar sesión
+            </Boton>
+          </form>
+        }
+      />
+
+      <nav aria-label="Administración">
+        <ul className="grid gap-4 sm:grid-cols-2">
+          <li>
+            <Tarjeta>
+              <BotonEnlace
+                href="/admin/mesas"
+                variante="secundario"
+                className="w-full"
+              >
+                Mesas y códigos QR
+              </BotonEnlace>
+            </Tarjeta>
+          </li>
+
+          <li>
+            <Tarjeta>
+              <BotonEnlace
+                href="/admin/productos"
+                variante="secundario"
+                className="w-full"
+              >
+                Administrar productos
+              </BotonEnlace>
+            </Tarjeta>
+          </li>
+
+          <li>
+            <Tarjeta>
+              <BotonEnlace
+                href="/admin/para-llevar"
+                variante="secundario"
+                className="w-full"
+              >
+                Pedidos para llevar
+              </BotonEnlace>
+            </Tarjeta>
+          </li>
+
+          <li>
+            <Tarjeta>
+              <BotonEnlace
+                href="/admin/pedidos"
+                variante="secundario"
+                className="w-full"
+              >
+                Pedidos
+              </BotonEnlace>
+            </Tarjeta>
+          </li>
+        </ul>
+      </nav>
     </main>
   );
 }
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={<main className="p-8">Cargando panel…</main>}>
+    <Suspense
+      fallback={
+        <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+          <MensajeEstado
+            tipo="cargando"
+            titulo="Cargando panel…"
+          />
+        </main>
+      }
+    >
       <AdminPanel />
     </Suspense>
   );
