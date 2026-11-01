@@ -1,184 +1,119 @@
 import { Suspense } from "react";
-import {
-  Boton,
-  BotonEnlace,
-  EncabezadoPantalla,
-  Insignia,
-  MensajeEstado,
-  Tarjeta,
-} from "@/components/ui";
+import { Boton, BotonEnlace, EncabezadoPantalla, Insignia, MensajeEstado, Tarjeta } from "@/components/ui";
+import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
 import { cerrarSesion } from "@/features/auth/actions";
-import { requerirRol } from "@/features/auth/sesion";
-import { formatearPrecio } from "@/features/carta/formato";
-import { listarPedidosRecientes } from "@/features/mesero/pedidos-recientes";
-import { listarMesasConSesion } from "@/features/mesero/sesiones";
-import { describirDestino } from "@/features/pedidos/modalidad";
-import {
-  BotonAbrirSesion,
-  BotonCerrarSesion,
-} from "./acciones-sesion";
+import { obtenerPanelMesero } from "@/features/mesero/panel-actions";
+import { agruparPorMesa, GRUPO_PARA_LLEVAR, minutosDesde, pedidosQueRequierenAtencion, resumenMesa } from "@/features/mesero/panel-logica";
+import type { PedidoActivo } from "@/features/mesero/pedidos-activos";
+import { ETIQUETA_ESTADO, TONO_ESTADO } from "@/features/pedidos/estados";
+import { BotonAbrirSesion, BotonCerrarSesion } from "./acciones-sesion";
+
+const horaLima = new Intl.DateTimeFormat("es-PE", {
+  hour: "2-digit", minute: "2-digit", timeZone: "America/Lima",
+});
+
+function DatosPedido({ pedido, ahora }: { pedido: PedidoActivo; ahora: string }) {
+  const destino = pedido.modalidad === "TAKEAWAY"
+    ? `Para llevar${pedido.nombreCliente ? ` · ${pedido.nombreCliente}` : ""}`
+    : `Mesa ${pedido.mesaNumero ?? "sin identificar"}`;
+
+  return <div className="space-y-3">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h3 className="break-words font-semibold">N.º {pedido.numero} · {destino}</h3>
+      <Insignia tono={TONO_ESTADO[pedido.estado]}>{ETIQUETA_ESTADO[pedido.estado]}</Insignia>
+    </div>
+    <p className="text-sm text-texto-suave">
+      <time dateTime={pedido.creadoEn}>{horaLima.format(new Date(pedido.creadoEn))}</time>
+      {` · hace ${minutosDesde(pedido.creadoEn, ahora)} min`}
+      {pedido.asistido ? " · Registrado por mesero" : " · Desde QR"}
+    </p>
+    {pedido.estado === "READY" && <p className="font-bold text-exito-texto">Listo para entregar</p>}
+    <BotonEnlace href={`/mesero/pedidos/${pedido.id}`} variante="secundario" aria-label={`Ver pedido N.º ${pedido.numero}`}>
+      Ver pedido
+    </BotonEnlace>
+  </div>;
+}
 
 async function MeseroPanel() {
-  const sesion = await requerirRol(["WAITER", "OWNER", "ADMIN"]);
+  const resultado = await obtenerPanelMesero();
+  const mesas = resultado.ok ? resultado.mesas : [];
+  const pedidos = resultado.ok ? resultado.pedidos : [];
+  const grupos = agruparPorMesa(pedidos);
+  const ahora = resultado.ok ? resultado.actualizadoEn : "";
+  const requierenAtencion = pedidosQueRequierenAtencion(pedidos, ahora);
+  const paraLlevar = grupos.get(GRUPO_PARA_LLEVAR) ?? [];
 
-  const membresia = sesion.membresias.find((m) =>
-    ["WAITER", "OWNER", "ADMIN"].includes(m.rol),
-  );
+  return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+    <EncabezadoPantalla titulo="Panel mesero" subtitulo="Organiza la atención de mesas y pedidos activos."
+      acciones={<form action={cerrarSesion}><Boton type="submit" variante="secundario">Cerrar sesión</Boton></form>} />
+    <ActualizacionAutomatica segundos={10} />
+    <div className="flex flex-wrap gap-3">
+      <BotonEnlace href="/mesero/pedido">Registrar pedido asistido</BotonEnlace>
+      <BotonEnlace href="/mesero" variante="secundario">Actualizar panel</BotonEnlace>
+    </div>
 
-  if (!membresia) return null;
+    {/* US-013: aquí se incorporarán las alertas de nuevos pedidos y solicitudes de ayuda. */}
 
-  const [mesas, pedidos] = await Promise.all([
-    listarMesasConSesion(membresia.restaurantId),
-    listarPedidosRecientes(membresia.restaurantId),
-  ]);
-
-  return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-      <EncabezadoPantalla
-        titulo="Panel mesero"
-        acciones={
-          <form action={cerrarSesion}>
-            <Boton type="submit" variante="secundario">
-              Cerrar sesión
-            </Boton>
-          </form>
-        }
-      />
-
-      <BotonEnlace href="/mesero/pedido">
-        Registrar pedido asistido
-      </BotonEnlace>
+    {!resultado.ok ? <div className="mt-6"><MensajeEstado tipo="error" titulo="No pudimos cargar las mesas y los pedidos"
+      descripcion="Revisa tu conexión. Volveremos a intentarlo automáticamente cada 10 segundos o puedes actualizar el panel." /></div> : <>
+      <section aria-labelledby="mesero-atencion" className="mt-8">
+        <h2 id="mesero-atencion" className="mb-4 text-xl font-semibold">Requieren atención</h2>
+        <p className="mb-4 text-sm text-texto-suave">Primero los listos para entregar, luego los pendientes de aceptar con más de 5 minutos.</p>
+        {requierenAtencion.length === 0 ? <MensajeEstado tipo="vacio" titulo="Todo al día" /> :
+          <ul className="grid gap-3 md:grid-cols-2">{requierenAtencion.map((pedido) =>
+            <li key={pedido.id}><Tarjeta className={pedido.estado === "READY" ? "border-2 border-exito-borde" : ""}>
+              <DatosPedido pedido={pedido} ahora={ahora} />
+            </Tarjeta></li>)}
+          </ul>}
+      </section>
 
       <section aria-labelledby="mesero-mesas" className="mt-8">
-        <h2
-          id="mesero-mesas"
-          className="mb-4 text-xl font-semibold text-texto"
-        >
-          Mesas
-        </h2>
-
-        {mesas.length === 0 ? (
-          <MensajeEstado
-            tipo="vacio"
-            titulo="No hay mesas activas en este restaurante."
-          />
-        ) : (
-          <ul className="grid gap-3">
-            {mesas.map((mesa) => {
-              const ocupadaDesde = mesa.sesion
-                ? new Date(
-                    mesa.sesion.abiertaDesde,
-                  ).toLocaleTimeString("es-PE", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "America/Lima",
-                  })
-                : null;
-
-              return (
-                <li key={mesa.id}>
-                  <Tarjeta className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-semibold">
-                        Mesa {mesa.numero}
-                      </h3>
-
-                      <Insignia
-                        tono={ocupadaDesde ? "aviso" : "exito"}
-                      >
-                        {ocupadaDesde
-                          ? `Ocupada desde ${ocupadaDesde}`
-                          : "Libre"}
-                      </Insignia>
-                    </div>
-
-                    {mesa.sesion ? (
-                      <BotonCerrarSesion
-                        sesionId={mesa.sesion.id}
-                      />
-                    ) : (
-                      <BotonAbrirSesion mesaId={mesa.id} />
-                    )}
-                  </Tarjeta>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <section
-        aria-labelledby="mesero-pedidos"
-        className="mt-8"
-      >
-        <h2
-          id="mesero-pedidos"
-          className="mb-4 text-xl font-semibold text-texto"
-        >
-          Pedidos recientes
-        </h2>
-
-        {pedidos.length === 0 ? (
-          <MensajeEstado
-            tipo="vacio"
-            titulo="Todavía no hay pedidos."
-          />
-        ) : (
-          <ul className="grid gap-3">
-            {pedidos.map((pedido) => (
-              <li key={pedido.numero}>
-                <Tarjeta className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold">
-                      N.º {pedido.numero}
-                      {" · "}
-                      {describirDestino(pedido)}
-                    </h3>
-
-                    <p className="mt-2 text-sm text-texto-suave">
-                      {new Date(
-                        pedido.creadoEn,
-                      ).toLocaleTimeString("es-PE", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: "America/Lima",
-                      })}
-                      {" · "}
-                      {pedido.modalidad === "TAKEAWAY"
-                        ? "Para llevar"
-                        : "En el local"}
-                      {pedido.asistido
-                        ? " · Registrado por mesero"
-                        : " · Desde QR"}
-                    </p>
-                  </div>
-
-                  <p className="font-semibold">
-                    {formatearPrecio(pedido.totalCentimos / 100)}
+        <h2 id="mesero-mesas" className="mb-4 text-xl font-semibold">Mesas</h2>
+        {mesas.length === 0 ? <MensajeEstado tipo="vacio" titulo="No hay mesas activas en este restaurante." /> :
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">{mesas.map((mesa) => {
+            const pedidosMesa = grupos.get(mesa.id) ?? [];
+            const resumen = resumenMesa(pedidosMesa);
+            return <li key={mesa.id}>
+              <Tarjeta className={`h-full space-y-4 ${resumen.listos > 0 ? "border-2 border-exito-borde" : ""}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold">Mesa {mesa.numero}</h3>
+                  <Insignia tono={mesa.sesion ? "aviso" : "exito"}>
+                    {mesa.sesion ? `Ocupada desde ${horaLima.format(new Date(mesa.sesion.abiertaDesde))}` : "Libre"}
+                  </Insignia>
+                </div>
+                {(mesa.sesion || pedidosMesa.length > 0) && <>
+                  <p className="text-sm font-semibold">
+                    {resumen.total} {resumen.total === 1 ? "pedido" : "pedidos"}
+                    {resumen.listos > 0 && ` · ${resumen.listos} ${resumen.listos === 1 ? "listo" : "listos"} para entregar`}
+                    {resumen.pendientes > 0 && ` · ${resumen.pendientes} ${resumen.pendientes === 1 ? "pendiente" : "pendientes"} de aceptar`}
                   </p>
-                </Tarjeta>
-              </li>
-            ))}
-          </ul>
-        )}
+                  {pedidosMesa.length > 0 ? <ul className="space-y-4 divide-y divide-borde">
+                    {pedidosMesa.map((pedido) => <li key={pedido.id} className="pt-3 first:pt-0">
+                      <DatosPedido pedido={pedido} ahora={ahora} />
+                    </li>)}
+                  </ul> : <p className="text-sm text-texto-suave">Sin pedidos activos.</p>}
+                </>}
+                {mesa.sesion ? <BotonCerrarSesion sesionId={mesa.sesion.id} /> : <BotonAbrirSesion mesaId={mesa.id} />}
+              </Tarjeta>
+            </li>;
+          })}</ul>}
       </section>
-    </main>
-  );
+
+      <section aria-labelledby="mesero-para-llevar" className="mt-8">
+        <h2 id="mesero-para-llevar" className="mb-4 text-xl font-semibold">Para llevar</h2>
+        {paraLlevar.length === 0 ? <MensajeEstado tipo="vacio" titulo="No hay pedidos activos para llevar." /> :
+          <ul className="grid gap-3 md:grid-cols-2">{paraLlevar.map((pedido) =>
+            <li key={pedido.id}><Tarjeta className={pedido.estado === "READY" ? "border-2 border-exito-borde" : ""}>
+              <DatosPedido pedido={pedido} ahora={ahora} />
+            </Tarjeta></li>)}
+          </ul>}
+      </section>
+    </>}
+  </main>;
 }
 
 export default function MeseroPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-          <MensajeEstado
-            tipo="cargando"
-            titulo="Cargando panel…"
-          />
-        </main>
-      }
-    >
-      <MeseroPanel />
-    </Suspense>
-  );
+  return <Suspense fallback={<main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+    <MensajeEstado tipo="cargando" titulo="Cargando panel…" />
+  </main>}><MeseroPanel /></Suspense>;
 }
