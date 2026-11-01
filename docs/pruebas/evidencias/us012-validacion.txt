@@ -1,0 +1,82 @@
+US-012: Visualizar mesas y pedidos activos
+Fecha: 01/11/2026 (America/Lima)
+Rama de trabajo: dev/erick. Base integrada: d1e5007.
+Estado: implementación local, todavía sin commit ni push.
+
+VERIFICACIONES LOCALES
+npm run lint: APROBADO, sin errores ni advertencias.
+npm test: APROBADO, 18 archivos y 318 casos unitarios.
+tests/unit/panel-mesero.test.ts: 26 casos aprobados.
+npm run typecheck: APROBADO.
+npm run build: APROBADO con acceso a Google Fonts.
+npx tsc --noEmit (binario local): APROBADO.
+npm run start + npm run smoke: APROBADO, 8/8 comprobaciones:
+- Inicio responde.
+- Login muestra el formulario.
+- /admin pide iniciar sesión.
+- /mesero pide iniciar sesión.
+- /cocina pide iniciar sesión.
+- /caja pide iniciar sesión.
+- QR inventado muestra no válido.
+- Cabeceras de seguridad presentes.
+
+ALCANCE UNITARIO US-012
+- Prioridad de los seis estados.
+- READY primero; PENDING solo si supera cinco minutos; orden por antigüedad.
+- Fechas límite, futuras, inválidas y zonas horarias.
+- Agrupación por mesa y para llevar, incluso con mesa de origen.
+- Resumen de total, listos y pendientes.
+- Consulta con sesión, filtros por restaurante/estados y orden de llegada.
+- Selección explícita de columnas sin teléfono del cliente.
+- Error de consulta distinto de lista vacía.
+- Autorización por rol y restaurante derivado de la membresía.
+
+INTEGRACIÓN RLS REAL
+npm run test:rls: APROBADO, 2 archivos y 10 casos, después de completar DEMO_PASSWORD
+y habilitar acceso de red a Supabase. Incluye el nuevo caso US-012 y la suite existente.
+El nuevo caso consulta pedidos y sesiones ajenos en ambos sentidos y comprueba que
+Cevichería tenga datos propios, evitando un resultado verde por falta de datos.
+No se usa service role en la implementación ni en estas pruebas de permisos.
+
+RECORRIDO REAL EN NAVEGADOR (CHROME, LOCALHOST)
+1. Inicio de sesión separado con mesero y cocina demo: APROBADO.
+2. Mesa 2 libre: apertura desde el panel del mesero: APROBADO.
+3. Registro de un pedido asistido, N.º 24: APROBADO; visible en Mesa 2.
+4. Después de 178 segundos no aparece todavía en Requieren atención: APROBADO.
+5. Después de 308 segundos sí aparece, sin navegar de nuevo: APROBADO.
+6. Cocina: Aceptar pedido, Empezar preparación y Marcar listo: APROBADO.
+7. El panel del mesero refleja READY, coloca N.º 24 primero y muestra Listo para entregar.
+   performance.timeOrigin permanece igual: no hubo nueva navegación manual.
+8. Mesa 2 muestra: 2 pedidos · 1 listo para entregar · 1 pendiente de aceptar.
+   El pedido pendiente anterior se conserva; solo se modificó el pedido N.º 24.
+   Se comprobó el borde de éxito de la tarjeta de mesa.
+9. Celular 390 px: una columna, scrollWidth = innerWidth = 390.
+   Tablet 900 px: dos columnas de mesas. APROBADO.
+10. Login como dueño demo de Pollería: ve 4 pedidos propios distintos de los 12 activos
+    visibles en Cevichería. Cero identificadores de pedido compartidos. El N.º 24 está oculto.
+
+CAPTURAS
+- captura-us012-pendiente.png: pedido recién registrado en Mesa 2.
+- captura-us012-atencion.png: pedido pendiente con más de cinco minutos.
+- captura-us012-listo.png: READY primero, resumen y borde de éxito.
+- captura-us012-celular.png: panel a 390 px.
+- captura-us012-polleria.png: panel independiente del otro restaurante.
+
+DATOS DEMO CONSERVADOS POR AUTORIZACIÓN EXPRESA DEL USUARIO
+Pedido N.º 24: 5d5f84c4-a77c-40d4-9117-6defaaab4c66, Mesa 2, estado READY.
+La sesión de Mesa 2 permanece abierta para limpieza posterior por el responsable.
+Motivo: las reglas actuales no permiten cancelar READY y todavía no hay flujo de registro
+de pagos implementado para resolver el saldo y cerrar ordinariamente la sesión.
+El usuario eligió probar Listo y conservar estos datos documentados, en vez de cancelar
+antes de Listo. No se registró un pago ficticio ni se saltaron políticas o reglas.
+No se modificó la Mesa 3 ni se cambiaron pedidos anteriores a esta prueba.
+La suite RLS ejecutó además sus operaciones y limpieza de sesión habituales.
+
+INCIDENCIAS DEL ENTORNO RESUELTAS
+- DEMO_PASSWORD inicialmente vacía: completada localmente por el usuario.
+- Red restringida: las pruebas RLS pasaron al permitir conexión a Supabase.
+- Fuentes de Google: el build pasó con acceso de red.
+- No se debe asumir que Pollería no tenga pedidos: se compararon identificadores reales.
+
+No hay credenciales en esta evidencia. No se modificaron migraciones ni archivos ajenos
+al alcance de US-012. La cobertura anterior no se regeneró.
