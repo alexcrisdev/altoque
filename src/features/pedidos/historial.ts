@@ -9,13 +9,15 @@ export type CambioEstadoPedido = {
   cambiadoPor: string;
   creadoEn: string;
   motivo: string | null;
+  evento: "STATUS" | "MODIFIED";
+  detalle: string | null;
 };
 
 export async function obtenerHistorialPedido(pedidoId: string): Promise<CambioEstadoPedido[]> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("order_status_history")
-    .select("id, from_status, to_status, changed_by, created_at, reason, users(full_name)")
+    .select("id, from_status, to_status, changed_by, created_at, reason, event, detail, users(full_name)")
     .eq("order_id", pedidoId)
     .order("created_at", { ascending: true })
     .overrideTypes<Array<{
@@ -25,6 +27,8 @@ export async function obtenerHistorialPedido(pedidoId: string): Promise<CambioEs
       changed_by: string | null;
       created_at: string;
       reason: string | null;
+      event: "STATUS" | "MODIFIED";
+      detail: string | null;
       users: { full_name: string } | null;
     }>, { merge: false }>();
 
@@ -39,5 +43,7 @@ export async function obtenerHistorialPedido(pedidoId: string): Promise<CambioEs
     cambiadoPor: fila.changed_by ? fila.users?.full_name ?? "Personal" : "Cliente (QR)",
     creadoEn: fila.created_at,
     motivo: fila.reason,
+    evento: fila.event,
+    detalle: fila.detail,
   }));
 }
