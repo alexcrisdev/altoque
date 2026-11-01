@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ordenarPorLlegada, agruparPorEstado, filtrarPorEstado, minutosDesde } from "../../src/features/cocina/cocina-logica";
+import { ordenarPorLlegada, agruparPorEstado, filtrarPorEstado, minutosDesde, siguienteEstadoCocina, textoBotonCocina } from "../../src/features/cocina/cocina-logica";
 import type { PedidoCocina } from "../../src/features/cocina/tipos";
 
 
@@ -13,6 +13,21 @@ function pedido(id: string, estado: PedidoCocina["estado"], minuto: number): Ped
 const pedidos = [pedido("nuevo", "PENDING", 20), pedido("preparacion", "IN_PROGRESS", 15),
   pedido("listo", "READY", 10), pedido("aceptado", "ACCEPTED", 5), pedido("antiguo", "PENDING", 1),
   pedido("entregado", "DELIVERED", 0), pedido("cancelado", "CANCELLED", 2)];
+
+describe("avance de preparación US-016", () => {
+  it.each([
+    ["PENDING", "ACCEPTED"], ["ACCEPTED", "IN_PROGRESS"], ["IN_PROGRESS", "READY"],
+    ["READY", null], ["DELIVERED", null], ["CANCELLED", null],
+  ] as const)("el siguiente estado de %s es %s", (estado, siguiente) => {
+    expect(siguienteEstadoCocina(estado)).toBe(siguiente);
+  });
+  it.each([
+    ["PENDING", "Aceptar pedido"], ["ACCEPTED", "Empezar preparación"], ["IN_PROGRESS", "Marcar listo"],
+    ["READY", null], ["DELIVERED", null], ["CANCELLED", null],
+  ] as const)("el botón de %s muestra %s", (estado, texto) => {
+    expect(textoBotonCocina(estado)).toBe(texto);
+  });
+});
 
 describe("orden y agrupación", () => {
   it("ordena por llegada sin modificar la entrada", () => {
@@ -76,7 +91,7 @@ vi.mock("../../src/features/auth/sesion", () => ({ requerirRol: vi.fn() }));
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { requerirRol } from "../../src/features/auth/sesion";
 import { ESTADOS_ACTIVOS } from "../../src/features/pedidos/estados";
-import { listarPedidosCocina } from "../../src/features/cocina/pedidos-cocina";
+import { listarPedidosCocina, obtenerEstadoActualCocina } from "../../src/features/cocina/pedidos-cocina";
 import { obtenerPanelCocina } from "../../src/features/cocina/actions";
 
 const restauranteId = "restaurante-cocina";
@@ -103,6 +118,21 @@ function consulta(error: { code: string; message: string } | null = null) {
 }
 
 beforeEach(() => vi.resetAllMocks());
+
+describe("comprobación de cambios entre pestañas US-016", () => {
+  it.each(["CANCELLED", "READY", null] as const)("consulta el estado actual %s sin exponer otro restaurante", async (estado) => {
+    const cliente = {
+      from: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockReturnThis(),
+      overrideTypes: vi.fn().mockResolvedValue({ data: estado ? { status: estado } : null, error: null }),
+    };
+    vi.mocked(crearClienteServidor).mockResolvedValue(cliente as unknown as Awaited<ReturnType<typeof crearClienteServidor>>);
+    expect(await obtenerEstadoActualCocina(restauranteId, "pedido-en-prueba")).toBe(estado);
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("status");
+    expect(cliente.eq).toHaveBeenCalledWith("restaurant_id", restauranteId);
+    expect(cliente.eq).toHaveBeenCalledWith("id", "pedido-en-prueba");
+  });
+});
 
 describe("lectura de cocina", () => {
   it("usa sesión, filtra restaurante y estados compartidos y ordena por llegada", async () => {

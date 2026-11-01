@@ -47,3 +47,19 @@ export async function listarPedidosCocina(restauranteId: string): Promise<Pedido
     })),
   }));
 }
+
+// Solo se consulta tras un rechazo para distinguir una cancelación de otro cambio.
+export async function obtenerEstadoActualCocina(restauranteId: string, pedidoId: string): Promise<EstadoPedido | null> {
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.from("orders")
+    .select("status")
+    .eq("restaurant_id", restauranteId)
+    .eq("id", pedidoId)
+    .maybeSingle()
+    .overrideTypes<{ status: EstadoPedido } | null, { merge: false }>();
+  if (error) {
+    console.error(error.code);
+    throw new Error("No se pudo consultar el estado actual del pedido.");
+  }
+  return data?.status ?? null;
+}
