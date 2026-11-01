@@ -12,7 +12,6 @@ type FilaPedido = {
   modality: Modalidad;
   source: "QR" | "WAITER";
   customer_name: string | null;
-  customer_phone: string | null;
   dining_tables: { number: number } | null;
   order_items: { product_name: string; quantity: number; observation: string | null }[];
 };
@@ -21,7 +20,7 @@ export async function listarPedidosCocina(restauranteId: string): Promise<Pedido
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_number, created_at, status, modality, source, customer_name, customer_phone, dining_tables(number), order_items(product_name, quantity, observation)")
+    .select("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation)")
     .eq("restaurant_id", restauranteId)
     .in("status", ESTADOS_ACTIVOS)
     .order("created_at", { ascending: true })
@@ -41,7 +40,6 @@ export async function listarPedidosCocina(restauranteId: string): Promise<Pedido
     asistido: fila.source === "WAITER",
     mesaNumero: fila.dining_tables?.number ?? null,
     nombreCliente: fila.customer_name,
-    telefono: fila.customer_phone,
     items: fila.order_items.map((item) => ({
       nombre: item.product_name,
       cantidad: item.quantity,

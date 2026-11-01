@@ -1,44 +1,18 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ordenarPorLlegada, agruparPorEstado, filtrarPorEstado, minutosDesde } from "../../src/features/cocina/cocina-logica";
 import type { PedidoCocina } from "../../src/features/cocina/tipos";
-import { renderizarCocinaHtml } from "../../src/features/cocina/html";
+
 
 function pedido(id: string, estado: PedidoCocina["estado"], minuto: number): PedidoCocina {
   return {
     id, numero: minuto, estado, creadoEn: `2026-10-31T15:${String(minuto).padStart(2, "0")}:00Z`,
-    modalidad: "DINE_IN", asistido: false, mesaNumero: 1, nombreCliente: null, telefono: null,
+    modalidad: "DINE_IN", asistido: false, mesaNumero: 1, nombreCliente: null,
     items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }],
   };
 }
 const pedidos = [pedido("nuevo", "PENDING", 20), pedido("preparacion", "IN_PROGRESS", 15),
   pedido("listo", "READY", 10), pedido("aceptado", "ACCEPTED", 5), pedido("antiguo", "PENDING", 1),
   pedido("entregado", "DELIVERED", 0), pedido("cancelado", "CANCELLED", 2)];
-
-describe("vista HTML sin JavaScript", () => {
-  it("muestra los pedidos, observaciones y enlaces sin scripts", () => {
-    const html = renderizarCocinaHtml(pedidos, "PENDING", "2026-10-31T15:30:00Z");
-    expect(html).toContain("N.º 20 · Nuevo");
-    expect(html).toContain("Observación: Sin ají");
-    expect(html).toContain('href="/cocina/html?estado=ACCEPTED"');
-    expect(html).toContain('aria-current="page">Nuevos (2)');
-    expect(html).not.toContain("<script");
-    expect(html.indexOf("N.º 1 · Nuevo")).toBeLessThan(html.indexOf("N.º 20 · Nuevo"));
-  });
-  it("escapa contenido que podría interpretarse como HTML", () => {
-    const peligroso = { ...pedidos[0], nombreCliente: '<script>alert("x")</script>', modalidad: "TAKEAWAY" as const,
-      items: [{ nombre: "<img src=x>", cantidad: 1, observacion: "<script>robar()</script>" }] };
-    const html = renderizarCocinaHtml([peligroso], "TODOS", "2026-10-31T15:30:00Z");
-    expect(html).not.toContain("<script");
-    expect(html).not.toContain("<img");
-    expect(html).toContain("&lt;script&gt;");
-  });
-  it("distingue un fallo de lectura de una lista vacía", () => {
-    expect(renderizarCocinaHtml([], "TODOS", "2026-10-31T15:30:00Z")).toContain("No hay pedidos pendientes");
-    const error = renderizarCocinaHtml([], "TODOS", "2026-10-31T15:30:00Z", true);
-    expect(error).toContain("No pudimos cargar los pedidos");
-    expect(error).not.toContain("No hay pedidos pendientes");
-  });
-});
 
 describe("orden y agrupación", () => {
   it("ordena por llegada sin modificar la entrada", () => {
@@ -109,7 +83,7 @@ const restauranteId = "restaurante-cocina";
 const base = {
   id: "pedido-1", restaurant_id: restauranteId, order_number: 42,
   created_at: "2026-10-31T15:00:00Z", status: "PENDING", modality: "DINE_IN", source: "QR",
-  customer_name: null, customer_phone: null, dining_tables: { number: 3 },
+  customer_name: null, dining_tables: { number: 3 },
   order_items: [{ product_name: "Ceviche", quantity: 2, observation: "Sin ají" }],
 };
 
@@ -135,14 +109,14 @@ describe("lectura de cocina", () => {
     const cliente = consulta();
     expect(await listarPedidosCocina(restauranteId)).toEqual([{
       id: "pedido-1", numero: 42, creadoEn: base.created_at, estado: "PENDING", modalidad: "DINE_IN",
-      asistido: false, mesaNumero: 3, nombreCliente: null, telefono: null,
+      asistido: false, mesaNumero: 3, nombreCliente: null,
       items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }],
     }]);
     expect(cliente.from).toHaveBeenCalledWith("orders");
     expect(cliente.eq).toHaveBeenCalledExactlyOnceWith("restaurant_id", restauranteId);
     expect(cliente.in).toHaveBeenCalledExactlyOnceWith("status", ESTADOS_ACTIVOS);
     expect(cliente.order).toHaveBeenCalledExactlyOnceWith("created_at", { ascending: true });
-    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, modality, source, customer_name, customer_phone, dining_tables(number), order_items(product_name, quantity, observation)");
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation)");
   });
 
   it("un error no se confunde con una lista vacía y registra únicamente el código", async () => {

@@ -75,10 +75,7 @@ async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
 }
 
 export default function CocinaPage(props: PageProps<"/cocina">) {
-  return <><noscript>
-    <meta httpEquiv="refresh" content="0;url=/cocina/html" />
-    <p><a href="/cocina/html">Ver cocina sin JavaScript</a></p>
-  </noscript><Suspense fallback={<main className="mx-auto max-w-7xl p-6">
+  return <Suspense fallback={<main className="mx-auto max-w-7xl p-6">
     <MensajeEstado tipo="cargando" titulo="Cargando cocina…" />
-  </main>}><CocinaPanel {...props} /></Suspense></>;
+  </main>}><CocinaPanel {...props} /></Suspense>;
 }

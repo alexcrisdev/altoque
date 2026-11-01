@@ -10,6 +10,5 @@ export type PedidoCocina = {
   asistido: boolean;
   mesaNumero: number | null;
   nombreCliente: string | null;
-  telefono: string | null;
   items: { nombre: string; cantidad: number; observacion: string | null }[];
 };
