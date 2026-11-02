@@ -8,6 +8,7 @@ import { CartaRestaurante } from "@/features/carta/carta-restaurante";
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { buscarSesionAbierta } from "@/features/mesero/sesiones";
 import { obtenerConfigParaLlevar } from "@/features/pedidos/para-llevar";
+import { MisPedidos } from "@/features/pedidos/mis-pedidos";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -78,6 +79,8 @@ async function Contenido({ params }: Props) {
         }
         subtitulo={`${acceso.restauranteNombre} · ${acceso.localNombre}`}
       />
+
+      <MisPedidos token={token} />
 
       <Tarjeta>
         <p className="text-sm text-texto-suave">

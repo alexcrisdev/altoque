@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Boton,
+  BotonEnlace,
   Insignia,
   Tarjeta,
   clasesBoton,
@@ -20,6 +21,10 @@ import {
   type ConfigParaLlevar,
   type Modalidad,
 } from "../pedidos/modalidad";
+import {
+  agregarPedidoGuardado,
+  type PedidoGuardado,
+} from "../pedidos/estado-cliente";
 import { SelectorModalidad } from "../pedidos/selector-modalidad";
 import {
   agregarAlCarrito,
@@ -62,6 +67,10 @@ export function CartaInteractiva({
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] =
     useState<ResultadoRegistroPedido | null>(null);
+
+  // US-037: conserva la clave del pedido confirmado para abrir su estado.
+  const [claveConfirmada, setClaveConfirmada] =
+    useState<string | null>(null);
 
   const clavePedido = useRef<string | null>(null);
 
@@ -184,9 +193,12 @@ export function CartaInteractiva({
       const entrada = aItemsPedido(items, productos);
       clavePedido.current ??= crypto.randomUUID();
 
+      // Conservamos la misma clave utilizada al registrar el pedido.
+      const clave = clavePedido.current;
+
       const respuesta = await registrarPedidoQrAction(
         token,
-        clavePedido.current,
+        clave,
         entrada,
         {
           modalidad,
@@ -198,6 +210,47 @@ export function CartaInteractiva({
       setResultado(respuesta);
 
       if (respuesta.ok) {
+        setClaveConfirmada(clave);
+
+        const ahora = Date.now();
+
+        const nuevo: PedidoGuardado = {
+          clave,
+          numero: respuesta.numero,
+          creadoEn: new Date(ahora).toISOString(),
+        };
+
+        const almacenamiento = `altoque:pedidos:${token}`;
+        let anteriores: unknown = [];
+
+        try {
+          anteriores = JSON.parse(
+            window.localStorage.getItem(almacenamiento) ?? "[]",
+          );
+        } catch {
+          // Si falla la lectura, el enlace sigue disponible en pantalla.
+        }
+
+        try {
+          const guardados = agregarPedidoGuardado(
+            Array.isArray(anteriores) ? anteriores : [],
+            nuevo,
+            ahora,
+          );
+
+          window.localStorage.setItem(
+            almacenamiento,
+            JSON.stringify(guardados),
+          );
+
+          // Actualiza "Mis pedidos" dentro de esta misma pestaña.
+          window.dispatchEvent(
+            new Event("altoque:pedidos-actualizados"),
+          );
+        } catch {
+          // El pedido sigue confirmado aunque no se pueda guardar aquí.
+        }
+
         setItems([]);
         setAviso("");
         clavePedido.current = null;
@@ -381,6 +434,16 @@ export function CartaInteractiva({
           <p className="mt-3 font-semibold">
             Tu número de pedido es {resultado.numero}
           </p>
+
+          {claveConfirmada && (
+            <BotonEnlace
+              href={`/m/${encodeURIComponent(token)}/pedido/${encodeURIComponent(claveConfirmada)}`}
+              variante="primario"
+              className="mt-4 w-full"
+            >
+              Ver el estado de mi pedido
+            </BotonEnlace>
+          )}
         </Tarjeta>
       )}
 
