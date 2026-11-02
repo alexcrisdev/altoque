@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// US-022: cobro en efectivo contra la base real (RPC registrar_pago + RLS).
+// US-022 / US-023: cobro en efectivo y Yape contra la base real (RPC registrar_pago,
+// verificar_pago y RLS).
 // Usa el producto más barato para que los pagos de prueba sumen poco.
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,6 +20,7 @@ let anon: SupabaseClient | undefined;
 let sessionId: string | undefined;
 let orderId: string | undefined;
 let totalCentimos = 0;
+let yapeRechazado: string | undefined;
 
 async function iniciar(email: string) {
   const cliente = createClient(url!, anonKey!, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -154,8 +156,59 @@ describe("RPC registrar_pago en efectivo (US-022)", () => {
     expect(error).not.toBeNull();
   });
 
+  it("un Yape queda por verificar y el mesero no puede confirmarlo", async () => {
+    const { data, error } = await caja!.rpc("registrar_pago", {
+      p_sesion_id: sessionId, p_pedido_id: null, p_metodo: "YAPE", p_monto: "1.00", p_recibido: null,
+      p_referencia: "PRUEBA-YAPE-1", p_aprobado: null, p_clave: crypto.randomUUID(),
+    }).single<{ pago_id: string; estado: string }>();
+    expect(error).toBeNull();
+    expect(data!.estado).toBe("PENDING");
+    yapeRechazado = data!.pago_id;
+
+    const { error: errorMesero } = await mesero!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: true });
+    expect(errorMesero?.message).toContain("FORBIDDEN");
+    const { error: errorOtro } = await duenoPolleria!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: true });
+    expect(errorOtro?.message).toContain("FORBIDDEN");
+  });
+
+  it("un Yape sin referencia no se registra", async () => {
+    const { error } = await caja!.rpc("registrar_pago", {
+      p_sesion_id: sessionId, p_pedido_id: null, p_metodo: "YAPE", p_monto: "1.00", p_recibido: null,
+      p_referencia: null, p_aprobado: null, p_clave: crypto.randomUUID(),
+    });
+    expect(error?.message).toContain("INVALID_PAYMENT");
+  });
+
+  it("caja rechaza un Yape: queda quién y cuándo, y no baja el saldo", async () => {
+    const { data, error } = await caja!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: false });
+    expect(error).toBeNull();
+    expect(data).toBe("FAILED");
+    const { data: pago } = await caja!.from("payments").select("status, verified_by, verified_at, confirmed_at")
+      .eq("id", yapeRechazado!).single();
+    expect(pago).toMatchObject({ status: "FAILED", verified_by: cajaId, confirmed_at: null });
+    expect(pago!.verified_at).toBeTruthy();
+
+    const { error: errorDoble } = await caja!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: true });
+    expect(errorDoble?.message).toContain("ALREADY_VERIFIED");
+  });
+
+  it("caja confirma un Yape y recién ahí cuenta como pagado", async () => {
+    const { data } = await caja!.rpc("registrar_pago", {
+      p_sesion_id: sessionId, p_pedido_id: null, p_metodo: "YAPE", p_monto: "1.00", p_recibido: null,
+      p_referencia: "PRUEBA-YAPE-2", p_aprobado: null, p_clave: crypto.randomUUID(),
+    }).single<{ pago_id: string }>();
+    const { data: estado, error } = await caja!.rpc("verificar_pago", { p_pago_id: data!.pago_id, p_confirmar: true });
+    expect(error).toBeNull();
+    expect(estado).toBe("CONFIRMED");
+
+    const { data: confirmados } = await caja!.from("payments").select("amount")
+      .eq("table_session_id", sessionId!).eq("status", "CONFIRMED");
+    const pagado = (confirmados ?? []).reduce((suma, p) => suma + Math.round(Number(p.amount) * 100), 0);
+    expect(pagado).toBe(200); // 1.00 en efectivo + 1.00 Yape confirmado; el rechazado no suma
+  });
+
   it("cobrar el resto deja el saldo en cero y ya no acepta más pagos", async () => {
-    const resto = totalCentimos - 100;
+    const resto = totalCentimos - 200;
     const pago = await pagarEfectivo(caja!, resto, resto);
     expect(pago.error).toBeNull();
     expect(Number(pago.data!.vuelto)).toBe(0);

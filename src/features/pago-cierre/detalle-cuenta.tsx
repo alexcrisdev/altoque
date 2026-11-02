@@ -7,6 +7,8 @@ import {
   type PagoCuenta,
   type ResumenCuenta,
 } from "./cuenta-logica";
+import type { CuentaACobrar } from "./pago-logica";
+import { VerificarPago } from "./verificar-pago";
 
 // US-021: detalle de la cuenta (lo mismo para mesa y para llevar).
 
@@ -16,23 +18,47 @@ function hora(fecha: string) {
   return new Date(fecha).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", timeZone: "America/Lima" });
 }
 
-function FilaPago({ pago }: { pago: PagoCuenta }) {
+// Quién puede verificar Yape en esta cuenta (US-023). Sin esto, la lista es solo lectura.
+type Verificacion = { cuenta: CuentaACobrar; puedeVerificar: boolean };
+
+function FilaPago({ pago, verificacion }: { pago: PagoCuenta; verificacion?: Verificacion }) {
+  const verificable = pago.estado === "PENDING" && pago.metodo === "YAPE";
   return (
-    <li className="flex justify-between gap-3 py-2">
-      <span>
-        {ETIQUETA_METODO[pago.metodo]} · {hora(pago.creadoEn)} · {ETIQUETA_ESTADO_PAGO[pago.estado]}
-        {pago.recibidoCentimos != null && (
-          <span className="block text-sm text-zinc-600">
-            Recibido {soles(pago.recibidoCentimos)} · vuelto {soles(pago.vueltoCentimos ?? 0)}
-          </span>
-        )}
-      </span>
-      <span className="font-medium">{soles(pago.montoCentimos)}</span>
+    <li className="py-2">
+      <div className="flex justify-between gap-3">
+        <span>
+          {ETIQUETA_METODO[pago.metodo]} · {hora(pago.creadoEn)} · {ETIQUETA_ESTADO_PAGO[pago.estado]}
+          {pago.recibidoCentimos != null && (
+            <span className="block text-sm text-zinc-600">
+              Recibido {soles(pago.recibidoCentimos)} · vuelto {soles(pago.vueltoCentimos ?? 0)}
+            </span>
+          )}
+          {pago.referencia && <span className="block text-sm text-zinc-600">Operación {pago.referencia}</span>}
+          {pago.verificadoPor && pago.verificadoEn && (
+            <span className="block text-sm text-zinc-600">
+              {pago.estado === "CONFIRMED" ? "Confirmado" : "Rechazado"} por {pago.verificadoPor} a las {hora(pago.verificadoEn)}
+            </span>
+          )}
+        </span>
+        <span className="font-medium">{soles(pago.montoCentimos)}</span>
+      </div>
+      {verificable && verificacion?.puedeVerificar && <VerificarPago cuenta={verificacion.cuenta} pagoId={pago.id} />}
+      {verificable && verificacion && !verificacion.puedeVerificar && (
+        <p className="mt-1 text-sm text-amber-900">Pide a caja o al administrador que confirme este Yape.</p>
+      )}
     </li>
   );
 }
 
-export function DetalleCuenta({ cuenta, cerrada = false }: { cuenta: ResumenCuenta; cerrada?: boolean }) {
+export function DetalleCuenta({
+  cuenta,
+  cerrada = false,
+  verificacion,
+}: {
+  cuenta: ResumenCuenta;
+  cerrada?: boolean;
+  verificacion?: Verificacion;
+}) {
   const saldo = cuenta.saldoCentimos;
 
   return (
@@ -92,7 +118,9 @@ export function DetalleCuenta({ cuenta, cerrada = false }: { cuenta: ResumenCuen
           <>
             <p className="mt-3 text-sm font-medium text-amber-900">No descuentan del saldo hasta confirmarse:</p>
             <ul className="divide-y text-sm text-amber-900">
-              {cuenta.pagosNoVerificados.map((pago) => <FilaPago key={pago.id} pago={pago} />)}
+              {cuenta.pagosNoVerificados.map((pago) => (
+                <FilaPago key={pago.id} pago={pago} verificacion={cerrada ? undefined : verificacion} />
+              ))}
             </ul>
           </>
         )}

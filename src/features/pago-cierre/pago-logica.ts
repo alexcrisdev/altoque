@@ -38,6 +38,32 @@ export function validarPagoEfectivo(
   return null;
 }
 
+// US-023: n.º de operación de Yape (o referencia del POS en US-024). Solo letras,
+// números y guiones, como en la base; sin espacios para que no parezca un n.º de tarjeta.
+export function normalizarReferencia(texto: unknown): string | null {
+  if (typeof texto !== "string") return null;
+  const limpio = texto.trim().toUpperCase();
+  return /^[A-Z0-9-]{3,40}$/.test(limpio) ? limpio : null;
+}
+
+export function validarPagoYape(
+  montoCentimos: number | null,
+  referencia: string | null,
+  saldoCentimos: number,
+): string | null {
+  if (saldoCentimos <= 0) return "Esta cuenta no tiene saldo pendiente.";
+  if (montoCentimos === null) return "Escribe un monto válido (por ejemplo 45.50).";
+  if (montoCentimos > saldoCentimos) return "El monto no puede ser mayor que el saldo pendiente.";
+  if (referencia === null) return "Escribe el n.º de operación de Yape (de 3 a 40 letras o números, sin espacios).";
+  return null;
+}
+
+// Quién puede confirmar que un Yape llegó: caja, dueño y admin (el mesero registra, no verifica).
+const ROLES_VERIFICAN = ["CASHIER", "OWNER", "ADMIN"] as const;
+export function puedeVerificarPagos(roles: readonly string[]): boolean {
+  return roles.some((rol) => (ROLES_VERIFICAN as readonly string[]).includes(rol));
+}
+
 const MENSAJES_ERROR: Record<string, string> = {
   FORBIDDEN: "No tienes permiso para registrar pagos en esta cuenta.",
   ACCOUNT_NOT_FOUND: "La cuenta ya no está abierta. Vuelve a la caja y revisa.",
@@ -45,6 +71,8 @@ const MENSAJES_ERROR: Record<string, string> = {
   AMOUNT_EXCEEDS_BALANCE: "El monto supera el saldo pendiente. Actualiza la página: quizá alguien ya cobró una parte.",
   INSUFFICIENT_CASH: "El efectivo recibido no alcanza para cubrir el monto a cobrar.",
   INVALID_PAYMENT: "Los datos del pago no son válidos. Revisa los montos.",
+  ALREADY_VERIFIED: "Este pago ya fue verificado por otra persona. Actualiza la página.",
+  PAYMENT_NOT_FOUND: "No se encontró el pago. Actualiza la página.",
 };
 
 export const CODIGOS_ERROR_PAGO = Object.keys(MENSAJES_ERROR);

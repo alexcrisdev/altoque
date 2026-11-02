@@ -42,6 +42,9 @@ export type PagoCuenta = {
   creadoEn: string;
   recibidoCentimos?: number | null; // solo efectivo (US-022)
   vueltoCentimos?: number | null;
+  referencia?: string | null; // Yape: n.º de operación (US-023)
+  verificadoPor?: string | null;
+  verificadoEn?: string | null;
 };
 
 export type ResumenCuenta = {

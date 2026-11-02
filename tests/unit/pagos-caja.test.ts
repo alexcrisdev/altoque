@@ -3,8 +3,11 @@ import {
   calcularVuelto,
   centimosATexto,
   mensajeErrorPago,
+  normalizarReferencia,
   parsearSoles,
+  puedeVerificarPagos,
   validarPagoEfectivo,
+  validarPagoYape,
 } from "../../src/features/pago-cierre/pago-logica";
 
 vi.mock("server-only", () => ({}));
@@ -13,7 +16,7 @@ vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() 
 vi.mock("../../src/features/auth/sesion", () => ({ obtenerSesion: vi.fn() }));
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { obtenerSesion } from "../../src/features/auth/sesion";
-import { registrarPagoEfectivoAction } from "../../src/features/pago-cierre/actions";
+import { registrarPagoEfectivoAction, registrarPagoYapeAction, verificarPagoAction } from "../../src/features/pago-cierre/actions";
 
 const sesionId = "11111111-1111-4111-8111-111111111111";
 const clave = "22222222-2222-4222-8222-222222222222";
@@ -134,5 +137,78 @@ describe("acción de cobro en efectivo US-022", () => {
     expect(await registrarPagoEfectivoAction(mesa, "50", "50", clave)).toEqual({
       ok: false, mensaje: mensajeErrorPago("AMOUNT_EXCEEDS_BALANCE"),
     });
+  });
+});
+
+describe("Yape: referencia y validación US-023", () => {
+  it.each([["12345678", "12345678"], [" op-123abc ", "OP-123ABC"]])("acepta la referencia %j", (texto, esperado) => {
+    expect(normalizarReferencia(texto)).toBe(esperado);
+  });
+
+  it.each(["", "12", "4111 1111 1111 1111", "op#123", "x".repeat(41)])("rechaza la referencia %j", (texto) => {
+    expect(normalizarReferencia(texto)).toBeNull();
+  });
+
+  it("exige monto válido, no mayor al saldo, y referencia", () => {
+    expect(validarPagoYape(4500, "123456", 4500)).toBeNull();
+    expect(validarPagoYape(5000, "123456", 4500)).toMatch(/mayor que el saldo/);
+    expect(validarPagoYape(null, "123456", 4500)).toMatch(/monto válido/);
+    expect(validarPagoYape(4500, null, 4500)).toMatch(/operación de Yape/);
+    expect(validarPagoYape(100, "123456", 0)).toMatch(/no tiene saldo/);
+  });
+
+  it.each([
+    [["CASHIER"], true], [["OWNER"], true], [["ADMIN"], true],
+    [["WAITER"], false], [["KITCHEN"], false], [[], false],
+  ])("verifica Yape con roles %j: %s", (roles, esperado) => {
+    expect(puedeVerificarPagos(roles)).toBe(esperado);
+  });
+});
+
+describe("acciones de Yape US-023", () => {
+  it("registra el Yape como pendiente con la referencia limpia", async () => {
+    sesionCon("WAITER");
+    const cliente = clienteConRpc({ data: { pago_id: "p1", estado: "PENDING", vuelto: null }, error: null });
+    expect(await registrarPagoYapeAction(mesa, "10", " op-555 ", clave)).toEqual({ ok: true });
+    expect(cliente.rpc).toHaveBeenCalledWith("registrar_pago", expect.objectContaining({
+      p_metodo: "YAPE", p_monto: "10.00", p_recibido: null, p_referencia: "OP-555", p_aprobado: null,
+    }));
+  });
+
+  it("no registra un Yape sin referencia", async () => {
+    sesionCon("CASHIER");
+    const cliente = clienteConRpc({ data: null, error: null });
+    expect((await registrarPagoYapeAction(mesa, "10", "", clave)).ok).toBe(false);
+    expect(cliente.rpc).not.toHaveBeenCalled();
+  });
+
+  it("el mesero no puede verificar un Yape", async () => {
+    sesionCon("WAITER");
+    const cliente = { rpc: vi.fn() };
+    vi.mocked(crearClienteServidor).mockResolvedValue(cliente as never);
+    const resultado = await verificarPagoAction(mesa, clave, true);
+    expect(resultado).toMatchObject({ ok: false, mensaje: expect.stringMatching(/Solo caja/) });
+    expect(cliente.rpc).not.toHaveBeenCalled();
+  });
+
+  it("caja confirma o rechaza llamando a verificar_pago", async () => {
+    sesionCon("CASHIER");
+    const cliente = { rpc: vi.fn().mockResolvedValue({ data: "CONFIRMED", error: null }) };
+    vi.mocked(crearClienteServidor).mockResolvedValue(cliente as never);
+    expect(await verificarPagoAction(mesa, clave, true)).toEqual({ ok: true });
+    expect(cliente.rpc).toHaveBeenCalledWith("verificar_pago", { p_pago_id: clave, p_confirmar: true });
+  });
+
+  it("muestra el aviso si otra persona ya lo verificó", async () => {
+    sesionCon("OWNER");
+    const cliente = { rpc: vi.fn().mockResolvedValue({ data: null, error: { message: "ALREADY_VERIFIED" } }) };
+    vi.mocked(crearClienteServidor).mockResolvedValue(cliente as never);
+    expect(await verificarPagoAction(mesa, clave, false)).toEqual({ ok: false, mensaje: mensajeErrorPago("ALREADY_VERIFIED") });
+  });
+
+  it("rechaza datos mal formados al verificar", async () => {
+    sesionCon("CASHIER");
+    expect((await verificarPagoAction(mesa, "x", true)).ok).toBe(false);
+    expect((await verificarPagoAction(mesa, clave, "si")).ok).toBe(false);
   });
 });

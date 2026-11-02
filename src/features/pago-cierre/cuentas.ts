@@ -55,6 +55,9 @@ type FilaPago = {
   amount: number | string;
   received_amount: number | string | null;
   change_amount: number | string | null;
+  reference: string | null;
+  verified_at: string | null;
+  verificador: { full_name: string } | null;
   created_at: string;
   table_session_id: string | null;
   order_id: string | null;
@@ -69,7 +72,8 @@ type FilaSesion = {
 
 const COLUMNAS_PEDIDO =
   "id, order_number, status, created_at, table_session_id, customer_name, order_items(product_name, quantity, unit_price, observation)";
-const COLUMNAS_PAGO = "id, method, status, amount, received_amount, change_amount, created_at, table_session_id, order_id";
+const COLUMNAS_PAGO =
+  "id, method, status, amount, received_amount, change_amount, reference, verified_at, created_at, table_session_id, order_id, verificador:users!payments_verified_by_fkey(full_name)";
 
 function aPedidoCuenta(fila: FilaPedido): PedidoCuenta {
   return {
@@ -95,6 +99,9 @@ function aPagoCuenta(fila: FilaPago): PagoCuenta {
     creadoEn: fila.created_at,
     recibidoCentimos: fila.received_amount === null ? null : aCentimos(fila.received_amount),
     vueltoCentimos: fila.change_amount === null ? null : aCentimos(fila.change_amount),
+    referencia: fila.reference,
+    verificadoPor: fila.verified_at ? fila.verificador?.full_name ?? "Personal" : null,
+    verificadoEn: fila.verified_at,
   };
 }
 
