@@ -19,7 +19,7 @@ Se empieza por funciones y contratos, luego se comprueba su integración con Sup
 | Nivel | Herramienta | Quién escribe/revisa | Ubicación | Cuándo se ejecuta |
 |---|---|---|---|---|
 | 1. Unitarias | Vitest 5; mocks para dependencias externas cuando corresponda | Cada responsable de historia escribe; otro integrante revisa en el PR | `tests/unit/` | Localmente antes de cada commit; automáticamente en cada PR hacia `develop`/`main` y push a esas ramas, job `verificar` de CI |
-| 2. Integración | Vitest contra Supabase del entorno staging de pruebas | Responsable de la integración y del esquema/RLS; Alina automatiza en US-039 | `tests/rls/` | Actualmente manual con `npm run test:rls`; antes de aceptar cambios de roles, esquema, RLS y sesiones. US-039 definirá su ejecución automática |
+| 2. Integración | Vitest contra Supabase aislado de pruebas | Responsable de la integración y del esquema/RLS | `tests/rls/` | Workflow `Pruebas de integración`: cada PR hacia `develop`/`main`, cada push a `develop` y ejecución manual desde Actions; ejecución serializada. Localmente, `npm run test:rls` solo tras verificar el destino |
 | 3. Funcionales E2E | Playwright, previsto; todavía no instalado | Erick implementa la infraestructura en US-040, Sprint 4; cada responsable agrega sus recorridos | `tests/e2e/`, prevista | En US-040 se configurará ejecución local y en CI contra un entorno de pruebas. Priorizar flujo QR → carrito → pedido y accesos por rol |
 | 4. Aceptación/manual | Guion CP-xxx, navegador y evidencias | Equipo ejecutor y representante del usuario/PO validan; responsables según Jira | `docs/pruebas/casos/` y `docs/pruebas/evidencias/`, según se creen | US-030, Sprint 4: aceptación antes de la entrega. US-031: repetir defectos corregidos y recorridos afectados en cada regresión |
 
@@ -48,7 +48,7 @@ El porcentaje de cobertura es una línea base para localizar riesgos, no un crit
 | Integración objetivo | Supabase del staging de pruebas, con datos ficticios y aislamiento de producción; ejecutar con usuarios de los roles que se comprueban |
 | E2E y aceptación | Aplicación local/Preview/staging conectada a datos de pruebas; registrar URL, versión, rol, fecha y navegador en la evidencia |
 
-**Limitación actual:** [la guía de despliegue](../despliegue.md#entornos) registra que desarrollo, Preview, staging y producción comparten `altoque-dev`. El nombre de la URL staging no garantiza aislamiento de datos. Antes de automatizar integración en US-039, el equipo debe resolver o acordar explícitamente esta limitación y la preparación/limpieza de datos. US-038 no ejecuta pruebas RLS ni cambia la base.
+**Limitación de seguridad:** [la guía de despliegue](../despliegue.md#entornos) registra que desarrollo, Preview, staging y producción comparten `altoque-dev`. El nombre de la URL staging no garantiza aislamiento de datos. Los secretos del workflow solo deben configurarse con un proyecto de pruebas aislado de producción; comprobar que existan no demuestra que su URL sea segura. Si el aislamiento no está confirmado, no ejecutes las pruebas RLS.
 
 Datos disponibles:
 
@@ -60,7 +60,15 @@ Datos disponibles:
 
 La preparación del esquema/seed es una operación de base de datos y corresponde al responsable del entorno, siguiendo las migraciones y la guía del proyecto. No es un efecto de ejecutar `npm test`.
 
-Las pruebas RLS leen `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD` de `.env.local` mediante el script de npm. **El destino real es esa URL**, no el proyecto que figure enlazado en la CLI. La clave de servidor se usa solo para preparación autorizada de usuarios; las pruebas de permisos usan clientes autenticados normales y anónimos, sin saltarse RLS.
+`npm run test:rls` lee `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD` de `.env.local`; **el destino real es esa URL**, no el proyecto que figure enlazado en la CLI. No lo ejecutes hasta confirmar que apunta a un entorno aislado de pruebas. El workflow `Pruebas de integración` recibe esas tres variables desde GitHub Actions Secrets. No usa `SUPABASE_SERVICE_ROLE_KEY`; las pruebas ejercitan RLS con clientes autenticados normales y anónimos.
+
+## Integración automática US-039
+
+`.github/workflows/integracion.yml` ejecuta `tests/rls/` en cada PR hacia `develop` o `main`, en cada push a `develop` y cuando alguien lo lanza desde Actions → **Pruebas de integración** → **Run workflow**. Todas las ejecuciones comparten un único grupo de concurrencia y no se cancela una ejecución activa, porque las suites usan mesas y datos demo compartidos.
+
+El workflow necesita los secretos `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD`. Si falta alguno, termina con error y escribe en el resumen el nombre del secreto faltante, sin mostrar valores. Configura la URL únicamente para Supabase aislado de pruebas; no uses el proyecto compartido con producción. El check `integracion` y el reporte JUnit quedan en el PR/ejecución de Actions; el XML se conserva como artefacto.
+
+Para lanzar localmente la misma suite sin leer `.env.local`, define esas tres variables solo en la sesión de terminal y ejecuta `npm run test:integracion`. Si falla por no encontrar una mesa libre, libera una mesa demo desde `/mesero` en el entorno de pruebas y vuelve a intentar; la suite no debe borrar ni reiniciar datos compartidos.
 
 No subir `.env.local`, contraseñas, tokens, claves ni capturas con credenciales. En futuras automatizaciones, las credenciales privadas irán en secretos del entorno correspondiente, nunca en el repositorio. Redactar las evidencias antes de publicarlas y usar únicamente datos ficticios.
 
