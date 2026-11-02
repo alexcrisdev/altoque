@@ -47,5 +47,6 @@ export async function cambiarEstadoPedido(
   revalidatePath("/mesero");
   revalidatePath("/admin/pedidos");
   revalidatePath(`/admin/pedidos/${pedidoId}`);
+  revalidatePath(`/mesero/pedidos/${pedidoId}`);
   return { ok: true };
 }
