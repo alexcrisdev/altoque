@@ -1,0 +1,138 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  calcularVuelto,
+  centimosATexto,
+  mensajeErrorPago,
+  parsearSoles,
+  validarPagoEfectivo,
+} from "../../src/features/pago-cierre/pago-logica";
+
+vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() }));
+vi.mock("../../src/features/auth/sesion", () => ({ obtenerSesion: vi.fn() }));
+import { crearClienteServidor } from "../../src/lib/supabase/server";
+import { obtenerSesion } from "../../src/features/auth/sesion";
+import { registrarPagoEfectivoAction } from "../../src/features/pago-cierre/actions";
+
+const sesionId = "11111111-1111-4111-8111-111111111111";
+const clave = "22222222-2222-4222-8222-222222222222";
+const mesa = { tipo: "MESA" as const, id: sesionId };
+
+describe("montos en soles US-022", () => {
+  it.each([
+    ["45", 4500], ["45.5", 4550], ["45,50", 4550], [" 0.10 ", 10], ["100000", 10_000_000],
+  ])("lee %s como %i céntimos", (texto, centimos) => expect(parsearSoles(texto)).toBe(centimos));
+
+  it.each(["", "0", "-5", "abc", "4.555", "1e3", "100000.01", "45.5.1"])("rechaza %j", (texto) => {
+    expect(parsearSoles(texto)).toBeNull();
+  });
+
+  it("rechaza valores que no son texto", () => {
+    expect(parsearSoles(45)).toBeNull();
+    expect(parsearSoles(null)).toBeNull();
+  });
+
+  it("convierte céntimos a texto para la base sin errores de decimales", () => {
+    expect(centimosATexto(4550)).toBe("45.50");
+    expect(centimosATexto(10)).toBe("0.10");
+  });
+});
+
+describe("vuelto y validación del efectivo US-022", () => {
+  it("calcula el vuelto exacto", () => {
+    expect(calcularVuelto(4550, 5000)).toBe(450);
+    expect(calcularVuelto(4500, 4500)).toBe(0);
+  });
+
+  it("no hay vuelto si el efectivo no alcanza", () => {
+    expect(calcularVuelto(4550, 4000)).toBeNull();
+  });
+
+  it("acepta pago completo y pago parcial", () => {
+    expect(validarPagoEfectivo(4500, 5000, 4500)).toBeNull();
+    expect(validarPagoEfectivo(2000, 2000, 4500)).toBeNull();
+  });
+
+  it("rechaza efectivo menor al monto", () => {
+    expect(validarPagoEfectivo(4500, 4000, 4500)).toMatch(/no alcanza/);
+  });
+
+  it("rechaza cobrar más que el saldo", () => {
+    expect(validarPagoEfectivo(5000, 5000, 4500)).toMatch(/mayor que el saldo/);
+  });
+
+  it("rechaza cuentas sin saldo y montos vacíos", () => {
+    expect(validarPagoEfectivo(100, 100, 0)).toMatch(/no tiene saldo/);
+    expect(validarPagoEfectivo(null, 100, 4500)).toMatch(/monto a cobrar/);
+    expect(validarPagoEfectivo(100, null, 4500)).toMatch(/entregó el cliente/);
+  });
+
+  it("traduce los errores de la base y tiene un mensaje genérico", () => {
+    expect(mensajeErrorPago("AMOUNT_EXCEEDS_BALANCE")).toMatch(/supera el saldo/);
+    expect(mensajeErrorPago("INSUFFICIENT_CASH")).toMatch(/no alcanza/);
+    expect(mensajeErrorPago("otro")).toMatch(/Inténtalo de nuevo/);
+  });
+});
+
+function clienteConRpc(respuesta: { data: unknown; error: unknown }) {
+  const llamada = { single: vi.fn().mockReturnThis(), overrideTypes: vi.fn().mockResolvedValue(respuesta) };
+  const cliente = { rpc: vi.fn().mockReturnValue(llamada) };
+  vi.mocked(crearClienteServidor).mockResolvedValue(cliente as never);
+  return cliente;
+}
+
+function sesionCon(rol: string) {
+  vi.mocked(obtenerSesion).mockResolvedValue({ usuario: {}, membresias: [{ restaurantId: "r", branchId: null, rol }] } as never);
+}
+
+beforeEach(() => vi.resetAllMocks());
+
+describe("acción de cobro en efectivo US-022", () => {
+  it("manda montos exactos y la clave del intento a la base", async () => {
+    sesionCon("CASHIER");
+    const cliente = clienteConRpc({ data: { pago_id: "p1", estado: "CONFIRMED", vuelto: "4.50" }, error: null });
+    const resultado = await registrarPagoEfectivoAction(mesa, "45.50", "50", clave);
+    expect(resultado).toEqual({ ok: true, vueltoCentimos: 450 });
+    expect(cliente.rpc).toHaveBeenCalledWith("registrar_pago", {
+      p_sesion_id: sesionId, p_pedido_id: null, p_metodo: "CASH", p_monto: "45.50", p_recibido: "50.00",
+      p_referencia: null, p_aprobado: null, p_clave: clave,
+    });
+  });
+
+  it("para llevar usa el pedido, no la sesión", async () => {
+    sesionCon("OWNER");
+    const cliente = clienteConRpc({ data: { pago_id: "p1", estado: "CONFIRMED", vuelto: 0 }, error: null });
+    await registrarPagoEfectivoAction({ tipo: "PARA_LLEVAR", id: sesionId }, "12", "12", clave);
+    expect(cliente.rpc.mock.calls[0][1]).toMatchObject({ p_sesion_id: null, p_pedido_id: sesionId });
+  });
+
+  it("cocina no puede cobrar y no llega a la base", async () => {
+    sesionCon("KITCHEN");
+    const cliente = clienteConRpc({ data: null, error: null });
+    expect(await registrarPagoEfectivoAction(mesa, "10", "10", clave)).toEqual({ ok: false, mensaje: mensajeErrorPago("FORBIDDEN") });
+    expect(cliente.rpc).not.toHaveBeenCalled();
+  });
+
+  it("sin sesión no cobra", async () => {
+    vi.mocked(obtenerSesion).mockResolvedValue(null);
+    expect((await registrarPagoEfectivoAction(mesa, "10", "10", clave)).ok).toBe(false);
+  });
+
+  it("rechaza efectivo insuficiente y datos mal formados antes de ir a la base", async () => {
+    sesionCon("CASHIER");
+    const cliente = clienteConRpc({ data: null, error: null });
+    expect(await registrarPagoEfectivoAction(mesa, "50", "40", clave)).toMatchObject({ ok: false, mensaje: expect.stringMatching(/no alcanza/) });
+    expect((await registrarPagoEfectivoAction(mesa, "50", "50", "no-es-uuid")).ok).toBe(false);
+    expect((await registrarPagoEfectivoAction({ tipo: "MESA", id: "x" }, "50", "50", clave)).ok).toBe(false);
+    expect(cliente.rpc).not.toHaveBeenCalled();
+  });
+
+  it("muestra el mensaje del error que devuelve la base", async () => {
+    sesionCon("CASHIER");
+    clienteConRpc({ data: null, error: { message: "AMOUNT_EXCEEDS_BALANCE", code: "22023" } });
+    expect(await registrarPagoEfectivoAction(mesa, "50", "50", clave)).toEqual({
+      ok: false, mensaje: mensajeErrorPago("AMOUNT_EXCEEDS_BALANCE"),
+    });
+  });
+});

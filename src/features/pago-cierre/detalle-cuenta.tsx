@@ -21,6 +21,11 @@ function FilaPago({ pago }: { pago: PagoCuenta }) {
     <li className="flex justify-between gap-3 py-2">
       <span>
         {ETIQUETA_METODO[pago.metodo]} · {hora(pago.creadoEn)} · {ETIQUETA_ESTADO_PAGO[pago.estado]}
+        {pago.recibidoCentimos != null && (
+          <span className="block text-sm text-zinc-600">
+            Recibido {soles(pago.recibidoCentimos)} · vuelto {soles(pago.vueltoCentimos ?? 0)}
+          </span>
+        )}
       </span>
       <span className="font-medium">{soles(pago.montoCentimos)}</span>
     </li>

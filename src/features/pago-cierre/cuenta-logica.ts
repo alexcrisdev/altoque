@@ -40,6 +40,8 @@ export type PagoCuenta = {
   estado: EstadoPago;
   montoCentimos: number;
   creadoEn: string;
+  recibidoCentimos?: number | null; // solo efectivo (US-022)
+  vueltoCentimos?: number | null;
 };
 
 export type ResumenCuenta = {
