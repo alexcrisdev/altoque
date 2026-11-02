@@ -7,7 +7,7 @@ function pedido(id: string, estado: PedidoCocina["estado"], minuto: number): Ped
   return {
     id, numero: minuto, estado, creadoEn: `2026-10-31T15:${String(minuto).padStart(2, "0")}:00Z`,
     modalidad: "DINE_IN", asistido: false, mesaNumero: 1, nombreCliente: null,
-    items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }],
+    items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }], incidenciasAbiertas: [],
   };
 }
 const pedidos = [pedido("nuevo", "PENDING", 20), pedido("preparacion", "IN_PROGRESS", 15),
@@ -100,6 +100,7 @@ const base = {
   created_at: "2026-10-31T15:00:00Z", status: "PENDING", modality: "DINE_IN", source: "QR",
   customer_name: null, dining_tables: { number: 3 },
   order_items: [{ product_name: "Ceviche", quantity: 2, observation: "Sin ají" }],
+  order_incidents: [],
 };
 
 function consulta(error: { code: string; message: string } | null = null) {
@@ -141,12 +142,13 @@ describe("lectura de cocina", () => {
       id: "pedido-1", numero: 42, creadoEn: base.created_at, estado: "PENDING", modalidad: "DINE_IN",
       asistido: false, mesaNumero: 3, nombreCliente: null,
       items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }],
+      incidenciasAbiertas: [],
     }]);
     expect(cliente.from).toHaveBeenCalledWith("orders");
     expect(cliente.eq).toHaveBeenCalledExactlyOnceWith("restaurant_id", restauranteId);
     expect(cliente.in).toHaveBeenCalledExactlyOnceWith("status", ESTADOS_ACTIVOS);
     expect(cliente.order).toHaveBeenCalledExactlyOnceWith("created_at", { ascending: true });
-    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation)");
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)");
   });
 
   it("un error no se confunde con una lista vacía y registra únicamente el código", async () => {

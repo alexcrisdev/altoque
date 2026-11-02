@@ -23,6 +23,7 @@ export async function registrarIncidenciaAction(pedidoId: string, tipo: unknown,
     return { ok: false as const, mensaje: mensajeErrorIncidencia(codigo ?? "") };
   }
   revalidatePath(`/mesero/pedidos/${pedidoId}`); revalidatePath(`/admin/pedidos/${pedidoId}`);
+  revalidatePath("/cocina");
   return { ok: true as const };
 }
 
@@ -35,5 +36,6 @@ export async function resolverIncidenciaAction(pedidoId: string, incidenciaId: s
     return { ok: false as const, mensaje: mensajeErrorIncidencia(codigo ?? "") };
   }
   revalidatePath(`/mesero/pedidos/${pedidoId}`); revalidatePath(`/admin/pedidos/${pedidoId}`);
+  revalidatePath("/cocina");
   return { ok: true as const };
 }

@@ -3,6 +3,7 @@ import { crearClienteServidor } from "../../lib/supabase/server";
 import { ESTADOS_ACTIVOS, type EstadoPedido } from "../pedidos/estados";
 import type { Modalidad } from "@/features/pedidos/modalidad";
 import type { PedidoCocina } from "./tipos";
+import type { TipoIncidencia } from "../pedidos/incidencias";
 
 type FilaPedido = {
   id: string;
@@ -14,13 +15,14 @@ type FilaPedido = {
   customer_name: string | null;
   dining_tables: { number: number } | null;
   order_items: { product_name: string; quantity: number; observation: string | null }[];
+  order_incidents: { id: string; type: TipoIncidencia; description: string; status: "OPEN" | "RESOLVED"; created_at: string }[];
 };
 
 export async function listarPedidosCocina(restauranteId: string): Promise<PedidoCocina[]> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation)")
+    .select("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)")
     .eq("restaurant_id", restauranteId)
     .in("status", ESTADOS_ACTIVOS)
     .order("created_at", { ascending: true })
@@ -44,6 +46,12 @@ export async function listarPedidosCocina(restauranteId: string): Promise<Pedido
       nombre: item.product_name,
       cantidad: item.quantity,
       observacion: item.observation,
+    })),
+    incidenciasAbiertas: fila.order_incidents.filter((incidencia) => incidencia.status === "OPEN").map((incidencia) => ({
+      id: incidencia.id,
+      tipo: incidencia.type,
+      descripcion: incidencia.description,
+      creadaEn: incidencia.created_at,
     })),
   }));
 }

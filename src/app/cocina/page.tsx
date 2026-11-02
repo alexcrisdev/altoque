@@ -6,7 +6,9 @@ import { obtenerPanelCocina } from "@/features/cocina/actions";
 import { ContenidoConservado } from "@/features/cocina/contenido-conservado";
 import { AvisosCocina } from "@/features/cocina/avisos-cocina";
 import { BotonAvanzarEstado } from "@/features/cocina/boton-avanzar-estado";
-import { agruparPorEstado, filtrarPorEstado, minutosDesde, normalizarFiltro } from "@/features/cocina/cocina-logica";
+import { ReportarIncidencia, MarcarIncidenciaResuelta } from "@/features/cocina/reportar-incidencia";
+import { ETIQUETA_TIPO_INCIDENCIA } from "@/features/pedidos/incidencias";
+import { agruparPorEstado, filtrarPorEstado, minutosDesde, normalizarFiltro, tieneIncidenciaAbierta } from "@/features/cocina/cocina-logica";
 import { ESTADOS_ACTIVOS, ETIQUETA_ESTADO, TONO_ESTADO } from "@/features/pedidos/estados";
 import { describirDestino } from "@/features/pedidos/modalidad";
 
@@ -44,10 +46,11 @@ async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
         {visibles.length === 0 ? <MensajeEstado tipo="vacio" titulo="No hay pedidos pendientes" /> :
           <ul className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Pedidos de cocina">
             {visibles.map((pedido) => <li key={pedido.id}>
-              <Tarjeta className={pedido.estado === "PENDING" ? "border-2 border-aviso-texto" : ""}>
+              <Tarjeta className={tieneIncidenciaAbierta(pedido) ? "border-2 border-aviso-borde! bg-aviso-fondo!" : pedido.estado === "PENDING" ? "border-2 border-aviso-texto" : ""}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <h2 className="text-xl font-bold">N.º {pedido.numero}</h2>
                   <div className="flex flex-wrap gap-2">
+                    {tieneIncidenciaAbierta(pedido) && <Insignia tono="aviso">⚠️ Incidencia</Insignia>}
                     {pedido.estado === "PENDING" && <Insignia tono="aviso">Nuevo</Insignia>}
                     <Insignia tono={TONO_ESTADO[pedido.estado]}>{ETIQUETA_ESTADO[pedido.estado]}</Insignia>
                   </div>
@@ -68,8 +71,17 @@ async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
                     </p>}
                   </li>)}
                 </ul>
+                {tieneIncidenciaAbierta(pedido) && <section className="mt-4 space-y-3" aria-label={`Incidencias abiertas del pedido N.º ${pedido.numero}`}>
+                  {pedido.incidenciasAbiertas.map((incidencia) => <div key={incidencia.id} className="rounded-xl border border-aviso-borde p-3">
+                    <p className="font-semibold">{ETIQUETA_TIPO_INCIDENCIA[incidencia.tipo]}</p>
+                    <p className="mt-1 whitespace-pre-wrap break-words text-sm">{incidencia.descripcion}</p>
+                    <p className="mt-1 text-sm text-texto-suave"><time dateTime={incidencia.creadaEn}>{horaLima.format(new Date(incidencia.creadaEn))}</time></p>
+                    <MarcarIncidenciaResuelta pedidoId={pedido.id} incidenciaId={incidencia.id} descripcion={incidencia.descripcion} />
+                  </div>)}
+                </section>}
                 {pedido.estado === "READY" ? <p className="mt-4 text-sm font-semibold text-texto-suave">Esperando al mesero</p>
                   : <BotonAvanzarEstado key={`${pedido.id}:${pedido.estado}`} pedidoId={pedido.id} estado={pedido.estado} numero={pedido.numero} />}
+                <ReportarIncidencia pedidoId={pedido.id} estado={pedido.estado} numero={pedido.numero} />
               </Tarjeta>
             </li>)}
           </ul>}
