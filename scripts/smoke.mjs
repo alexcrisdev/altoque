@@ -30,8 +30,7 @@ const pruebas = [
     async () => redirigeALogin((await pedir(ruta)).respuesta),
   ]),
   ["QR inventado muestra 'no válido'", async () => {
-    // Token mal formado para probar el rechazo del formato sin consultar Supabase.
-    const { respuesta, texto } = await pedir("/m/bad");
+    const { respuesta, texto } = await pedir("/m/smoke-token-que-no-existe");
     return respuesta.status === 200 && texto.includes("Código QR no válido");
   }],
   ["Cabeceras de seguridad presentes", async () => {
