@@ -1,0 +1,58 @@
+US-013: alertas de pedidos nuevos (partes A y B; historia todavía en curso)
+Fecha: 01/11/2026 (America/Lima).
+Rama: dev/erick. Base integrada: f2ca126.
+Migración: commit 3f8cbdc, PR #30 en borrador para revisión de Alexander.
+https://github.com/alexcrisdev/altoque/pull/30
+
+ALCANCE Y DEPENDENCIA
+La migración 20261101180000_solicitudes_ayuda.sql se preparó y subió, pero este asistente
+NO la aplicó. El usuario confirmó que Alexander todavía no había confirmado su aplicación.
+La parte C (botón Llamar al mesero, lista/atención de solicitudes y pruebas RLS de ayuda)
+sigue pendiente. Las pruebas actuales no certifican todavía las funciones SQL nuevas.
+
+VALIDACIÓN AUTOMÁTICA DE LA PARTE B
+npm run lint: aprobado.
+npm test: 21 archivos, 374 casos aprobados (357 existentes y 17 nuevos).
+tests/unit/alertas-mesero.test.ts: 4 casos de detección y 13 variantes de antigüedad.
+Se adaptó el contrato esperado en panel-mesero.test.ts al incluir restauranteId.
+npm run typecheck: aprobado.
+npm run build: aprobado, incluyendo la corrección del contador de pestaña.
+npx tsc --noEmit: aprobado.
+npm run test:rls: 2 archivos y 10 casos existentes aprobados; no incluye solicitudes de ayuda mientras no se aplique
+la migración nueva. No confundir esa ejecución con la validación de la parte C.
+npm run start + npm run smoke: 8/8 comprobaciones aprobadas.
+
+NAVEGADOR REAL: CHROME, LOCALHOST
+- Primera carga: no muestra avisos por los pedidos antiguos; título Panel mesero.
+- Activar sonido requiere interacción; se verificó el tono de activación mediante Web Audio.
+- Pedido asistido demo N.º 32 creado desde una sesión separada del mesero en Mesa 5 libre.
+- Aparece Nuevo pedido N.º 32 · Mesa 5, sin nueva navegación en el panel observador.
+- Se verificaron dos inicios de oscilador: activación y aviso del pedido nuevo.
+- Título (1) Panel mesero. Conservado en desconexión y tras refresco automático.
+- Desconexión simulada: lista y aviso permanecen visibles; aparece el estado de desconexión.
+- Recuperación: reintenta; no duplica aviso ni sonido en los refrescos.
+- Cerrar aviso: vuelve a Panel mesero; el mismo pedido no vuelve a avisar en el refresco.
+- Recarga posterior: conserva preferencia en localStorage, solicita un gesto para activar
+  sonido en la pestaña y no avisa por los pedidos ya presentes al entrar.
+- La prueba detectó que Next.js podía restaurar AlToque durante router.refresh(); se corrigió
+  la sincronización del título y se repitió el recorrido para verificar su persistencia.
+
+CAPTURAS
+captura-us013-nuevo-pedido.png: aviso real del N.º 32 y control de sonido.
+captura-us013-sin-conexion.png: información conservada durante la desconexión.
+La captura del botón Llamar al mesero se incorporará en la parte C.
+
+DATOS DEMO Y LIMPIEZA
+Se crearon dos pedidos exclusivamente para esta prueba y se cancelaron con motivo Prueba US-013:
+- N.º 31: 96fb7279-af42-4224-8f72-edeb440a9cd2 (recorrido inicial del contador).
+- N.º 32: 256d7ada-7bbc-416e-9d15-7f6fb02a6bb1 (repetición con el contador corregido).
+Las dos sesiones propias abiertas en Mesa 5 quedaron cerradas.
+La cancelación se hizo con el dueño demo desde el detalle administrativo existente.
+El primer cierre se verificó/completó con la sesión normal del mesero al dejar de responder
+el navegador temporal; no se usó una clave privilegiada. El segundo se cerró desde el panel.
+No se modificaron pedidos anteriores ni sesiones ocupadas ajenas a esta prueba.
+Mesa 1 estaba ocupada y el QR demo de mostrador deshabilitado: para comprobar únicamente
+la parte B se usó pedido asistido en Mesa 5. El recorrido QR/solicitud de ayuda sigue pendiente.
+
+No hay contraseñas ni claves en esta evidencia. No se aplicaron migraciones ni se tocaron
+los archivos reservados de cocina, detalle del pedido o seguimiento QR.
