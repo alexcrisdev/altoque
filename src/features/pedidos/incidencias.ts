@@ -2,6 +2,7 @@ import type { EstadoPedido } from "./estados";
 import type { Rol } from "@/features/auth/permisos";
 
 export type TipoIncidencia = "FALTANTE" | "ERROR" | "RECLAMO" | "OTRO" | "SIN_INGREDIENTES" | "PROBLEMA_PREPARACION";
+export const TIPOS_INCIDENCIA_COCINA = ["SIN_INGREDIENTES", "PROBLEMA_PREPARACION", "OTRO"] as const;
 export const ETIQUETA_TIPO_INCIDENCIA: Record<TipoIncidencia, string> = {
   FALTANTE: "Faltante", ERROR: "Error", RECLAMO: "Reclamo", OTRO: "Otro",
   SIN_INGREDIENTES: "Sin ingredientes", PROBLEMA_PREPARACION: "Problema de preparación",
