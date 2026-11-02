@@ -150,6 +150,6 @@ describe("autorización del panel mesero", () => {
   it("distingue un error de carga de un panel vacío", async () => {
     sesion(); consulta();
     vi.mocked(listarMesasConSesion).mockRejectedValue(new Error("Sin conexión"));
-    expect(await obtenerPanelMesero()).toEqual({ ok: false });
+    expect(await obtenerPanelMesero()).toEqual({ ok: false, restauranteId: "cevicheria" });
   });
 });

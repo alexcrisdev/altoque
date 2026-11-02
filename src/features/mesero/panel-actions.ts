@@ -15,8 +15,8 @@ export async function obtenerPanelMesero() {
       listarMesasConSesion(membresia.restaurantId),
       listarPedidosActivos(membresia.restaurantId),
     ]);
-    return { ok: true as const, mesas, pedidos, actualizadoEn: new Date().toISOString() };
+    return { ok: true as const, restauranteId: membresia.restaurantId, mesas, pedidos, actualizadoEn: new Date().toISOString() };
   } catch {
-    return { ok: false as const };
+    return { ok: false as const, restauranteId: membresia.restaurantId };
   }
 }
