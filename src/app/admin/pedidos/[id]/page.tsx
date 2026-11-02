@@ -7,6 +7,8 @@ import { describirDestino } from "@/features/pedidos/modalidad";
 import { obtenerDetallePedido } from "@/features/pedidos/pedidos-admin";
 import { AccionesPedido } from "@/features/pedidos/acciones-pedido";
 import { ETIQUETA_ESTADO } from "@/features/pedidos/estados";
+import { listarIncidencias } from "@/features/pedidos/incidencias-servidor";
+import { IncidenciasPanel } from "@/features/pedidos/incidencias-panel";
 
 function fechaLima(fecha: string) {
   return new Intl.DateTimeFormat("es-PE", {
@@ -24,6 +26,7 @@ async function DetallePedido({ params }: PageProps<"/admin/pedidos/[id]">) {
   const pedido = await obtenerDetallePedido(restauranteId, id);
   if (!pedido) notFound();
   const historial = await obtenerHistorialPedido(pedido.id);
+  const incidencias = await listarIncidencias(pedido.id);
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -31,6 +34,7 @@ async function DetallePedido({ params }: PageProps<"/admin/pedidos/[id]">) {
       <h1 className="mt-4 text-3xl font-bold">Pedido n.º {pedido.numero}</h1>
       <p className="mt-2 text-slate-600">{fechaLima(pedido.creadoEn)} · {describirDestino(pedido)} · {ETIQUETA_ESTADO[pedido.estado]}</p>
       <AccionesPedido pedidoId={pedido.id} estado={pedido.estado} roles={sesion.membresias.filter((m) => m.restaurantId === restauranteId).map((m) => m.rol)} items={pedido.items} />
+      <IncidenciasPanel pedidoId={pedido.id} estado={pedido.estado} incidencias={incidencias} soloLectura />
       <h2 className="mt-8 text-xl font-semibold">Productos</h2>
       <ul className="mt-3 divide-y rounded-lg border">
         {pedido.items.map((item) => <li key={item.id} className="flex justify-between gap-4 p-3"><span>{item.nombre} × {item.cantidad}{item.observacion && <span className="block text-sm text-slate-600">{item.observacion}</span>}</span><span>{new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(item.precioUnitarioCentimos * item.cantidad / 100)}</span></li>)}
