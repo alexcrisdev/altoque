@@ -59,11 +59,10 @@ export function RegistrarPagoEfectivo({ cuenta, saldoCentimos }: { cuenta: Cuent
   }
 
   return (
-    <section aria-labelledby="cobrar-efectivo" className="mt-6 rounded-xl border-2 border-marca p-4">
-      <h2 id="cobrar-efectivo" className="text-xl font-semibold">Cobrar en efectivo</h2>
+    <div>
 
       {exito && (
-        <p role="status" className="mt-3 rounded-lg border border-exito-borde bg-exito-fondo p-3 text-lg font-semibold text-exito-texto">
+        <p role="status" className="rounded-lg border border-exito-borde bg-exito-fondo p-3 text-lg font-semibold text-exito-texto">
           {exito}
         </p>
       )}
@@ -119,6 +118,6 @@ export function RegistrarPagoEfectivo({ cuenta, saldoCentimos }: { cuenta: Cuent
           </Boton>
         </form>
       )}
-    </section>
+    </div>
   );
 }

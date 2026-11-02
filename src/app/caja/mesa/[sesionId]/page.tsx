@@ -2,14 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { esUuid } from "@/features/mesero/solicitud-asistida";
-import { requerirCaja } from "@/features/pago-cierre/acceso-caja";
+import { contextoCaja } from "@/features/pago-cierre/acceso-caja";
 import { obtenerCuentaMesa } from "@/features/pago-cierre/cuentas";
 import { DetalleCuenta } from "@/features/pago-cierre/detalle-cuenta";
-import { RegistrarPagoEfectivo } from "@/features/pago-cierre/registrar-pago-efectivo";
+import { CobrarCuenta } from "@/features/pago-cierre/cobrar-cuenta";
 
 async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
   const { sesionId } = await params;
-  const restauranteId = await requerirCaja();
+  const { restauranteId, puedeVerificar } = await contextoCaja();
   if (!esUuid(sesionId)) notFound();
   const cuenta = await obtenerCuentaMesa(restauranteId, sesionId);
   if (!cuenta) notFound();
@@ -27,9 +27,13 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
       <p className="mt-1 text-zinc-600">
         {cuenta.cerrada ? "Mesa cerrada" : `Mesa abierta desde las ${desde}`}
       </p>
-      <DetalleCuenta cuenta={cuenta} cerrada={cuenta.cerrada} />
+      <DetalleCuenta
+        cuenta={cuenta}
+        cerrada={cuenta.cerrada}
+        verificacion={{ cuenta: { tipo: "MESA", id: cuenta.sesionId }, puedeVerificar }}
+      />
       {!cuenta.cerrada && (
-        <RegistrarPagoEfectivo cuenta={{ tipo: "MESA", id: cuenta.sesionId }} saldoCentimos={cuenta.saldoCentimos} />
+        <CobrarCuenta cuenta={{ tipo: "MESA", id: cuenta.sesionId }} saldoCentimos={cuenta.saldoCentimos} />
       )}
     </main>
   );
