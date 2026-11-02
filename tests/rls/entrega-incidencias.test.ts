@@ -65,21 +65,38 @@ beforeAll(async () => {
 }, 30_000);
 
 afterAll(async () => {
+  const erroresLimpieza: string[] = [];
   try {
     if (mesero && orderId) {
-      // La cancelación conserva el historial de auditoría y deja el pedido fuera de servicio.
-      await mesero.rpc("cambiar_estado_pedido", { p_pedido_id: orderId, p_estado: "CANCELLED", p_motivo: "Limpieza prueba US-014" });
+      // La cancelación conserva el historial y etiqueta el pedido de prueba.
+      const { error } = await mesero.rpc("cambiar_estado_pedido", {
+        p_pedido_id: orderId, p_estado: "CANCELLED", p_motivo: "Prueba automática",
+      });
+      if (error) erroresLimpieza.push(`No se pudo cancelar el pedido de prueba: ${error.message}`);
     }
+  } catch (error) {
+    erroresLimpieza.push(`Falló la cancelación del pedido de prueba: ${String(error)}`);
+  }
+  try {
     if (mesero && meseroId && sessionId) {
-      const { data: sesion } = await mesero.from("table_sessions").select("opened_at").eq("id", sessionId).eq("restaurant_id", restaurantId).is("closed_at", null).maybeSingle();
-      if (sesion) {
-        await mesero.from("table_sessions").update({ closed_at: new Date(new Date(sesion.opened_at).getTime() + 1_000).toISOString(), closed_by: meseroId })
-          .eq("id", sessionId).eq("restaurant_id", restaurantId).is("closed_at", null);
+      const { data: sesion, error: errorLectura } = await mesero.from("table_sessions")
+        .select("opened_at").eq("id", sessionId).eq("restaurant_id", restaurantId).is("closed_at", null).maybeSingle();
+      if (errorLectura) {
+        erroresLimpieza.push(`No se pudo consultar la sesión de prueba: ${errorLectura.message}`);
+      } else if (sesion) {
+        const { data: cerradas, error } = await mesero.from("table_sessions")
+          .update({ closed_at: new Date(new Date(sesion.opened_at).getTime() + 1_000).toISOString(), closed_by: meseroId })
+          .eq("id", sessionId).eq("restaurant_id", restaurantId).is("closed_at", null).select("id");
+        if (error) erroresLimpieza.push(`No se pudo cerrar la sesión de prueba: ${error.message}`);
+        else if (cerradas.length !== 1) erroresLimpieza.push("No se pudo confirmar el cierre de la sesión de prueba");
       }
     }
+  } catch (error) {
+    erroresLimpieza.push(`Falló el cierre de la sesión de prueba: ${String(error)}`);
   } finally {
     await Promise.all([mesero?.auth.signOut(), cocina?.auth.signOut(), duenoPolleria?.auth.signOut()]);
   }
+  if (erroresLimpieza.length) throw new Error(erroresLimpieza.join("; "));
 }, 30_000);
 
 describe("RLS y RPC de incidencias de pedidos", () => {

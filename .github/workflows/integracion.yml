@@ -1,0 +1,98 @@
+name: Pruebas de integración
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Las suites usan una misma base demo y una mesa compartida. El grupo fijo
+# serializa también PR, pushes y ejecuciones manuales de todo el repositorio.
+concurrency:
+  group: integracion-supabase-compartida
+  cancel-in-progress: false
+
+jobs:
+  integracion:
+    name: integracion
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v7.0.1
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Comprobar secretos
+        shell: bash
+        run: |
+          faltan=()
+          [[ -n "$NEXT_PUBLIC_SUPABASE_URL" ]] || faltan+=("NEXT_PUBLIC_SUPABASE_URL")
+          [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]] || faltan+=("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+          [[ -n "$DEMO_PASSWORD" ]] || faltan+=("DEMO_PASSWORD")
+
+          if (( ${#faltan[@]} > 0 )); then
+            {
+              echo "## Configuración incompleta de pruebas RLS"
+              echo "Faltan estos secretos de Actions: ${faltan[*]}."
+              echo "Pide a Alexander que los configure en Settings → Secrets and variables → Actions."
+              echo "No se ejecutaron pruebas ni se imprimieron valores secretos."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Ejecutar pruebas de integración
+        run: >-
+          npm run test:integracion -- --reporter=default --reporter=junit
+          --outputFile.junit=resultados-integracion.xml
+
+      - name: Resumir resultados
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          archivo = Path("resultados-integracion.xml")
+          resumen = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          if not archivo.is_file():
+              with resumen.open("a", encoding="utf-8") as salida:
+                  salida.write("\n## Pruebas RLS\nNo se generó el reporte JUnit. Revisa el paso de ejecución.\n")
+          else:
+              raiz = ET.parse(archivo).getroot()
+              suites = list(raiz.iter("testsuite"))
+              pruebas = sum(int(suite.get("tests", "0")) for suite in suites)
+              fallidas = sum(int(suite.get("failures", "0")) for suite in suites)
+              errores = sum(int(suite.get("errors", "0")) for suite in suites)
+              omitidas = sum(int(suite.get("skipped", "0")) for suite in suites)
+              aprobadas = pruebas - fallidas - errores - omitidas
+              archivos = sorted({Path(suite.get("name", "suite sin nombre")).name for suite in suites})
+              with resumen.open("a", encoding="utf-8") as salida:
+                  salida.write("\n## Resultado de pruebas RLS\n")
+                  salida.write(f"- Archivos: {', '.join(archivos) if archivos else 'sin suites reportadas'}\n")
+                  salida.write(f"- Casos: {aprobadas} aprobados de {pruebas}; {fallidas} fallidos, {errores} errores y {omitidas} omitidos.\n")
+          PY
+
+      - name: Guardar reporte JUnit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-integracion
+          path: resultados-integracion.xml
+          if-no-files-found: warn

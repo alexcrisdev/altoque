@@ -11,6 +11,7 @@
     "test": "vitest run tests/unit",
     "test:cobertura": "vitest run tests/unit --coverage",
     "test:rls": "node --env-file=.env.local ./node_modules/vitest/vitest.mjs run tests/rls --no-file-parallelism",
+    "test:integracion": "vitest run tests/rls --no-file-parallelism",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
