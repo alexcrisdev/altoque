@@ -7,12 +7,14 @@ vi.mock("server-only", () => ({}));
 vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() }));
 vi.mock("../../src/features/auth/sesion", () => ({ requerirRol: vi.fn() }));
 vi.mock("../../src/features/mesero/sesiones", () => ({ listarMesasConSesion: vi.fn() }));
+vi.mock("../../src/features/mesero/ayuda", () => ({ listarSolicitudesAbiertas: vi.fn() }));
 
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { requerirRol } from "../../src/features/auth/sesion";
 import { listarMesasConSesion } from "../../src/features/mesero/sesiones";
 import { listarPedidosActivos } from "../../src/features/mesero/pedidos-activos";
 import { obtenerPanelMesero } from "../../src/features/mesero/panel-actions";
+import { listarSolicitudesAbiertas } from "../../src/features/mesero/ayuda";
 
 const ahora = "2026-11-01T15:10:00Z";
 function pedido(id: string, estado: EstadoPedido = "PENDING", cambios: Partial<PedidoActivo> = {}): PedidoActivo {
@@ -96,7 +98,10 @@ function consulta(data: unknown[] = [fila], error: { code: string; message: stri
   vi.mocked(crearClienteServidor).mockResolvedValue(cliente as unknown as Awaited<ReturnType<typeof crearClienteServidor>>);
   return cliente;
 }
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.mocked(listarSolicitudesAbiertas).mockResolvedValue([]);
+});
 
 describe("consulta segura de pedidos activos", () => {
   it("filtra restaurante y estados activos, ordena por llegada y no solicita teléfonos", async () => {
@@ -151,5 +156,12 @@ describe("autorización del panel mesero", () => {
     sesion(); consulta();
     vi.mocked(listarMesasConSesion).mockRejectedValue(new Error("Sin conexión"));
     expect(await obtenerPanelMesero()).toEqual({ ok: false, restauranteId: "cevicheria" });
+  });
+  it("conserva mesas y pedidos cuando falla únicamente la lectura de ayuda", async () => {
+    sesion(); consulta();
+    vi.mocked(listarSolicitudesAbiertas).mockRejectedValue(new Error("Sin conexión"));
+    expect(await obtenerPanelMesero()).toMatchObject({ ok: true, mesas: [], pedidos: [{ id: "pedido-1" }],
+      solicitudes: null, errorSolicitudes: true });
+    expect(listarSolicitudesAbiertas).toHaveBeenCalledExactlyOnceWith("cevicheria");
   });
 });

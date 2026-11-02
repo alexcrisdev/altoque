@@ -9,6 +9,7 @@ import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { buscarSesionAbierta } from "@/features/mesero/sesiones";
 import { obtenerConfigParaLlevar } from "@/features/pedidos/para-llevar";
 import { MisPedidos } from "@/features/pedidos/mis-pedidos";
+import { BotonLlamarMesero } from "@/features/mesero/boton-llamar-mesero";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -87,6 +88,7 @@ async function Contenido({ params }: Props) {
           ¿Prefieres que te atiendan? Llama al mesero y él registra
           tu pedido desde su panel.
         </p>
+        {(acceso.modalidad === "TAKEAWAY" || sesionId !== null) && <BotonLlamarMesero token={token} />}
       </Tarjeta>
 
       {acceso.modalidad === "DINE_IN" && !sesionId && (

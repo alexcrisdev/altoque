@@ -3,6 +3,7 @@
 import { requerirRol } from "../auth/sesion";
 import { listarMesasConSesion } from "./sesiones";
 import { listarPedidosActivos } from "./pedidos-activos";
+import { listarSolicitudesAbiertas } from "./ayuda";
 
 // El navegador no elige el restaurante: procede de la membresía autorizada.
 export async function obtenerPanelMesero() {
@@ -15,7 +16,10 @@ export async function obtenerPanelMesero() {
       listarMesasConSesion(membresia.restaurantId),
       listarPedidosActivos(membresia.restaurantId),
     ]);
-    return { ok: true as const, restauranteId: membresia.restaurantId, mesas, pedidos, actualizadoEn: new Date().toISOString() };
+    // Una falla de ayuda no debe ocultar las mesas ni los pedidos.
+    const solicitudes = await listarSolicitudesAbiertas(membresia.restaurantId).catch(() => null);
+    return { ok: true as const, restauranteId: membresia.restaurantId, mesas, pedidos,
+      solicitudes, errorSolicitudes: solicitudes === null, actualizadoEn: new Date().toISOString() };
   } catch {
     return { ok: false as const, restauranteId: membresia.restaurantId };
   }

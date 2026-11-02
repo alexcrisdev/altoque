@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Boton, Tarjeta } from "../../components/ui";
-import { detectarNuevos } from "./alertas-logica";
+import { Boton, MensajeEstado, Tarjeta } from "../../components/ui";
+import { detectarNuevos, textoAntiguedad } from "./alertas-logica";
+import { minutosDesde } from "./panel-logica";
+import { atenderSolicitudAction } from "./ayuda-actions";
+import type { SolicitudAyuda } from "./ayuda";
 import type { PedidoActivo } from "./pedidos-activos";
 
 type Aviso = { id: string; texto: string };
@@ -27,16 +30,26 @@ function emitirSonido(audio: AudioContext | null) {
   }
 }
 
-export function AlertasMesero({ pedidos, error = false }: {
+export function AlertasMesero({ pedidos, solicitudes, actualizadoEn, error = false, errorSolicitudes = false }: {
   pedidos: readonly PedidoActivo[] | null;
+  solicitudes: readonly SolicitudAyuda[] | null;
+  actualizadoEn: string | null;
   error?: boolean;
+  errorSolicitudes?: boolean;
 }) {
   const idsVistos = useRef<Set<string> | null>(null);
+  const idsAyudaVistos = useRef<Set<string> | null>(null);
+  const idsAtendidas = useRef(new Set<string>());
+  const atendiendoRef = useRef(false);
   const audio = useRef<AudioContext | null>(null);
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [sonido, setSonido] = useState(false);
   const [preferenciaGuardada, setPreferenciaGuardada] = useState(false);
   const [errorSonido, setErrorSonido] = useState("");
+  const [listaAyuda, setListaAyuda] = useState<readonly SolicitudAyuda[]>(solicitudes ?? []);
+  const [ultimaHoraAyuda, setUltimaHoraAyuda] = useState(actualizadoEn);
+  const [atendiendo, setAtendiendo] = useState<string | null>(null);
+  const [mensajeAyuda, setMensajeAyuda] = useState("");
 
   useEffect(() => {
     const tituloOriginal = document.title;
@@ -81,6 +94,49 @@ export function AlertasMesero({ pedidos, error = false }: {
     return () => window.clearTimeout(temporizador);
   }, [pedidos, sonido]);
 
+  useEffect(() => {
+    if (solicitudes === null) return; // Conservar la última lectura correcta si falla ayuda.
+    const vigentes = solicitudes.filter((solicitud) => !idsAtendidas.current.has(solicitud.id));
+    const nuevos = detectarNuevos(idsAyudaVistos.current,
+      vigentes.map((solicitud) => ({ ...solicitud, estado: "PENDING" as const })));
+    const vistos = idsAyudaVistos.current ?? new Set<string>();
+    vigentes.forEach((solicitud) => vistos.add(solicitud.id));
+    idsAyudaVistos.current = vistos;
+    const actuales = new Set(vigentes.map((solicitud) => `ayuda:${solicitud.id}`));
+    const temporizador = window.setTimeout(() => {
+      setListaAyuda(vigentes);
+      setUltimaHoraAyuda(actualizadoEn);
+      setAvisos((anteriores) => [
+        ...anteriores.filter((aviso) => !aviso.id.startsWith("ayuda:") || actuales.has(aviso.id)),
+        ...nuevos.map((solicitud) => ({ id: `ayuda:${solicitud.id}`,
+          texto: `Solicitud de ayuda · ${solicitud.mesaNumero === null ? "Mostrador" : `Mesa ${solicitud.mesaNumero}`}` })),
+      ]);
+      if (nuevos.length && sonido) emitirSonido(audio.current);
+    }, 0);
+    return () => window.clearTimeout(temporizador);
+  }, [solicitudes, actualizadoEn, sonido]);
+
+  async function atender(id: string) {
+    if (atendiendoRef.current) return;
+    atendiendoRef.current = true;
+    setAtendiendo(id);
+    setMensajeAyuda("");
+    try {
+      const resultado = await atenderSolicitudAction(id);
+      setMensajeAyuda(resultado.mensaje);
+      if (resultado.ok || resultado.codigo === "ALREADY_ATTENDED") {
+        idsAtendidas.current.add(id);
+        setListaAyuda((actuales) => actuales.filter((solicitud) => solicitud.id !== id));
+        setAvisos((actuales) => actuales.filter((aviso) => aviso.id !== `ayuda:${id}`));
+      }
+    } catch {
+      setMensajeAyuda("No pudimos atender la solicitud. Conservamos la lista para que puedas reintentar.");
+    } finally {
+      atendiendoRef.current = false;
+      setAtendiendo(null);
+    }
+  }
+
   async function cambiarSonido() {
     setErrorSonido("");
     const activar = !sonido;
@@ -116,5 +172,29 @@ export function AlertasMesero({ pedidos, error = false }: {
           onClick={() => setAvisos((actuales) => actuales.filter((actual) => actual.id !== aviso.id))}>Cerrar aviso</Boton>
       </Tarjeta>)}
     </div>
+    <section aria-labelledby="mesero-ayuda" className="pt-3">
+      <h2 id="mesero-ayuda" className="mb-3 text-xl font-semibold">Solicitudes de ayuda</h2>
+      {errorSolicitudes && <p role="status" className="mb-3 text-sm text-aviso-texto">
+        No pudimos actualizar las solicitudes. Conservamos la última lista y volveremos a intentarlo.
+      </p>}
+      {mensajeAyuda && <p role="status" className="mb-3 text-sm">{mensajeAyuda}</p>}
+      {listaAyuda.length === 0 ? (!errorSolicitudes && <MensajeEstado tipo="vacio" titulo="No hay solicitudes de ayuda pendientes." />) :
+        <ul className="grid gap-3 md:grid-cols-2">{listaAyuda.map((solicitud) => <li key={solicitud.id}>
+          <Tarjeta className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold">{solicitud.mesaNumero === null ? "Mostrador" : `Mesa ${solicitud.mesaNumero}`}</h3>
+              <p className="mt-1 text-sm text-texto-suave">
+                <time dateTime={solicitud.creadaEn}>{new Date(solicitud.creadaEn).toLocaleTimeString("es-PE", {
+                  hour: "2-digit", minute: "2-digit", timeZone: "America/Lima",
+                })}</time>
+                {` · ${textoAntiguedad(minutosDesde(solicitud.creadaEn, actualizadoEn ?? ultimaHoraAyuda ?? solicitud.creadaEn))}`}
+              </p>
+            </div>
+            <Boton type="button" variante="secundario" disabled={atendiendo !== null}
+              aria-label={`Atender solicitud de ${solicitud.mesaNumero === null ? "mostrador" : `Mesa ${solicitud.mesaNumero}`}`}
+              onClick={() => atender(solicitud.id)}>{atendiendo === solicitud.id ? "Atendiendo…" : "Atendida"}</Boton>
+          </Tarjeta>
+        </li>)}</ul>}
+    </section>
   </section>;
 }

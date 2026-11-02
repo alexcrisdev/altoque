@@ -57,6 +57,9 @@ async function MeseroPanel() {
 
     <AlertasMesero key={resultado.restauranteId}
       pedidos={resultado.ok ? pedidos.filter((pedido) => pedido.estado === "PENDING") : null}
+      solicitudes={resultado.ok ? resultado.solicitudes : null}
+      actualizadoEn={resultado.ok ? resultado.actualizadoEn : null}
+      errorSolicitudes={!resultado.ok || resultado.errorSolicitudes}
       error={!resultado.ok} />
 
     <ContenidoConservado key={resultado.restauranteId}
