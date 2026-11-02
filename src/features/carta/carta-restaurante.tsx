@@ -1,8 +1,13 @@
 ﻿import "server-only";
+
 import { Suspense } from "react";
+import { MensajeEstado } from "@/components/ui";
 import { obtenerCarta } from "./carta";
 import { agruparPorCategoria } from "./formato";
-import { CartaInteractiva, type DatosPedidoCliente } from "./carta-interactiva";
+import {
+  CartaInteractiva,
+  type DatosPedidoCliente,
+} from "./carta-interactiva";
 
 type Props = {
   restauranteId: string;
@@ -13,27 +18,51 @@ type Props = {
 
 export function CartaRestaurante(props: Props) {
   return (
-    <Suspense fallback={<p role="status" className="py-6">Cargando la carta...</p>}>
+    <Suspense
+      fallback={
+        <MensajeEstado
+          tipo="cargando"
+          titulo="Cargando la carta..."
+        />
+      }
+    >
       <ContenidoCarta {...props} />
     </Suspense>
   );
 }
 
-async function ContenidoCarta({ restauranteId, token, pedidosHabilitados, pedido }: Props) {
+async function ContenidoCarta({
+  restauranteId,
+  token,
+  pedidosHabilitados,
+  pedido,
+}: Props) {
   let carta;
+
   try {
     carta = await obtenerCarta(restauranteId);
   } catch {
     return (
-      <p role="alert" className="my-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
-        No pudimos cargar la carta. Intenta de nuevo o pide ayuda al personal.
-      </p>
+      <MensajeEstado
+        tipo="error"
+        titulo="No pudimos cargar la carta."
+        descripcion="Intenta de nuevo o pide ayuda al personal."
+      />
     );
   }
 
-  const categorias = agruparPorCategoria(carta.categorias, carta.productos);
+  const categorias = agruparPorCategoria(
+    carta.categorias,
+    carta.productos,
+  );
+
   if (!categorias.length) {
-    return <p className="py-6">Este restaurante aún no tiene productos en la carta.</p>;
+    return (
+      <MensajeEstado
+        tipo="vacio"
+        titulo="Este restaurante aún no tiene productos en la carta."
+      />
+    );
   }
 
   return (

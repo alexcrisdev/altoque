@@ -1,5 +1,6 @@
 "use client";
 
+import { Boton, Insignia, MensajeEstado } from "../../components/ui";
 import { formatearPrecio } from "../carta/formato";
 import type { Producto } from "../carta/tipos";
 import type { ItemCarrito } from "./tipos";
@@ -45,34 +46,44 @@ export function Carrito({
   return (
     <section
       aria-labelledby="carrito-titulo"
-      className={enPanel ? "space-y-4" : "mt-8 rounded-xl border border-gray-300 p-4"}
+      className={
+        enPanel
+          ? "space-y-4 text-texto"
+          : "mt-8 space-y-4 rounded-2xl border border-borde bg-superficie p-5 text-texto"
+      }
     >
       <h2 id="carrito-titulo" className="text-xl font-bold">
         Tu carrito
       </h2>
 
       {items.length === 0 ? (
-        <p className="mt-3">Todavía no agregaste productos.</p>
+        <MensajeEstado
+          tipo="vacio"
+          titulo="Todavía no agregaste productos."
+        />
       ) : (
         <>
-          <ul className="mt-4 space-y-4">
+          <ul className="space-y-4">
             {items.map((item) => {
               const producto = productosPorId.get(item.productoId);
 
               if (!producto) {
                 return (
-                  <li key={item.productoId} className="space-y-2">
-                    <p role="alert">
-                      Un producto ya no aparece en la carta. Elimínalo
-                      para actualizar el total.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => onEliminar(item.productoId)}
-                      className="min-h-11 rounded-lg border px-3 py-2"
-                    >
-                      Eliminar producto
-                    </button>
+                  <li key={item.productoId}>
+                    <MensajeEstado
+                      tipo="error"
+                      titulo="Un producto ya no aparece en la carta."
+                      descripcion="Elimínalo para actualizar el total."
+                      accion={
+                        <Boton
+                          type="button"
+                          variante="peligro"
+                          onClick={() => onEliminar(item.productoId)}
+                        >
+                          Eliminar producto
+                        </Boton>
+                      }
+                    />
                   </li>
                 );
               }
@@ -85,20 +96,26 @@ export function Carrito({
               return (
                 <li
                   key={item.productoId}
-                  className="space-y-3 border-b border-gray-300 pb-4"
+                  className="space-y-3 border-b border-borde pb-4"
                 >
                   <h3 className="break-words font-semibold">
                     {producto.name}
                   </h3>
 
-                  <p>
+                  <p className="text-sm text-texto-suave">
                     Precio unitario: {formatearPrecio(producto.price)}
                   </p>
 
                   {!producto.available && (
-                    <p role="status">
-                      Este producto está agotado. Puedes eliminarlo.
-                    </p>
+                    <div role="status" className="space-y-2">
+                      <Insignia tono="aviso">
+                        Agotado
+                      </Insignia>
+
+                      <p className="text-sm text-texto-suave">
+                        Este producto está agotado. Puedes eliminarlo.
+                      </p>
+                    </div>
                   )}
 
                   <div
@@ -106,8 +123,9 @@ export function Carrito({
                     aria-label={`Cantidad de ${producto.name}`}
                     className="flex flex-wrap items-center gap-3"
                   >
-                    <button
+                    <Boton
                       type="button"
+                      variante="secundario"
                       aria-label={`Disminuir cantidad de ${producto.name}`}
                       disabled={item.cantidad <= 1}
                       onClick={() =>
@@ -116,15 +134,18 @@ export function Carrito({
                           item.cantidad - 1,
                         )
                       }
-                      className="min-h-11 min-w-11 rounded-lg border disabled:opacity-40"
+                      className="min-w-11"
                     >
                       −
-                    </button>
+                    </Boton>
 
-                    <span>{item.cantidad}</span>
+                    <span className="min-w-5 text-center font-semibold">
+                      {item.cantidad}
+                    </span>
 
-                    <button
+                    <Boton
                       type="button"
+                      variante="secundario"
                       aria-label={`Aumentar cantidad de ${producto.name}`}
                       disabled={
                         !producto.available ||
@@ -136,26 +157,26 @@ export function Carrito({
                           item.cantidad + 1,
                         )
                       }
-                      className="min-h-11 min-w-11 rounded-lg border disabled:opacity-40"
+                      className="min-w-11"
                     >
                       +
-                    </button>
+                    </Boton>
 
-                    <button
+                    <Boton
                       type="button"
+                      variante="peligro"
                       aria-label={`Eliminar ${producto.name} del carrito`}
                       onClick={() => onEliminar(item.productoId)}
-                      className="min-h-11 rounded-lg border px-3 py-2"
                     >
                       Eliminar
-                    </button>
+                    </Boton>
                   </div>
 
                   {observacionesHabilitadas && (
                     <div>
                       <label
                         htmlFor={`observacion-${item.productoId}`}
-                        className="block font-medium"
+                        className="block text-sm font-medium"
                       >
                         Observaciones para {producto.name}
                       </label>
@@ -171,10 +192,10 @@ export function Carrito({
                           )
                         }
                         rows={2}
-                        className="mt-2 w-full rounded-lg border border-gray-400 bg-background p-3 text-foreground"
+                        className="mt-2 w-full rounded-xl border border-borde bg-superficie p-3 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
                       />
 
-                      <p className="text-sm opacity-75">
+                      <p className="mt-1 text-sm text-texto-suave">
                         {item.observacion?.length ?? 0}/
                         {observacionMaxima} caracteres
                       </p>
@@ -189,18 +210,18 @@ export function Carrito({
             })}
           </ul>
 
-            {!enPanel && (
-              <p
-                aria-live="polite"
-                aria-atomic="true"
-                className="mt-4 text-lg font-bold"
-              >
-                {hayProductosAusentes
-                  ? "Total pendiente de actualizar"
-                  : `Total: ${formatearPrecio(
+          {!enPanel && (
+            <p
+              aria-live="polite"
+              aria-atomic="true"
+              className="text-lg font-bold"
+            >
+              {hayProductosAusentes
+                ? "Total pendiente de actualizar"
+                : `Total: ${formatearPrecio(
                     calcularTotalCentimos(items, productos) / 100,
-                    )}`}
-              </p>
+                  )}`}
+            </p>
           )}
         </>
       )}
