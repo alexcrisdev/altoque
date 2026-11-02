@@ -50,6 +50,7 @@ async function cerrarSesionDePrueba(): Promise<number> {
     .select("id");
 
   if (error) throw new Error("No se pudo cerrar la sesión de prueba");
+  if (data.length !== 1) throw new Error("No se pudo confirmar el cierre de la sesión de prueba");
   return data.length;
 }
 
