@@ -5,6 +5,7 @@ import { esUuid } from "@/features/mesero/solicitud-asistida";
 import { requerirCaja } from "@/features/pago-cierre/acceso-caja";
 import { obtenerCuentaMesa } from "@/features/pago-cierre/cuentas";
 import { DetalleCuenta } from "@/features/pago-cierre/detalle-cuenta";
+import { RegistrarPagoEfectivo } from "@/features/pago-cierre/registrar-pago-efectivo";
 
 async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
   const { sesionId } = await params;
@@ -27,6 +28,9 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
         {cuenta.cerrada ? "Mesa cerrada" : `Mesa abierta desde las ${desde}`}
       </p>
       <DetalleCuenta cuenta={cuenta} cerrada={cuenta.cerrada} />
+      {!cuenta.cerrada && (
+        <RegistrarPagoEfectivo cuenta={{ tipo: "MESA", id: cuenta.sesionId }} saldoCentimos={cuenta.saldoCentimos} />
+      )}
     </main>
   );
 }

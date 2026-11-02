@@ -53,6 +53,8 @@ type FilaPago = {
   method: MetodoPago;
   status: EstadoPago;
   amount: number | string;
+  received_amount: number | string | null;
+  change_amount: number | string | null;
   created_at: string;
   table_session_id: string | null;
   order_id: string | null;
@@ -67,7 +69,7 @@ type FilaSesion = {
 
 const COLUMNAS_PEDIDO =
   "id, order_number, status, created_at, table_session_id, customer_name, order_items(product_name, quantity, unit_price, observation)";
-const COLUMNAS_PAGO = "id, method, status, amount, created_at, table_session_id, order_id";
+const COLUMNAS_PAGO = "id, method, status, amount, received_amount, change_amount, created_at, table_session_id, order_id";
 
 function aPedidoCuenta(fila: FilaPedido): PedidoCuenta {
   return {
@@ -91,6 +93,8 @@ function aPagoCuenta(fila: FilaPago): PagoCuenta {
     estado: fila.status,
     montoCentimos: aCentimos(fila.amount),
     creadoEn: fila.created_at,
+    recibidoCentimos: fila.received_amount === null ? null : aCentimos(fila.received_amount),
+    vueltoCentimos: fila.change_amount === null ? null : aCentimos(fila.change_amount),
   };
 }
 

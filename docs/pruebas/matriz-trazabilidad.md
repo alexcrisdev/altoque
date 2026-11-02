@@ -82,7 +82,7 @@ Asignación y títulos confirmados por el equipo para Sprint 3 (30/10–01/11/20
 | US-018 | 4 | Consultar las ventas y el ticket promedio | Fabrizio | | | | | |
 | US-019 | 4 | Identificar los productos más vendidos | Fabrizio | | | | | |
 | US-020 | 4 | Cerrar la cuenta después del pago | Alexander | | | | | |
-| US-022 | 4 | Registrar pagos en efectivo | Alexander | | | | | |
+| US-022 | 4 | Registrar pagos en efectivo | Alexander | `tests/unit/pago-efectivo.test.ts`; `tests/rls/pagos.test.ts` | Unitaria + integración (RPC/RLS) | 28 unitarios + 6 de integración | Aprobado (parcial; falta E2E) | Migración `20261102120000_registrar_pagos` aplicada el 02/11. RLS local 6/6: vuelto, reintento con la misma clave sin duplicar, efectivo insuficiente y monto mayor al saldo rechazados, cocina/otro restaurante/anónimo sin permiso, insert directo bloqueado, saldo 0 tras pagar |
 | US-023 | 4 | Registrar pagos mediante Yape | Alexander | | | | | |
 | US-024 | 4 | Registrar pagos con tarjeta | Alexander | | | | | |
 | US-030 | 4 | Validar el flujo completo de pedidos | Erick | | | | | |
