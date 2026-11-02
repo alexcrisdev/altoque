@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 import { Boton, BotonEnlace, EncabezadoPantalla, Insignia, MensajeEstado, Tarjeta } from "@/components/ui";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
+import { ContenidoConservado } from "@/features/cocina/contenido-conservado";
+import { AlertasMesero } from "@/features/mesero/alertas-mesero";
+import { textoAntiguedad } from "@/features/mesero/alertas-logica";
 import { cerrarSesion } from "@/features/auth/actions";
 import { obtenerPanelMesero } from "@/features/mesero/panel-actions";
 import { agruparPorMesa, GRUPO_PARA_LLEVAR, minutosDesde, pedidosQueRequierenAtencion, resumenMesa } from "@/features/mesero/panel-logica";
@@ -24,7 +27,7 @@ function DatosPedido({ pedido, ahora }: { pedido: PedidoActivo; ahora: string })
     </div>
     <p className="text-sm text-texto-suave">
       <time dateTime={pedido.creadoEn}>{horaLima.format(new Date(pedido.creadoEn))}</time>
-      {` · hace ${minutosDesde(pedido.creadoEn, ahora)} min`}
+      {` · ${textoAntiguedad(minutosDesde(pedido.creadoEn, ahora))}`}
       {pedido.asistido ? " · Registrado por mesero" : " · Desde QR"}
     </p>
     {pedido.estado === "READY" && <p className="font-bold text-exito-texto">Listo para entregar</p>}
@@ -52,8 +55,15 @@ async function MeseroPanel() {
       <BotonEnlace href="/mesero" variante="secundario">Actualizar panel</BotonEnlace>
     </div>
 
-    {/* US-013: aquí se incorporarán las alertas de nuevos pedidos y solicitudes de ayuda. */}
+    <AlertasMesero key={resultado.restauranteId}
+      pedidos={resultado.ok ? pedidos.filter((pedido) => pedido.estado === "PENDING") : null}
+      solicitudes={resultado.ok ? resultado.solicitudes : null}
+      actualizadoEn={resultado.ok ? resultado.actualizadoEn : null}
+      errorSolicitudes={!resultado.ok || resultado.errorSolicitudes}
+      error={!resultado.ok} />
 
+    <ContenidoConservado key={resultado.restauranteId}
+      actualizadoEn={resultado.ok ? resultado.actualizadoEn : null} error={!resultado.ok}>
     {!resultado.ok ? <div className="mt-6"><MensajeEstado tipo="error" titulo="No pudimos cargar las mesas y los pedidos"
       descripcion="Revisa tu conexión. Volveremos a intentarlo automáticamente cada 10 segundos o puedes actualizar el panel." /></div> : <>
       <section aria-labelledby="mesero-atencion" className="mt-8">
@@ -109,6 +119,7 @@ async function MeseroPanel() {
           </ul>}
       </section>
     </>}
+    </ContenidoConservado>
   </main>;
 }
 
