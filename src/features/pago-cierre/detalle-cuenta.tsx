@@ -33,7 +33,14 @@ function FilaPago({ pago, verificacion }: { pago: PagoCuenta; verificacion?: Ver
               Recibido {soles(pago.recibidoCentimos)} · vuelto {soles(pago.vueltoCentimos ?? 0)}
             </span>
           )}
-          {pago.referencia && <span className="block text-sm text-zinc-600">Operación {pago.referencia}</span>}
+          {pago.referencia && (
+            <span className="block text-sm text-zinc-600">
+              {pago.metodo === "CARD" ? "Voucher" : "Operación"} {pago.referencia}
+            </span>
+          )}
+          {pago.registradoPor && (
+            <span className="block text-sm text-zinc-600">Registrado por {pago.registradoPor}</span>
+          )}
           {pago.verificadoPor && pago.verificadoEn && (
             <span className="block text-sm text-zinc-600">
               {pago.estado === "CONFIRMED" ? "Confirmado" : "Rechazado"} por {pago.verificadoPor} a las {hora(pago.verificadoEn)}
@@ -116,7 +123,7 @@ export function DetalleCuenta({
         )}
         {cuenta.pagosNoVerificados.length > 0 && (
           <>
-            <p className="mt-3 text-sm font-medium text-amber-900">No descuentan del saldo hasta confirmarse:</p>
+            <p className="mt-3 text-sm font-medium text-amber-900">No descuentan del saldo (por verificar o rechazados):</p>
             <ul className="divide-y text-sm text-amber-900">
               {cuenta.pagosNoVerificados.map((pago) => (
                 <FilaPago key={pago.id} pago={pago} verificacion={cerrada ? undefined : verificacion} />

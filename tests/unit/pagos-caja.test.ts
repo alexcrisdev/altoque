@@ -3,10 +3,13 @@ import {
   calcularVuelto,
   centimosATexto,
   mensajeErrorPago,
+  AVISO_NUMERO_TARJETA,
   normalizarReferencia,
+  pareceNumeroTarjeta,
   parsearSoles,
   puedeVerificarPagos,
   validarPagoEfectivo,
+  validarPagoTarjeta,
   validarPagoYape,
 } from "../../src/features/pago-cierre/pago-logica";
 
@@ -16,7 +19,12 @@ vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() 
 vi.mock("../../src/features/auth/sesion", () => ({ obtenerSesion: vi.fn() }));
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { obtenerSesion } from "../../src/features/auth/sesion";
-import { registrarPagoEfectivoAction, registrarPagoYapeAction, verificarPagoAction } from "../../src/features/pago-cierre/actions";
+import {
+  registrarPagoEfectivoAction,
+  registrarPagoTarjetaAction,
+  registrarPagoYapeAction,
+  verificarPagoAction,
+} from "../../src/features/pago-cierre/actions";
 
 const sesionId = "11111111-1111-4111-8111-111111111111";
 const clave = "22222222-2222-4222-8222-222222222222";
@@ -210,5 +218,101 @@ describe("acciones de Yape US-023", () => {
     sesionCon("CASHIER");
     expect((await verificarPagoAction(mesa, "x", true)).ok).toBe(false);
     expect((await verificarPagoAction(mesa, clave, "si")).ok).toBe(false);
+  });
+});
+
+describe("tarjeta: nunca guardar el número de la tarjeta US-024", () => {
+  it.each(["4111111111111111", "4111 1111 1111 1111", "4111-1111-1111-1111", "5555555555554444", "ref4111111111111"])(
+    "detecta %j como número de tarjeta y no lo acepta como referencia",
+    (texto) => {
+      expect(pareceNumeroTarjeta(texto)).toBe(true);
+      expect(normalizarReferencia(texto)).toBeNull();
+    },
+  );
+
+  it.each(["004512", "AUT-123456", "123456789012", "OP-2026-1103"])("acepta la referencia de voucher %j", (texto) => {
+    expect(pareceNumeroTarjeta(texto)).toBe(false);
+    expect(normalizarReferencia(texto)).not.toBeNull();
+  });
+
+  it("la base devuelve el mismo aviso si le llega un número de tarjeta", () => {
+    // pagos.ts busca el nombre de la constraint dentro del mensaje de error de la base.
+    expect(mensajeErrorPago("payments_reference_sin_tarjeta")).toBe(AVISO_NUMERO_TARJETA);
+  });
+});
+
+describe("tarjeta: validación del pago US-024", () => {
+  it("acepta aprobado y rechazado con referencia válida", () => {
+    expect(validarPagoTarjeta(4500, "004512", true, 4500)).toBeNull();
+    expect(validarPagoTarjeta(2000, "004512", false, 4500)).toBeNull();
+  });
+
+  it("exige elegir el resultado del POS", () => {
+    expect(validarPagoTarjeta(4500, "004512", null, 4500)).toMatch(/aprobó o rechazó/);
+  });
+
+  it("avisa claramente si escriben el número de la tarjeta", () => {
+    expect(validarPagoTarjeta(4500, "4111 1111 1111 1111", true, 4500)).toBe(AVISO_NUMERO_TARJETA);
+  });
+
+  it("rechaza monto inválido, mayor al saldo, sin saldo o sin referencia", () => {
+    expect(validarPagoTarjeta(null, "004512", true, 4500)).toMatch(/monto válido/);
+    expect(validarPagoTarjeta(5000, "004512", true, 4500)).toMatch(/mayor que el saldo/);
+    expect(validarPagoTarjeta(100, "004512", true, 0)).toMatch(/no tiene saldo/);
+    expect(validarPagoTarjeta(100, "", true, 4500)).toMatch(/referencia del voucher/);
+  });
+});
+
+describe("acción de pago con tarjeta US-024", () => {
+  it("aprobado: manda CARD con la referencia limpia y p_aprobado true", async () => {
+    sesionCon("CASHIER");
+    const cliente = clienteConRpc({ data: { pago_id: "p1", estado: "CONFIRMED", vuelto: null }, error: null });
+    expect(await registrarPagoTarjetaAction(mesa, "45.50", " aut-123 ", true, clave)).toEqual({ ok: true, aprobado: true });
+    expect(cliente.rpc).toHaveBeenCalledWith("registrar_pago", {
+      p_sesion_id: sesionId, p_pedido_id: null, p_metodo: "CARD", p_monto: "45.50", p_recibido: null,
+      p_referencia: "AUT-123", p_aprobado: true, p_clave: clave,
+    });
+  });
+
+  it("rechazado: se registra y avisa que la cuenta sigue pendiente", async () => {
+    sesionCon("OWNER");
+    const cliente = clienteConRpc({ data: { pago_id: "p1", estado: "FAILED", vuelto: null }, error: null });
+    expect(await registrarPagoTarjetaAction(mesa, "10", "004512", false, clave)).toEqual({ ok: true, aprobado: false });
+    expect(cliente.rpc.mock.calls[0][1]).toMatchObject({ p_metodo: "CARD", p_aprobado: false });
+  });
+
+  it("en un reintento manda el estado que ya guardó la base", async () => {
+    sesionCon("CASHIER");
+    clienteConRpc({ data: { pago_id: "p1", estado: "FAILED", vuelto: null }, error: null });
+    expect(await registrarPagoTarjetaAction(mesa, "10", "004512", true, clave)).toEqual({ ok: true, aprobado: false });
+  });
+
+  it("nunca manda a la base un número de tarjeta", async () => {
+    sesionCon("CASHIER");
+    const cliente = clienteConRpc({ data: null, error: null });
+    expect(await registrarPagoTarjetaAction(mesa, "10", "4111111111111111", true, clave)).toEqual({
+      ok: false, mensaje: AVISO_NUMERO_TARJETA,
+    });
+    expect(cliente.rpc).not.toHaveBeenCalled();
+  });
+
+  it("exige el resultado como sí/no y no deja cobrar a cocina", async () => {
+    sesionCon("CASHIER");
+    const cliente = clienteConRpc({ data: null, error: null });
+    expect((await registrarPagoTarjetaAction(mesa, "10", "004512", "true", clave)).ok).toBe(false);
+    expect((await registrarPagoTarjetaAction(mesa, "10", "004512", null, clave)).ok).toBe(false);
+    sesionCon("KITCHEN");
+    expect(await registrarPagoTarjetaAction(mesa, "10", "004512", true, clave)).toEqual({
+      ok: false, mensaje: mensajeErrorPago("FORBIDDEN"),
+    });
+    expect(cliente.rpc).not.toHaveBeenCalled();
+  });
+
+  it("muestra el error de la base (por ejemplo, monto mayor al saldo)", async () => {
+    sesionCon("CASHIER");
+    clienteConRpc({ data: null, error: { message: "AMOUNT_EXCEEDS_BALANCE", code: "22023" } });
+    expect(await registrarPagoTarjetaAction(mesa, "10", "004512", true, clave)).toEqual({
+      ok: false, mensaje: mensajeErrorPago("AMOUNT_EXCEEDS_BALANCE"),
+    });
   });
 });

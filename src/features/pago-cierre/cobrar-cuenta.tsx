@@ -3,13 +3,15 @@
 import { useState } from "react";
 import type { CuentaACobrar } from "./pago-logica";
 import { RegistrarPagoEfectivo } from "./registrar-pago-efectivo";
+import { RegistrarPagoTarjeta } from "./registrar-pago-tarjeta";
 import { RegistrarPagoYape } from "./registrar-pago-yape";
 
-// US-022 / US-023: un solo bloque de cobro con el método elegido.
+// US-022 / US-023 / US-024: un solo bloque de cobro con el método elegido.
 
 const METODOS = [
   { valor: "CASH", etiqueta: "Efectivo" },
   { valor: "YAPE", etiqueta: "Yape" },
+  { valor: "CARD", etiqueta: "Tarjeta" },
 ] as const;
 
 type Metodo = (typeof METODOS)[number]["valor"];
@@ -46,11 +48,9 @@ export function CobrarCuenta({ cuenta, saldoCentimos }: { cuenta: CuentaACobrar;
       </fieldset>
 
       <div className="mt-4">
-        {metodo === "CASH" ? (
-          <RegistrarPagoEfectivo cuenta={cuenta} saldoCentimos={saldoCentimos} />
-        ) : (
-          <RegistrarPagoYape cuenta={cuenta} saldoCentimos={saldoCentimos} />
-        )}
+        {metodo === "CASH" && <RegistrarPagoEfectivo cuenta={cuenta} saldoCentimos={saldoCentimos} />}
+        {metodo === "YAPE" && <RegistrarPagoYape cuenta={cuenta} saldoCentimos={saldoCentimos} />}
+        {metodo === "CARD" && <RegistrarPagoTarjeta cuenta={cuenta} saldoCentimos={saldoCentimos} />}
       </div>
     </section>
   );

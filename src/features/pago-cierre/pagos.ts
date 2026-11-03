@@ -7,67 +7,79 @@ import { CODIGOS_ERROR_PAGO, centimosATexto, type CuentaACobrar } from "./pago-l
 // registrar_pago vuelve a revisar rol, restaurante, saldo y montos.
 
 export type ResultadoPago =
-  | { ok: true; pagoId: string; vueltoCentimos: number }
+  | { ok: true; pagoId: string; estado: string; vueltoCentimos: number }
   | { ok: false; codigo: string };
 
-export async function registrarPagoEfectivo(
+type DatosPago = {
+  metodo: "CASH" | "YAPE" | "CARD";
+  montoCentimos: number;
+  recibidoCentimos: number | null;
+  referencia: string | null;
+  aprobado: boolean | null;
+};
+
+async function registrarPago(
+  origen: string,
+  cuenta: CuentaACobrar,
+  pago: DatosPago,
+  clave: string,
+): Promise<ResultadoPago> {
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase
+    .rpc("registrar_pago", {
+      p_sesion_id: cuenta.tipo === "MESA" ? cuenta.id : null,
+      p_pedido_id: cuenta.tipo === "PARA_LLEVAR" ? cuenta.id : null,
+      p_metodo: pago.metodo,
+      p_monto: centimosATexto(pago.montoCentimos),
+      p_recibido: pago.recibidoCentimos === null ? null : centimosATexto(pago.recibidoCentimos),
+      p_referencia: pago.referencia,
+      p_aprobado: pago.aprobado,
+      p_clave: clave,
+    })
+    .single()
+    .overrideTypes<{ pago_id: string; estado: string; vuelto: number | string | null }, { merge: false }>();
+
+  if (error || !data) {
+    const codigo = CODIGOS_ERROR_PAGO.find((c) => error?.message.includes(c));
+    if (!codigo) console.error(origen, error?.code);
+    return { ok: false, codigo: codigo ?? "" };
+  }
+  return { ok: true, pagoId: data.pago_id, estado: data.estado, vueltoCentimos: aCentimos(data.vuelto ?? 0) };
+}
+
+export function registrarPagoEfectivo(
   cuenta: CuentaACobrar,
   montoCentimos: number,
   recibidoCentimos: number,
   clave: string,
 ): Promise<ResultadoPago> {
-  const supabase = await crearClienteServidor();
-  const { data, error } = await supabase
-    .rpc("registrar_pago", {
-      p_sesion_id: cuenta.tipo === "MESA" ? cuenta.id : null,
-      p_pedido_id: cuenta.tipo === "PARA_LLEVAR" ? cuenta.id : null,
-      p_metodo: "CASH",
-      p_monto: centimosATexto(montoCentimos),
-      p_recibido: centimosATexto(recibidoCentimos),
-      p_referencia: null,
-      p_aprobado: null,
-      p_clave: clave,
-    })
-    .single()
-    .overrideTypes<{ pago_id: string; estado: string; vuelto: number | string | null }, { merge: false }>();
-
-  if (error || !data) {
-    const codigo = CODIGOS_ERROR_PAGO.find((c) => error?.message.includes(c));
-    if (!codigo) console.error("registrarPagoEfectivo", error?.code);
-    return { ok: false, codigo: codigo ?? "" };
-  }
-  return { ok: true, pagoId: data.pago_id, vueltoCentimos: aCentimos(data.vuelto ?? 0) };
+  return registrarPago("registrarPagoEfectivo", cuenta,
+    { metodo: "CASH", montoCentimos, recibidoCentimos, referencia: null, aprobado: null }, clave);
 }
 
 // US-023: el pago Yape queda "Por verificar" (PENDING): no baja el saldo hasta que
 // alguien autorizado confirme en el Yape del negocio que el dinero llegó.
-export async function registrarPagoYape(
+export function registrarPagoYape(
   cuenta: CuentaACobrar,
   montoCentimos: number,
   referencia: string,
   clave: string,
 ): Promise<ResultadoPago> {
-  const supabase = await crearClienteServidor();
-  const { data, error } = await supabase
-    .rpc("registrar_pago", {
-      p_sesion_id: cuenta.tipo === "MESA" ? cuenta.id : null,
-      p_pedido_id: cuenta.tipo === "PARA_LLEVAR" ? cuenta.id : null,
-      p_metodo: "YAPE",
-      p_monto: centimosATexto(montoCentimos),
-      p_recibido: null,
-      p_referencia: referencia,
-      p_aprobado: null,
-      p_clave: clave,
-    })
-    .single()
-    .overrideTypes<{ pago_id: string; estado: string; vuelto: number | string | null }, { merge: false }>();
+  return registrarPago("registrarPagoYape", cuenta,
+    { metodo: "YAPE", montoCentimos, recibidoCentimos: null, referencia, aprobado: null }, clave);
+}
 
-  if (error || !data) {
-    const codigo = CODIGOS_ERROR_PAGO.find((c) => error?.message.includes(c));
-    if (!codigo) console.error("registrarPagoYape", error?.code);
-    return { ok: false, codigo: codigo ?? "" };
-  }
-  return { ok: true, pagoId: data.pago_id, vueltoCentimos: 0 };
+// US-024: el cobro se hace en el POS; aquí solo se anota la referencia del voucher y
+// el resultado. Aprobado → CONFIRMED (baja el saldo); rechazado → FAILED (no cobra).
+export function registrarPagoTarjeta(
+  cuenta: CuentaACobrar,
+  montoCentimos: number,
+  referencia: string,
+  aprobado: boolean,
+  clave: string,
+): Promise<ResultadoPago> {
+  return registrarPago("registrarPagoTarjeta", cuenta,
+    { metodo: "CARD", montoCentimos, recibidoCentimos: null, referencia, aprobado }, clave);
 }
 
 export async function verificarPago(

@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// US-022 / US-023: cobro en efectivo y Yape contra la base real (RPC registrar_pago,
-// verificar_pago y RLS).
+// US-022 / US-023 / US-024: cobro en efectivo, Yape y tarjeta contra la base real
+// (RPC registrar_pago, verificar_pago y RLS).
 // Usa el producto más barato para que los pagos de prueba sumen poco.
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,6 +38,19 @@ function pagarEfectivo(cliente: SupabaseClient, monto: number, recibido: number,
     p_sesion_id: sessionId, p_pedido_id: null, p_metodo: "CASH", p_monto: soles(monto), p_recibido: soles(recibido),
     p_referencia: null, p_aprobado: null, p_clave: clave,
   }).single<{ pago_id: string; estado: string; vuelto: number | string }>();
+}
+
+function pagarTarjeta(cliente: SupabaseClient, monto: number, referencia: string, aprobado: boolean | null) {
+  return cliente.rpc("registrar_pago", {
+    p_sesion_id: sessionId, p_pedido_id: null, p_metodo: "CARD", p_monto: soles(monto), p_recibido: null,
+    p_referencia: referencia, p_aprobado: aprobado, p_clave: crypto.randomUUID(),
+  }).single<{ pago_id: string; estado: string }>();
+}
+
+async function pagadoConfirmado() {
+  const { data } = await caja!.from("payments").select("amount")
+    .eq("table_session_id", sessionId!).eq("status", "CONFIRMED");
+  return (data ?? []).reduce((suma, p) => suma + Math.round(Number(p.amount) * 100), 0);
 }
 
 beforeAll(async () => {
@@ -207,8 +220,39 @@ describe("RPC registrar_pago en efectivo (US-022)", () => {
     expect(pagado).toBe(200); // 1.00 en efectivo + 1.00 Yape confirmado; el rechazado no suma
   });
 
+  it("tarjeta rechazada: queda registrada con quién la anotó, pero no cobra (US-024)", async () => {
+    const { data, error } = await pagarTarjeta(caja!, 100, "PRUEBA-POS-1", false);
+    expect(error).toBeNull();
+    expect(data!.estado).toBe("FAILED");
+    const { data: pago } = await caja!.from("payments").select("method, status, reference, created_by, confirmed_at")
+      .eq("id", data!.pago_id).single();
+    expect(pago).toMatchObject({
+      method: "CARD", status: "FAILED", reference: "PRUEBA-POS-1", created_by: cajaId, confirmed_at: null,
+    });
+    expect(await pagadoConfirmado()).toBe(200); // sigue igual que antes del rechazo
+  });
+
+  it("tarjeta aprobada: baja el saldo; un mesero también puede registrarla (US-024)", async () => {
+    expect(totalCentimos).toBeGreaterThan(300);
+    const { data, error } = await pagarTarjeta(mesero!, 100, "PRUEBA-POS-2", true);
+    expect(error).toBeNull();
+    expect(data!.estado).toBe("CONFIRMED");
+    expect(await pagadoConfirmado()).toBe(300);
+  });
+
+  it("tarjeta: exige resultado y nunca guarda un número de tarjeta (US-024)", async () => {
+    const sinResultado = await pagarTarjeta(caja!, 100, "PRUEBA-POS-3", null);
+    expect(sinResultado.error?.message).toContain("INVALID_PAYMENT");
+    // Número de prueba (no es una tarjeta real). Se manda como rechazado: no cobra nada.
+    const conNumero = await pagarTarjeta(caja!, 100, "4111111111111111", false);
+    expect(conNumero.error?.message).toContain("payments_reference_sin_tarjeta");
+    const { data } = await caja!.from("payments").select("id").eq("table_session_id", sessionId!)
+      .eq("reference", "4111111111111111");
+    expect(data).toEqual([]);
+  });
+
   it("cobrar el resto deja el saldo en cero y ya no acepta más pagos", async () => {
-    const resto = totalCentimos - 200;
+    const resto = totalCentimos - 300;
     const pago = await pagarEfectivo(caja!, resto, resto);
     expect(pago.error).toBeNull();
     expect(Number(pago.data!.vuelto)).toBe(0);
