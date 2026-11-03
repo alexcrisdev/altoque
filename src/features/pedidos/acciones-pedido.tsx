@@ -46,18 +46,18 @@ export function AccionesPedido({ pedidoId, estado, roles, items }: { pedidoId: s
         <ul className="mt-4 divide-y">
           {items.map((item) => {
             const cantidad = cantidades[item.id] ?? item.cantidad;
-            return <li key={item.id} className="grid gap-3 py-4 sm:grid-cols-[1fr_auto]">
-              <div>
-                <p className="font-medium">{item.nombre} · {moneda.format(item.precioUnitarioCentimos * cantidad / 100)}</p>
+            return <li key={item.id} className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="min-w-0">
+                <p className="break-words font-medium">{item.nombre} · {moneda.format(item.precioUnitarioCentimos * cantidad / 100)}</p>
                 <label className="mt-2 block text-sm">Observación
-                  <input className="mt-1 min-h-10 w-full rounded border px-3" maxLength={140} value={observaciones[item.id] ?? ""} onChange={(e) => setObservaciones({ ...observaciones, [item.id]: e.target.value })} />
+                  <input className="mt-1 min-h-11 w-full rounded-xl border border-borde bg-superficie px-3 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" maxLength={140} value={observaciones[item.id] ?? ""} onChange={(e) => setObservaciones({ ...observaciones, [item.id]: e.target.value })} />
                 </label>
               </div>
-              <div className="flex items-center gap-2">
-                <button type="button" aria-label={`Reducir ${item.nombre}`} className="h-10 w-10 rounded border" onClick={() => setCantidades({ ...cantidades, [item.id]: Math.max(0, cantidad - 1) })}>−</button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" aria-label={`Reducir ${item.nombre}`} className="h-11 w-11 rounded-xl border border-borde bg-superficie text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" onClick={() => setCantidades({ ...cantidades, [item.id]: Math.max(0, cantidad - 1) })}>−</button>
                 <span className="min-w-8 text-center">{cantidad}</span>
-                <button type="button" aria-label={`Aumentar ${item.nombre}`} className="h-10 w-10 rounded border" onClick={() => setCantidades({ ...cantidades, [item.id]: Math.min(20, cantidad + 1) })}>+</button>
-                <button type="button" className="min-h-10 rounded border px-3 text-sm" onClick={() => setCantidades({ ...cantidades, [item.id]: 0 })}>Quitar</button>
+                <button type="button" aria-label={`Aumentar ${item.nombre}`} className="h-11 w-11 rounded-xl border border-borde bg-superficie text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" onClick={() => setCantidades({ ...cantidades, [item.id]: Math.min(20, cantidad + 1) })}>+</button>
+                <button type="button" className="min-h-11 rounded-xl border border-borde px-3 text-sm text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" onClick={() => setCantidades({ ...cantidades, [item.id]: 0 })}>Quitar</button>
               </div>
             </li>;
           })}
