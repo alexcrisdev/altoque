@@ -41,7 +41,7 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
 
 export default function CuentaMesaPage(props: PageProps<"/caja/mesa/[sesionId]">) {
   return (
-    <Suspense fallback={<main className="mx-auto w-full max-w-3xl p-6">Cargando cuenta…</main>}>
+    <Suspense fallback={<main role="status" aria-busy="true" className="mx-auto w-full max-w-3xl p-6">Cargando cuenta…</main>}>
       <CuentaMesa {...props} />
     </Suspense>
   );

@@ -38,21 +38,27 @@ async function Contenido({ params }: Props) {
 
   if (acceso.estado === "INVALIDO") {
     return (
-      <MensajeEstado
-        tipo="error"
-        titulo="Código QR no válido"
-        descripcion="Este código no pertenece a ninguna mesa. Pide ayuda al personal."
-      />
+      <section className="space-y-4">
+        <h1 className="text-2xl font-bold text-texto">Carta digital</h1>
+        <MensajeEstado
+          tipo="error"
+          titulo="Código QR no válido"
+          descripcion="Este código no pertenece a ninguna mesa. Pide ayuda al personal."
+        />
+      </section>
     );
   }
 
   if (acceso.estado === "DESHABILITADO") {
     return (
-      <MensajeEstado
-        tipo="error"
-        titulo="Mesa no disponible"
-        descripcion="Esta mesa o este código QR está deshabilitado. Pide ayuda al personal."
-      />
+      <section className="space-y-4">
+        <h1 className="text-2xl font-bold text-texto">Carta digital</h1>
+        <MensajeEstado
+          tipo="error"
+          titulo="Mesa no disponible"
+          descripcion="Esta mesa o este código QR está deshabilitado. Pide ayuda al personal."
+        />
+      </section>
     );
   }
 
