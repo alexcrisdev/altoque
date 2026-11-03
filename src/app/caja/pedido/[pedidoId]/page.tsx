@@ -32,7 +32,7 @@ async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">
 
 export default function CuentaParaLlevarPage(props: PageProps<"/caja/pedido/[pedidoId]">) {
   return (
-    <Suspense fallback={<main className="mx-auto w-full max-w-3xl p-6">Cargando cuenta…</main>}>
+    <Suspense fallback={<main role="status" aria-busy="true" className="mx-auto w-full max-w-3xl p-6">Cargando cuenta…</main>}>
       <CuentaParaLlevar {...props} />
     </Suspense>
   );

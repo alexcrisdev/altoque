@@ -60,12 +60,12 @@ export function IncidenciasPanel({ pedidoId, estado, incidencias, soloLectura = 
     </div>}
     {mensaje && <p role="alert" className="mt-3 text-red-700">{mensaje}</p>}
     <h3 className="mt-6 font-semibold">Incidencias registradas</h3>
-    {incidencias.length === 0 ? <p className="mt-2 text-sm text-slate-600">No hay incidencias.</p> : <ul className="mt-3 space-y-3">
+    {incidencias.length === 0 ? <p role="status" className="mt-2 text-sm text-texto-suave">No hay incidencias.</p> : <ul className="mt-3 space-y-3">
       {incidencias.map((incidencia) => <li key={incidencia.id} className="rounded-lg border p-4">
         <div className="flex flex-wrap items-center gap-2"><strong>{ETIQUETA_TIPO_INCIDENCIA[incidencia.tipo]}</strong><span className={`rounded-full px-2 py-1 text-sm ${incidencia.estado === "OPEN" ? "bg-amber-100 text-amber-900" : "bg-green-100 text-green-900"}`}>{incidencia.estado === "OPEN" ? "Abierta" : "Resuelta"}</span></div>
         <p className="mt-2">{incidencia.descripcion}</p><p className="mt-2 text-sm text-slate-600">Registrada por {incidencia.creadaPor} · {fecha(incidencia.creadaEn)}</p>
         {incidencia.resueltaPor && incidencia.resueltaEn && <p className="mt-1 text-sm text-slate-600">Resuelta por {incidencia.resueltaPor} · {fecha(incidencia.resueltaEn)}</p>}
-        {!soloLectura && incidencia.estado === "OPEN" && <button type="button" disabled={guardando} onClick={() => resolver(incidencia.id)} className="mt-3 min-h-10 rounded border px-3 disabled:opacity-50">Marcar resuelta</button>}
+        {!soloLectura && incidencia.estado === "OPEN" && <button type="button" disabled={guardando} onClick={() => resolver(incidencia.id)} className="mt-3 min-h-11 rounded-xl border border-borde px-3 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca disabled:opacity-50">Marcar resuelta</button>}
       </li>)}
     </ul>}
   </section>;

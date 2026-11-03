@@ -30,7 +30,7 @@ async function ListaPedidosAdmin() {
 
   return (
     <main className="mx-auto max-w-5xl p-6">
-      <Link href="/admin" className="text-sm underline">← Panel administrador</Link>
+      <Link href="/admin" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">← Panel administrador</Link>
       <h1 className="mt-4 text-3xl font-bold">Pedidos recientes</h1>
       <p className="mt-2 text-slate-600">Últimos 30 pedidos del restaurante.</p>
       {pedidos.length === 0 ? (
@@ -40,7 +40,7 @@ async function ListaPedidosAdmin() {
           {pedidos.map((pedido) => (
             <li key={pedido.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
-                <Link href={`/admin/pedidos/${pedido.id}`} className="font-semibold underline">
+                <Link href={`/admin/pedidos/${pedido.id}`} className="inline-flex min-h-11 items-center rounded-lg font-semibold text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">
                   Pedido n.º {pedido.numero}
                 </Link>
                 <p className="text-sm text-slate-600">{fechaLima(pedido.creadoEn)} · {describirDestino(pedido)}</p>
@@ -58,7 +58,7 @@ async function ListaPedidosAdmin() {
 
 export default function PedidosAdminPage() {
   return (
-    <Suspense fallback={<main className="p-6">Cargando pedidos…</main>}>
+    <Suspense fallback={<main role="status" aria-busy="true" className="p-6">Cargando pedidos…</main>}>
       <ListaPedidosAdmin />
     </Suspense>
   );

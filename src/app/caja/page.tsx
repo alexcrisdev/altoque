@@ -51,7 +51,7 @@ async function CajaPanel() {
 
 export default function CajaPage() {
   return (
-    <Suspense fallback={<main className="mx-auto w-full max-w-3xl p-6">Cargando caja…</main>}>
+    <Suspense fallback={<main role="status" aria-busy="true" className="mx-auto w-full max-w-3xl p-6">Cargando caja…</main>}>
       <CajaPanel />
     </Suspense>
   );

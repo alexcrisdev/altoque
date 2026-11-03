@@ -72,9 +72,9 @@ function ProductoFila({
   categorias: CategoriaAdmin[];
 }) {
   return (
-    <li className="grid gap-4 rounded border p-4 sm:grid-cols-[1fr_auto]">
-      <div>
-        <h4 className="font-semibold">{producto.name}</h4>
+    <li className="grid gap-4 rounded border border-borde bg-superficie p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="min-w-0">
+        <h4 className="break-words font-semibold">{producto.name}</h4>
         <p className="text-sm text-zinc-700">S/ {producto.price.toFixed(2)}</p>
         <p className="mt-1 text-sm">
           {producto.active ? "Activo en la carta" : "Desactivado"} ·{" "}
@@ -85,19 +85,19 @@ function ProductoFila({
         <form action={cambiarDisponibilidadAction}>
           <input type="hidden" name="productoId" value={producto.id} />
           <input type="hidden" name="valor" value={String(!producto.available)} />
-          <button className="min-h-10 rounded border px-3 py-1">
+          <button className="min-h-11 rounded-xl border border-borde px-3 py-1 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">
             {producto.available ? "Marcar agotado" : "Marcar disponible"}
           </button>
         </form>
         <form action={cambiarActivoAction}>
           <input type="hidden" name="productoId" value={producto.id} />
           <input type="hidden" name="valor" value={String(!producto.active)} />
-          <button className="min-h-10 rounded border px-3 py-1">
+          <button className="min-h-11 rounded-xl border border-borde px-3 py-1 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">
             {producto.active ? "Desactivar" : "Reactivar"}
           </button>
         </form>
         <details className="basis-full">
-          <summary className="cursor-pointer py-2 underline">Editar producto</summary>
+          <summary className="min-h-11 cursor-pointer rounded-lg py-3 text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">Editar producto</summary>
           <FormularioProducto categorias={categorias} producto={producto} />
         </details>
       </div>
@@ -108,9 +108,9 @@ function ProductoFila({
 export default function ProductosPage() {
   return (
     <main className="mx-auto w-full max-w-4xl p-8">
-      <Link href="/admin" className="text-sm underline">← Panel administrador</Link>
+      <Link href="/admin" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">← Panel administrador</Link>
       <h1 className="mt-2 text-3xl font-bold">Administrar productos</h1>
-      <Suspense fallback={<p className="mt-6">Cargando productos…</p>}>
+      <Suspense fallback={<p role="status" aria-busy="true" className="mt-6">Cargando productos…</p>}>
         <PanelProductos />
       </Suspense>
     </main>

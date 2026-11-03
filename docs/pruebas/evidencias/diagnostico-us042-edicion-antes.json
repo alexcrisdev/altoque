@@ -1,0 +1,447 @@
+[
+  {
+    "pantalla": "mesero-detalle-editable",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": [
+      {
+        "tag": "A",
+        "nombre": "← Panel mesero",
+        "alto": 18
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      }
+    ]
+  },
+  {
+    "pantalla": "mesero-detalle-editable",
+    "ancho": 768,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": [
+      {
+        "tag": "A",
+        "nombre": "← Panel mesero",
+        "alto": 18
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      }
+    ]
+  },
+  {
+    "pantalla": "mesero-detalle-editable",
+    "ancho": 1024,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": [
+      {
+        "tag": "A",
+        "nombre": "← Panel mesero",
+        "alto": 18
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      }
+    ]
+  },
+  {
+    "pantalla": "mesero-detalle-editable",
+    "ancho": 1280,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": [
+      {
+        "tag": "A",
+        "nombre": "← Panel mesero",
+        "alto": 18
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-detalle-editable",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": [
+      {
+        "tag": "A",
+        "nombre": "← Volver a pedidos",
+        "alto": 18
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-detalle-editable",
+    "ancho": 768,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": [
+      {
+        "tag": "A",
+        "nombre": "← Volver a pedidos",
+        "alto": 18
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-detalle-editable",
+    "ancho": 1024,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": [
+      {
+        "tag": "A",
+        "nombre": "← Volver a pedidos",
+        "alto": 18
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-detalle-editable",
+    "ancho": 1280,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": [
+      {
+        "tag": "A",
+        "nombre": "← Volver a pedidos",
+        "alto": 18
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Ceviche clásico",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      },
+      {
+        "tag": "INPUT",
+        "nombre": "Observación",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Reducir Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Aumentar Inca Kola 500 ml",
+        "alto": 40
+      },
+      {
+        "tag": "BUTTON",
+        "nombre": "Quitar",
+        "alto": 40
+      }
+    ]
+  },
+  {
+    "pantalla": "detalle-producto-360",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Mesa 2",
+    "pequenos": []
+  },
+  {
+    "pantalla": "carrito-360",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Mesa 2",
+    "pequenos": []
+  },
+  {
+    "pantalla": "carrito-observacion-360",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Mesa 2",
+    "pequenos": []
+  }
+]
