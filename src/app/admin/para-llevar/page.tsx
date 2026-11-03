@@ -15,11 +15,11 @@ async function ConfigParaLlevar() {
 export default function ParaLlevarPage() {
   return (
     <main className="mx-auto w-full max-w-3xl p-8">
-      <Link href="/admin" className="text-sm underline">
+      <Link href="/admin" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">
         ← Panel administrador
       </Link>
       <h1 className="mt-2 text-3xl font-bold">Pedidos para llevar</h1>
-      <Suspense fallback={<p className="mt-6">Cargando…</p>}>
+      <Suspense fallback={<p role="status" aria-busy="true" className="mt-6">Cargando…</p>}>
         <ConfigParaLlevar />
       </Suspense>
     </main>

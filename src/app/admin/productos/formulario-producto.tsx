@@ -30,7 +30,7 @@ export function FormularioProducto({
           required
           maxLength={80}
           defaultValue={producto?.name ?? ""}
-          className="rounded border p-2"
+          className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
         />
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -42,7 +42,7 @@ export function FormularioProducto({
             inputMode="decimal"
             required
             defaultValue={producto?.price.toFixed(2) ?? ""}
-            className="rounded border p-2"
+            className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
           />
         </label>
         <label className="grid gap-1">
@@ -51,7 +51,7 @@ export function FormularioProducto({
             name="categoriaId"
             required
             defaultValue={producto?.category_id ?? ""}
-            className="rounded border p-2"
+            className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
           >
             <option value="" disabled>Selecciona una categoría</option>
             {categorias.map((categoria) => (
@@ -64,19 +64,19 @@ export function FormularioProducto({
       </div>
       <label className="grid gap-1">
         Descripción
-        <textarea name="descripcion" defaultValue={producto?.description ?? ""} className="rounded border p-2" rows={2} />
+        <textarea name="descripcion" defaultValue={producto?.description ?? ""} className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" rows={2} />
       </label>
       <label className="grid gap-1">
         Ingredientes
-        <textarea name="ingredientes" defaultValue={producto?.ingredients ?? ""} className="rounded border p-2" rows={2} />
+        <textarea name="ingredientes" defaultValue={producto?.ingredients ?? ""} className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" rows={2} />
       </label>
       <label className="grid gap-1">
         Alérgenos (separados por comas)
-        <input name="alergenos" defaultValue={producto?.allergens.join(", ") ?? ""} className="rounded border p-2" />
+        <input name="alergenos" defaultValue={producto?.allergens.join(", ") ?? ""} className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" />
       </label>
       <label className="grid gap-1">
         URL de imagen (HTTPS)
-        <input name="imageUrl" type="url" defaultValue={producto?.image_url ?? ""} className="rounded border p-2" />
+        <input name="imageUrl" type="url" defaultValue={producto?.image_url ?? ""} className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" />
       </label>
       <button disabled={pendiente} className="min-h-11 rounded bg-teal-700 px-4 py-2 font-semibold text-white disabled:opacity-50">
         {pendiente ? "Guardando…" : producto ? "Guardar cambios" : "Crear producto"}
