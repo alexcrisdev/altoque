@@ -89,7 +89,7 @@ Asignación y títulos confirmados por el equipo para Sprint 3 (30/10–01/11/20
 | US-031 | 4 | Registrar y verificar la corrección de errores | Alina | | | | | |
 | US-032 | 4 | Preparar la demostración final del MVP | Fabrizio | | | | | |
 | US-040 | 4 | Automatizar las pruebas funcionales del flujo principal | Erick | | | | | |
-| US-042 | 4 | Adaptar la interfaz a celular y tablet con accesibilidad | Verónica | | | | | |
+| US-042 | 4 | Adaptar la interfaz a celular y tablet con accesibilidad | Verónica | `tests/unit/accesibilidad.test.ts`; Chrome DevTools Lighthouse y recorrido local de solo lectura (03/11/2026) | Unitaria + accesibilidad automatizada + revisión en navegador | 5 unitarios propios; 14 informes Lighthouse (7 antes/7 después); 15 pantallas a 360/768/1024/1280 px y edición/carrito adicionales | Aprobado en el alcance revisado: 7/7 pantallas con accesibilidad 100 antes y después; corregidos nombre accesible de cocina, controles menores de 44 px y anuncios de carga. Sin desborde horizontal en los escenarios medidos. Error simulado en navegador recuperado con Tab/Enter; vacío real por consulta sin ventas. Suite 527/527, lint, build, TypeScript y smoke 8/8 correctos. No se modificaron datos ni se validaron flujos de pago | [Diagnóstico, límites y reportes antes/después](evidencias/diagnostico-us042.md); [comensal 360 px](evidencias/captura-us042-carta-360-despues.png); [cocina tablet](evidencias/captura-us042-cocina-768-despues.png); [admin escritorio](evidencias/captura-us042-admin-1280-despues.png); [error](evidencias/captura-us042-error.png); [vacío](evidencias/captura-us042-vacio.png) |
 
 ## Actualización al cerrar una historia
 

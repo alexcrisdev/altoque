@@ -1,0 +1,3093 @@
+[
+  {
+    "pantalla": "carta",
+    "ruta": "/m/demo-mesa-2",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/m/demo-mesa-2",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "estado-pedido",
+    "ruta": "/m/demo-mesa-2/pedido/[clave]",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/m/demo-mesa-2/pedido/119d158b-c2bc-4e1f-ab47-a718073c6d08",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "login",
+    "ruta": "/login",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "fallos": [],
+      "nota": "Informe de login obtenido al inicio del mismo diagnostico, sin cambios de codigo."
+    }
+  },
+  {
+    "pantalla": "mesero",
+    "ruta": "/mesero",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/mesero",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "cocina",
+    "ruta": "/cocina",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/cocina",
+      "version": "13.5.0",
+      "fallos": [
+        {
+          "id": "label-content-name-mismatch",
+          "titulo": "Elements with visible text labels do not have matching accessible names.",
+          "descripcion": "Visible text labels that do not match the accessible name can result in a confusing experience for screen reader users. [Learn more about accessible names](https://dequeuniversity.com/rules/axe/4.13/label-content-name-mismatch).",
+          "elementos": [
+            {
+              "selector": "li > div.rounded-2xl > div.mt-4 > button.inline-flex",
+              "fragmento": "<button type=\"button\" aria-label=\"Aceptar el pedido N.º 1\" class=\"inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border f…\">",
+              "problema": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+            },
+            {
+              "selector": "li > div.rounded-2xl > div.mt-4 > button.inline-flex",
+              "fragmento": "<button type=\"button\" aria-label=\"Aceptar el pedido N.º 2\" class=\"inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border f…\">",
+              "problema": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+            },
+            {
+              "selector": "li > div.rounded-2xl > div.mt-4 > button.inline-flex",
+              "fragmento": "<button type=\"button\" aria-label=\"Aceptar el pedido N.º 3\" class=\"inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border f…\">",
+              "problema": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+            },
+            {
+              "selector": "li > div.rounded-2xl > div.mt-4 > button.inline-flex",
+              "fragmento": "<button type=\"button\" aria-label=\"Aceptar el pedido N.º 4\" class=\"inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border f…\">",
+              "problema": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+            },
+            {
+              "selector": "li > div.rounded-2xl > div.mt-4 > button.inline-flex",
+              "fragmento": "<button type=\"button\" aria-label=\"Aceptar el pedido N.º 5\" class=\"inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border f…\">",
+              "problema": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+            },
+            {
+              "selector": "li > div.rounded-2xl > div.mt-4 > button.inline-flex",
+              "fragmento": "<button type=\"button\" aria-label=\"Aceptar el pedido N.º 6\" class=\"inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border f…\">",
+              "problema": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+            },
+            {
+              "selector": "li > div.rounded-2xl > div.mt-4 > button.inline-flex",
+              "fragmento": "<button type=\"button\" aria-label=\"Aceptar el pedido N.º 7\" class=\"inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border f…\">",
+              "problema": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+            },
+            {
+              "selector": "li > div.rounded-2xl > div.mt-4 > button.inline-flex",
+              "fragmento": "<button type=\"button\" aria-label=\"Aceptar el pedido N.º 12\" class=\"inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border f…\">",
+              "problema": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "pantalla": "caja",
+    "ruta": "/caja",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/caja",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "mesero-pedido",
+    "ruta": "/mesero/pedido",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "mesero-detalle",
+    "ruta": "/mesero/pedidos/[id]",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel mesero",
+            "alto": 18,
+            "selector": "text-sm underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel mesero",
+            "alto": 18,
+            "selector": "text-sm underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel mesero",
+            "alto": 18,
+            "selector": "text-sm underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel mesero",
+            "alto": 18,
+            "selector": "text-sm underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin",
+    "ruta": "/admin",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/admin",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "admin-mesas",
+    "ruta": "/admin/mesas",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-productos",
+    "ruta": "/admin/productos",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "Selecciona una categoría\nCeviches\nChicharrones\nBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 41,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "Selecciona una categoría\nCeviches\nChicharrones\nBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "Selecciona una categoría\nCeviches\nChicharrones\nBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "Selecciona una categoría\nCeviches\nChicharrones\nBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Marcar agotado",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "BUTTON",
+            "texto": "Desactivar",
+            "alto": 40,
+            "selector": "min-h-10 rounded border px-3 py-1"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre",
+            "alto": 42,
+            "selector": "nombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Precio (S/)",
+            "alto": 42,
+            "selector": "precio"
+          },
+          {
+            "tag": "SELECT",
+            "texto": "CategoríaSelecciona una categoríaCevichesChicharronesBebidas",
+            "alto": 42,
+            "selector": "categoriaId"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Alérgenos (separados por comas)",
+            "alto": 42,
+            "selector": "alergenos"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "URL de imagen (HTTPS)",
+            "alto": 42,
+            "selector": "imageUrl"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-pedidos",
+    "ruta": "/admin/pedidos",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 85",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 84",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 83",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 82",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 81",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 80",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 79",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 78",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 77",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 76",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 75",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 74",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 73",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 72",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 71",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 70",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 69",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 68",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 67",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 66",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 65",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 64",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 63",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 62",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 61",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 60",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 59",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 58",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 57",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 56",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 85",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 84",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 83",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 82",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 81",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 80",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 79",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 78",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 77",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 76",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 75",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 74",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 73",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 72",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 71",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 70",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 69",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 68",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 67",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 66",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 65",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 64",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 63",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 62",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 61",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 60",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 59",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 58",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 57",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 56",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 85",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 84",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 83",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 82",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 81",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 80",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 79",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 78",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 77",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 76",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 75",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 74",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 73",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 72",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 71",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 70",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 69",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 68",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 67",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 66",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 65",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 64",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 63",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 62",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 61",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 60",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 59",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 58",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 57",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 56",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 85",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 84",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 83",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 82",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 81",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 80",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 79",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 78",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 77",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 76",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 75",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 74",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 73",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 72",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 71",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 70",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 69",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 68",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 67",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 66",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 65",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 64",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 63",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 62",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 61",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 60",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 59",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 58",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 57",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          },
+          {
+            "tag": "A",
+            "texto": "Pedido n.º 56",
+            "alto": 21,
+            "selector": "font-semibold underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-detalle",
+    "ruta": "/admin/pedidos/[id]",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Volver a pedidos",
+            "alto": 18,
+            "selector": "text-sm underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Volver a pedidos",
+            "alto": 18,
+            "selector": "text-sm underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Volver a pedidos",
+            "alto": 18,
+            "selector": "text-sm underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Volver a pedidos",
+            "alto": 18,
+            "selector": "text-sm underline"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-para-llevar",
+    "ruta": "/admin/para-llevar",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre obligatorio",
+            "alto": 13,
+            "selector": "pideNombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Teléfono obligatorio",
+            "alto": 13,
+            "selector": "pideTelefono"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre obligatorio",
+            "alto": 13,
+            "selector": "pideNombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Teléfono obligatorio",
+            "alto": 13,
+            "selector": "pideTelefono"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre obligatorio",
+            "alto": 13,
+            "selector": "pideNombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Teléfono obligatorio",
+            "alto": 13,
+            "selector": "pideTelefono"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [
+          {
+            "tag": "A",
+            "texto": "← Panel administrador",
+            "alto": 18,
+            "selector": "text-sm underline"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Nombre obligatorio",
+            "alto": 13,
+            "selector": "pideNombre"
+          },
+          {
+            "tag": "INPUT",
+            "texto": "Teléfono obligatorio",
+            "alto": 13,
+            "selector": "pideTelefono"
+          }
+        ],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-reportes",
+    "ruta": "/admin/reportes",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  }
+]

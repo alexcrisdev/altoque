@@ -1,0 +1,79 @@
+[
+  {
+    "pantalla": "mesero-detalle-editable",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": []
+  },
+  {
+    "pantalla": "mesero-detalle-editable",
+    "ancho": 768,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": []
+  },
+  {
+    "pantalla": "mesero-detalle-editable",
+    "ancho": 1024,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": []
+  },
+  {
+    "pantalla": "mesero-detalle-editable",
+    "ancho": 1280,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": []
+  },
+  {
+    "pantalla": "admin-detalle-editable",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": []
+  },
+  {
+    "pantalla": "admin-detalle-editable",
+    "ancho": 768,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": []
+  },
+  {
+    "pantalla": "admin-detalle-editable",
+    "ancho": 1024,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": []
+  },
+  {
+    "pantalla": "admin-detalle-editable",
+    "ancho": 1280,
+    "desborde": false,
+    "h1": "Pedido n.º 16",
+    "pequenos": []
+  },
+  {
+    "pantalla": "detalle-producto-360",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Mesa 2",
+    "pequenos": []
+  },
+  {
+    "pantalla": "carrito-360",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Mesa 2",
+    "pequenos": []
+  },
+  {
+    "pantalla": "carrito-observacion-360",
+    "ancho": 360,
+    "desborde": false,
+    "h1": "Mesa 2",
+    "pequenos": []
+  }
+]
