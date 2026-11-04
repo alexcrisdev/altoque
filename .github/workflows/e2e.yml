@@ -1,0 +1,70 @@
+name: Pruebas funcionales E2E
+
+on:
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Mismo bloqueo que integración: ambos workflows escriben en la base demo.
+concurrency:
+  group: integracion-supabase-compartida
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v7.0.1
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Compilar aplicación
+        run: npm run build
+      - name: Iniciar servidor de la aplicación
+        env:
+          # Autorizada exclusivamente para Next.js, nunca para el runner E2E.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo 'Falta el secreto de servidor'; exit 1; }
+          npm run start > /tmp/altoque-e2e-servidor.log 2>&1 &
+          node --input-type=module -e '
+            const limite = Date.now() + 120000;
+            while (true) {
+              try { if ((await fetch("http://localhost:3000/login")).ok) break; } catch {}
+              if (Date.now() > limite) throw new Error("El servidor no inició");
+              await new Promise(r => setTimeout(r, 500));
+            }
+          '
+      - name: Recorrer la aplicación con usuarios demo
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+          E2E_MESA_NUMERO: ${{ vars.E2E_MESA_NUMERO }}
+          E2E_MESA_TOKEN: ${{ secrets.E2E_MESA_TOKEN }}
+          E2E_MOSTRADOR_TOKEN: ${{ secrets.E2E_MOSTRADOR_TOKEN }}
+        run: npm run test:e2e
+      - name: Conservar evidencia de fallos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: warn
