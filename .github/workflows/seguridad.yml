@@ -1,0 +1,149 @@
+name: Seguridad (DevSecOps)
+
+# US-043: cuatro revisiones de seguridad en paralelo y un job final que
+# junta los resultados. En la pestaña Actions se ve como un gráfico:
+# cuatro cajas a la izquierda -> "Resultado de seguridad" a la derecha.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  schedule:
+    # Lunes 08:00 en Lima (13:00 UTC): salen vulnerabilidades nuevas
+    # aunque nadie toque el código.
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secretos:
+    name: Secretos filtrados (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read # para listar los commits del PR
+    steps:
+      - name: Obtener el código con todo el historial
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Buscar contraseñas y claves en los commits
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Comentar en el PR pide permiso de escritura; basta con el resumen.
+          GITLEAKS_ENABLE_COMMENTS: false
+
+  codeql:
+    name: Análisis del código (CodeQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      security-events: write # para publicar las alertas en Security
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v7.0.1
+
+      - name: Preparar CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          queries: security-extended
+
+      - name: Analizar y publicar alertas
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:javascript-typescript'
+
+  dependencias:
+    name: Dependencias vulnerables (npm audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v7.0.1
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+
+      - name: Reporte completo (informativo)
+        shell: bash
+        run: |
+          npm audit --json > auditoria.json || true
+          node -e '
+            const fs = require("fs");
+            const v = JSON.parse(fs.readFileSync("auditoria.json", "utf8")).metadata.vulnerabilities;
+            const fila = (n) => `| ${n} | ${v[n]} |`;
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
+              "## npm audit (todas las dependencias, incluidas las de desarrollo)",
+              "| Severidad | Cantidad |", "|---|---|",
+              ...["critical", "high", "moderate", "low"].map(fila),
+              "",
+              "Solo bloquea lo que llega a producción con severidad alta o crítica (siguiente paso).",
+              "",
+            ].join("\n"));
+          '
+
+      - name: Bloquear si producción tiene vulnerabilidades altas
+        run: npm audit --omit=dev --audit-level=high
+
+  revision-dependencias:
+    name: Revisión de dependencias nuevas
+    # Compara el PR contra la rama destino; en un push no hay con qué comparar.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v7.0.1
+
+      - name: Revisar las librerías que agrega o cambia el PR
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+
+  resultado:
+    name: Resultado de seguridad
+    needs: [secretos, codeql, dependencias, revision-dependencias]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Juntar los resultados
+        env:
+          SECRETOS: ${{ needs.secretos.result }}
+          CODEQL: ${{ needs.codeql.result }}
+          DEPENDENCIAS: ${{ needs.dependencias.result }}
+          REVISION: ${{ needs.revision-dependencias.result }}
+        run: |
+          {
+            echo "## Resultado de seguridad"
+            echo "| Revisión | Resultado |"
+            echo "|---|---|"
+            echo "| Secretos filtrados (Gitleaks) | $SECRETOS |"
+            echo "| Análisis del código (CodeQL) | $CODEQL |"
+            echo "| Dependencias vulnerables (npm audit) | $DEPENDENCIAS |"
+            echo "| Revisión de dependencias nuevas | $REVISION |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # "skipped" es válido: la revisión de dependencias solo corre en PR.
+          for r in "$SECRETOS" "$CODEQL" "$DEPENDENCIAS" "$REVISION"; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "Al menos una revisión de seguridad falló."
+              exit 1
+            fi
+          done
+          echo "Todas las revisiones de seguridad pasaron."
