@@ -152,7 +152,9 @@ export function DetalleCuenta({
             ? "Esta cuenta ya está cerrada."
             : cuenta.puedeCerrar
               ? "La cuenta no tiene saldo pendiente: se puede cerrar."
-              : "No se puede cerrar la cuenta mientras haya saldo pendiente."}
+              : saldo > 0
+                ? "No se puede cerrar la cuenta mientras haya saldo pendiente."
+                : "Antes de cerrar, confirma o rechaza los pagos Yape por verificar."}
         </p>
       </section>
     </div>

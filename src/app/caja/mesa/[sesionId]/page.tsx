@@ -6,10 +6,13 @@ import { contextoCaja } from "@/features/pago-cierre/acceso-caja";
 import { obtenerCuentaMesa } from "@/features/pago-cierre/cuentas";
 import { DetalleCuenta } from "@/features/pago-cierre/detalle-cuenta";
 import { CobrarCuenta } from "@/features/pago-cierre/cobrar-cuenta";
+import { CerrarCuenta } from "@/features/pago-cierre/cerrar-cuenta";
+import { evaluarCierre } from "@/features/pago-cierre/cierre-logica";
+import { ResumenCierre } from "@/features/pago-cierre/resumen-cierre";
 
 async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
   const { sesionId } = await params;
-  const { restauranteId, puedeVerificar } = await contextoCaja();
+  const { restauranteId, puedeVerificar, autorizaExcepcion } = await contextoCaja();
   if (!esUuid(sesionId)) notFound();
   const cuenta = await obtenerCuentaMesa(restauranteId, sesionId);
   if (!cuenta) notFound();
@@ -32,8 +35,17 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
         cerrada={cuenta.cerrada}
         verificacion={{ cuenta: { tipo: "MESA", id: cuenta.sesionId }, puedeVerificar }}
       />
+      {cuenta.cierre && <ResumenCierre cierre={cuenta.cierre} />}
       {!cuenta.cerrada && (
-        <CobrarCuenta cuenta={{ tipo: "MESA", id: cuenta.sesionId }} saldoCentimos={cuenta.saldoCentimos} />
+        <>
+          {cuenta.saldoCentimos > 0 && (
+            <CobrarCuenta cuenta={{ tipo: "MESA", id: cuenta.sesionId }} saldoCentimos={cuenta.saldoCentimos} />
+          )}
+          <CerrarCuenta
+            cuenta={{ tipo: "MESA", id: cuenta.sesionId }}
+            estado={evaluarCierre(cuenta, autorizaExcepcion)}
+          />
+        </>
       )}
     </main>
   );

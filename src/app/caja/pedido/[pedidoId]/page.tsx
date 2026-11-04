@@ -6,10 +6,13 @@ import { contextoCaja } from "@/features/pago-cierre/acceso-caja";
 import { obtenerCuentaParaLlevar } from "@/features/pago-cierre/cuentas";
 import { DetalleCuenta } from "@/features/pago-cierre/detalle-cuenta";
 import { CobrarCuenta } from "@/features/pago-cierre/cobrar-cuenta";
+import { CerrarCuenta } from "@/features/pago-cierre/cerrar-cuenta";
+import { evaluarCierre } from "@/features/pago-cierre/cierre-logica";
+import { ResumenCierre } from "@/features/pago-cierre/resumen-cierre";
 
 async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">) {
   const { pedidoId } = await params;
-  const { restauranteId, puedeVerificar } = await contextoCaja();
+  const { restauranteId, puedeVerificar, autorizaExcepcion } = await contextoCaja();
   if (!esUuid(pedidoId)) notFound();
   const cuenta = await obtenerCuentaParaLlevar(restauranteId, pedidoId);
   if (!cuenta) notFound();
@@ -21,10 +24,20 @@ async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">
       {cuenta.nombre && <p className="mt-1 text-zinc-600">A nombre de {cuenta.nombre}</p>}
       <DetalleCuenta
         cuenta={cuenta}
+        cerrada={cuenta.cierre !== null}
         verificacion={{ cuenta: { tipo: "PARA_LLEVAR", id: cuenta.pedidoId }, puedeVerificar }}
       />
-      {cuenta.pedidos.length > 0 && (
-        <CobrarCuenta cuenta={{ tipo: "PARA_LLEVAR", id: cuenta.pedidoId }} saldoCentimos={cuenta.saldoCentimos} />
+      {cuenta.cierre && <ResumenCierre cierre={cuenta.cierre} />}
+      {!cuenta.cierre && cuenta.pedidos.length > 0 && (
+        <>
+          {cuenta.saldoCentimos > 0 && (
+            <CobrarCuenta cuenta={{ tipo: "PARA_LLEVAR", id: cuenta.pedidoId }} saldoCentimos={cuenta.saldoCentimos} />
+          )}
+          <CerrarCuenta
+            cuenta={{ tipo: "PARA_LLEVAR", id: cuenta.pedidoId }}
+            estado={evaluarCierre(cuenta, autorizaExcepcion)}
+          />
+        </>
       )}
     </main>
   );
