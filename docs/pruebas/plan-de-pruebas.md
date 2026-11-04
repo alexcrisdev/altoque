@@ -20,7 +20,7 @@ Se empieza por funciones y contratos, luego se comprueba su integración con Sup
 |---|---|---|---|---|
 | 1. Unitarias | Vitest 5; mocks para dependencias externas cuando corresponda | Cada responsable de historia escribe; otro integrante revisa en el PR | `tests/unit/` | Localmente antes de cada commit; automáticamente en cada PR hacia `develop`/`main` y push a esas ramas, job `verificar` de CI |
 | 2. Integración | Vitest contra `altoque-dev`, el único proyecto Supabase compartido por todos los entornos | Responsable de la integración y del esquema/RLS | `tests/rls/` | Workflow `Pruebas de integración`: cada PR hacia `develop`/`main`, cada push a `develop` y ejecución manual desde Actions; ejecución serializada. Localmente, `npm run test:rls` solo con conocimiento del riesgo aceptado y los datos demo |
-| 3. Funcionales E2E | Playwright, previsto; todavía no instalado | Erick implementa la infraestructura en US-040, Sprint 4; cada responsable agrega sus recorridos | `tests/e2e/`, prevista | En US-040 se configurará ejecución local y en CI contra un entorno de pruebas. Priorizar flujo QR → carrito → pedido y accesos por rol |
+| 3. Funcionales E2E | Playwright con Chromium; comensal en viewport móvil 390 × 844 | Erick implementa US-040; cada responsable mantiene sus recorridos; otro integrante revisa el PR | `tests/e2e/`, configuración en `playwright.config.ts` | `npm run build` y `npm run test:e2e` en local; workflow `Pruebas funcionales E2E` en PR hacia `develop` y ejecución manual. QR → carta → carrito → confirmación → cocina/mesero; accesos por rol, QR anulado/inexistente y doble confirmación |
 | 4. Aceptación/manual | Guion CP-xxx, navegador y evidencias | Equipo ejecutor y representante del usuario/PO validan; responsables según Jira | `docs/pruebas/casos/` y `docs/pruebas/evidencias/`, según se creen | US-030, Sprint 4: aceptación antes de la entrega. US-031: repetir defectos corregidos y recorridos afectados en cada regresión |
 
 **Estado de partida:** 13 archivos unitarios, 192 casos ejecutados correctamente; 2 archivos RLS con 9 casos definidos, no ejecutados en US-038. No hay suite E2E. Existe además un smoke test de publicación de US-029 (`scripts/smoke.mjs` y `.github/workflows/smoke.yml`), documentado en [despliegue](../despliegue.md): no equivale a recorrer y confirmar un pedido desde el navegador.
@@ -73,6 +73,75 @@ Para lanzar localmente la misma suite sin leer `.env.local`, define esas tres va
 No subir `.env.local`, contraseñas, tokens, claves ni capturas con credenciales. En futuras automatizaciones, las credenciales privadas irán en secretos del entorno correspondiente, nunca en el repositorio. Redactar las evidencias antes de publicarlas y usar únicamente datos ficticios.
 
 ## Ejecución reproducible y evidencias
+
+### Funcionales E2E — US-040
+
+Instalar las dependencias con `npm ci` y el navegador con `npx playwright install chromium`.
+Configurar `.env.local` con `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+y `DEMO_PASSWORD`. La aplicación Next.js necesita además su clave de servidor existente;
+los tests no usan esa clave ni clientes que omitan RLS.
+
+```bash
+npm run build
+npm run test:e2e
+```
+
+Sin `E2E_BASE_URL`, Playwright inicia `npm run start` en `http://localhost:3000` y lo
+detiene al finalizar. Ese puerto debe estar libre; no reutiliza una compilación o un
+servidor desconocido. Con `E2E_BASE_URL` apunta a una app ya desplegada y no inicia servidor.
+Usa Chromium, un worker, sin esperas fijas en los recorridos y un reintento en CI.
+`npm test` y `npm run test:rls` mantienen sus rutas explícitas y excluyen `tests/e2e/`.
+
+Los cinco archivos `*.spec.ts` contienen 13 casos: acceso de los cinco usuarios demo,
+dos accesos rechazados para cocina, redirección sin sesión, QR anulado e inexistente,
+pedido para llevar, pedido en mesa (Mesa 3 por defecto, configurable) y doble pulsación inmediata. Cada pedido verifica
+el número mostrado, un único registro persistido de cantidad 1 y su presencia en cocina
+y mesero. La doble pulsación comprueba la prevención de duplicados desde la interfaz;
+no sustituye las pruebas unitarias/SQL del contrato de idempotencia.
+
+Las pruebas eligen el producto disponible más barato por su precio visible, añaden una
+observación única `PRUEBA E2E <UUID>` y usan usuarios ficticios. Las consultas auxiliares
+son lecturas con el admin demo autenticado mediante la clave pública, siempre filtradas
+por restaurante y marca propia. La creación, cancelación con motivo y apertura/cierre
+de mesa se realizan desde la interfaz. La limpieza corre en el `finally` de la fixture,
+incluso ante fallo; si no consigue limpiar, el caso falla y adjunta el identificador para
+revisión. No se eliminan registros históricos, no se prueba pago y no se usa Mesa 2.
+La mesa debe estar libre: si está ocupada se detiene sin modificar su sesión. Por defecto
+usa Mesa 3; Erick autorizó usar otra mesa demo libre al encontrar pedidos anteriores en
+Mesa 3. `E2E_MESA_NUMERO` permite elegirla (Mesa 2 está expresamente excluida), y
+`E2E_MESA_TOKEN` / `E2E_MOSTRADOR_TOKEN` permiten usar los tokens vigentes si se
+reemplazaron los del seed. Se configuran en `.env.local`, sin subir sus valores.
+En Actions, configurar la variable `E2E_MESA_NUMERO` y los secretos `E2E_MESA_TOKEN`
+y `E2E_MOSTRADOR_TOKEN` si se necesitan esas alternativas. Sin valores se conservan
+los tokens del seed. La suite no regenera ni reactiva QR automáticamente. No ejecutar
+la suite local simultáneamente con otras pruebas o atención manual sobre la mesa E2E.
+
+El workflow `.github/workflows/e2e.yml` se ejecuta en PR hacia `develop` y manualmente.
+Comparte `integracion-supabase-compartida` con integración para serializar la base demo.
+Los secretos públicos se usan en la compilación y el runner; `DEMO_PASSWORD` solo en
+el paso E2E. Con autorización de Erick, `SUPABASE_SERVICE_ROLE_KEY` se proporciona
+exclusivamente al paso que inicia el servidor Next.js, porque QR/carta/registro de la
+app dependen de ella. El proceso de Playwright no recibe ese secreto en Actions.
+No se configura el check como obligatorio: esa decisión corresponde a Alexander.
+
+Ante fallos se guardan captura y traza del comensal y de los paneles abiertos, junto al
+HTML en `playwright-report/` y archivos en `test-results/`. Actions los conserva siete
+días como artefacto `playwright-report`. `npx playwright show-report` abre el reporte;
+`npx playwright show-trace <ruta-al-trace.zip>` permite inspeccionar una traza. Los
+usuarios se autentican con Supabase desde Node, fuera de las trazas del navegador,
+para excluir la contraseña; las cookies SSR se transfieren en memoria, sin guardar
+estados de autenticación en el repo. Los casos de acceso comprueban las pantallas y
+rechazos por rol; no automatizan el envío del formulario de login.
+Las trazas autenticadas contienen contexto de sesión: compartirlas solo con el equipo.
+La salida local y el enlace de Actions se registran en
+[`us040-ejecucion.txt`](evidencias/us040-ejecucion.txt) y únicamente en la fila US-040
+de la matriz, cuando esas ejecuciones hayan finalizado.
+
+Validación local US-040 del 03/11/2026 (Lima): dos suites consecutivas de 13 casos
+aprobadas en 44.6 s y 43.8 s, sobre la compilación local en el puerto 3100 y Mesa 5
+autorizada por Erick. Pedidos cancelados con motivo y sesiones propias cerradas.
+Se conservan en la evidencia los bloqueos iniciales y sus correcciones. La ejecución
+de Actions se incorporará con su URL cuando el workflow del PR termine en verde.
 
 Desde la raíz del proyecto, después de instalar las dependencias:
 
