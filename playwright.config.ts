@@ -27,7 +27,7 @@ export default defineConfig({
   use: {
     baseURL,
     ...devices["Desktop Chrome"],
-    trace: "retain-on-failure",
+    trace: process.env.CI ? "off" : "retain-on-failure",
     screenshot: "only-on-failure",
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
