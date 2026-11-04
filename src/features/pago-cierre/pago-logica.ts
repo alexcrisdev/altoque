@@ -38,10 +38,17 @@ export function validarPagoEfectivo(
   return null;
 }
 
+// US-024: un número de tarjeta tiene de 13 a 19 dígitos. Si el texto tiene 13 o más
+// dígitos seguidos (sin contar espacios ni guiones), no se guarda: igual que en la base
+// (constraint payments_reference_sin_tarjeta).
+export function pareceNumeroTarjeta(texto: unknown): boolean {
+  return typeof texto === "string" && /\d{13,}/.test(texto.replace(/[\s-]/g, ""));
+}
+
 // US-023: n.º de operación de Yape (o referencia del POS en US-024). Solo letras,
-// números y guiones, como en la base; sin espacios para que no parezca un n.º de tarjeta.
+// números y guiones, como en la base; sin espacios y nunca un n.º de tarjeta.
 export function normalizarReferencia(texto: unknown): string | null {
-  if (typeof texto !== "string") return null;
+  if (typeof texto !== "string" || pareceNumeroTarjeta(texto)) return null;
   const limpio = texto.trim().toUpperCase();
   return /^[A-Z0-9-]{3,40}$/.test(limpio) ? limpio : null;
 }
@@ -55,6 +62,28 @@ export function validarPagoYape(
   if (montoCentimos === null) return "Escribe un monto válido (por ejemplo 45.50).";
   if (montoCentimos > saldoCentimos) return "El monto no puede ser mayor que el saldo pendiente.";
   if (referencia === null) return "Escribe el n.º de operación de Yape (de 3 a 40 letras o números, sin espacios).";
+  return null;
+}
+
+export const AVISO_NUMERO_TARJETA =
+  "Eso parece un número de tarjeta. Por seguridad no se guarda: escribe solo la referencia del voucher (n.º de operación o código de autorización).";
+
+// US-024: el cliente paga en el POS y el cajero anota el resultado del voucher.
+// `aprobado` es true (aprobado), false (rechazado) o null (todavía no eligió).
+export function validarPagoTarjeta(
+  montoCentimos: number | null,
+  referenciaTexto: unknown,
+  aprobado: boolean | null,
+  saldoCentimos: number,
+): string | null {
+  if (saldoCentimos <= 0) return "Esta cuenta no tiene saldo pendiente.";
+  if (montoCentimos === null) return "Escribe un monto válido (por ejemplo 45.50).";
+  if (montoCentimos > saldoCentimos) return "El monto no puede ser mayor que el saldo pendiente.";
+  if (pareceNumeroTarjeta(referenciaTexto)) return AVISO_NUMERO_TARJETA;
+  if (normalizarReferencia(referenciaTexto) === null) {
+    return "Escribe la referencia del voucher del POS (de 3 a 40 letras o números, sin espacios).";
+  }
+  if (aprobado === null) return "Elige si el POS aprobó o rechazó el pago.";
   return null;
 }
 
@@ -73,6 +102,8 @@ const MENSAJES_ERROR: Record<string, string> = {
   INVALID_PAYMENT: "Los datos del pago no son válidos. Revisa los montos.",
   ALREADY_VERIFIED: "Este pago ya fue verificado por otra persona. Actualiza la página.",
   PAYMENT_NOT_FOUND: "No se encontró el pago. Actualiza la página.",
+  // Mensaje de la base si llegara un n.º de tarjeta (el nombre de la constraint).
+  payments_reference_sin_tarjeta: AVISO_NUMERO_TARJETA,
 };
 
 export const CODIGOS_ERROR_PAGO = Object.keys(MENSAJES_ERROR);

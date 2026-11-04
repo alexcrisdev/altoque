@@ -10,10 +10,11 @@ import {
   parsearSoles,
   puedeVerificarPagos,
   validarPagoEfectivo,
+  validarPagoTarjeta,
   validarPagoYape,
   type CuentaACobrar,
 } from "./pago-logica";
-import { registrarPagoEfectivo, registrarPagoYape, verificarPago } from "./pagos";
+import { registrarPagoEfectivo, registrarPagoTarjeta, registrarPagoYape, verificarPago } from "./pagos";
 
 export type RespuestaPago =
   | { ok: true; vueltoCentimos: number }
@@ -77,6 +78,30 @@ export async function registrarPagoYapeAction(
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
   refrescarCaja(cuenta);
   return { ok: true };
+}
+
+// US-024: registrar el resultado de un pago con tarjeta hecho en el POS. Un rechazo
+// también se guarda (queda en el historial), pero no baja el saldo.
+export async function registrarPagoTarjetaAction(
+  cuenta: CuentaACobrar,
+  monto: unknown,
+  referencia: unknown,
+  aprobado: unknown,
+  clave: unknown,
+): Promise<{ ok: true; aprobado: boolean } | { ok: false; mensaje: string }> {
+  if (!(await puedeCobrar())) return { ok: false, mensaje: mensajeErrorPago("FORBIDDEN") };
+  if (!datosValidos(cuenta, clave)) return { ok: false, mensaje: mensajeErrorPago("INVALID_PAYMENT") };
+
+  const montoCentimos = parsearSoles(monto);
+  const resultadoPos = typeof aprobado === "boolean" ? aprobado : null;
+  const invalido = validarPagoTarjeta(montoCentimos, referencia, resultadoPos, Number.MAX_SAFE_INTEGER);
+  if (invalido) return { ok: false, mensaje: invalido };
+
+  const resultado = await registrarPagoTarjeta(cuenta, montoCentimos!, normalizarReferencia(referencia)!, resultadoPos!, clave);
+  if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
+  refrescarCaja(cuenta);
+  // Si era un reintento, la base devuelve el pago ya guardado: su estado manda.
+  return { ok: true, aprobado: resultado.estado === "CONFIRMED" };
 }
 
 // US-023: confirmar (llegó al Yape del negocio) o rechazar un pago Yape pendiente.
