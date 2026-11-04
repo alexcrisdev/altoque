@@ -3,13 +3,13 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // US-020: cerrar la cuenta contra la base real (RPC cerrar_cuenta, triggers y RLS).
 // Crea una mesa con un pedido y un pedido para llevar, ambos con el producto más
-// barato. No usa la Mesa 5 (reservada para las pruebas E2E).
+// barato. Usa la primera mesa libre, igual que pagos.test.ts, y la deja cerrada al
+// terminar; en CI no choca con las E2E porque comparten grupo de concurrencia.
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const password = process.env.DEMO_PASSWORD;
 const restaurantId = "10000000-0000-0000-0000-000000000001";
-const MESA_RESERVADA_E2E = 5;
 const motivo = "Prueba automática US-020: cortesía autorizada";
 
 let mesero: SupabaseClient | undefined;
@@ -62,16 +62,16 @@ beforeAll(async () => {
   anon = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
   const [mesas, productos, abiertas] = await Promise.all([
-    mesero.from("dining_tables").select("id, branch_id, number").eq("restaurant_id", restaurantId).eq("active", true).order("number"),
+    mesero.from("dining_tables").select("id, branch_id").eq("restaurant_id", restaurantId).eq("active", true).order("number"),
     mesero.from("products").select("id, price").eq("restaurant_id", restaurantId).eq("active", true).eq("available", true)
       .order("price").limit(1),
     mesero.from("table_sessions").select("dining_table_id").eq("restaurant_id", restaurantId).is("closed_at", null),
   ]);
   if (mesas.error || productos.error || abiertas.error) throw new Error("No se pudieron consultar los datos demo para la prueba");
   const ocupadas = new Set((abiertas.data ?? []).map((s) => s.dining_table_id));
-  const mesa = (mesas.data ?? []).find((fila) => !ocupadas.has(fila.id) && fila.number !== MESA_RESERVADA_E2E);
+  const mesa = (mesas.data ?? []).find((fila) => !ocupadas.has(fila.id));
   const producto = productos.data?.[0];
-  if (!mesa || !producto) throw new Error("Se requiere una mesa libre (distinta de la Mesa 5) y un producto activo");
+  if (!mesa || !producto) throw new Error("Se requiere una mesa libre y un producto activo en Cevichería demo");
   totalCentimos = Math.round(Number(producto.price) * 100);
 
   const { data: sesion, error: errorApertura } = await mesero.from("table_sessions").insert({
