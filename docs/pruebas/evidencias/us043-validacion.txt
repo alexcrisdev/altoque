@@ -5,7 +5,7 @@ Workflow: .github/workflows/seguridad.yml, ejecución 41771705980.
 Datos tomados de la API pública de GitHub Actions. No se incluyen claves ni tokens.
 
 Revisión previa (local, antes de subir):
-- YAML de seguridad.yml y dependabot.yml validados con js-yaml.
+- YAML de seguridad.yml validado con js-yaml.
 - npm run lint: sin errores.
 - npm audit (todas las dependencias): 16 moderadas, 0 altas, 0 críticas.
   Todas vienen de la cadena de ESLint (minimatch, GHSA-g3hv-75wg-m249),
@@ -51,3 +51,10 @@ Configuración de seguridad del repositorio al cierre:
   Push protection .......................... enabled
   Dependabot security updates .............. enabled
   Dependency graph ......................... enabled
+
+Ajuste posterior (04/11/2026):
+Al llegar dependabot.yml a develop, Dependabot abrió 5 PRs (#40-#44).
+Tres eran versiones mayores (TypeScript 7, ESLint 10, @types/node 26);
+el de TypeScript 7 falló en "verificar" (typescript-eslint no soporta TS 7).
+Se cerraron los 5 y se retiró dependabot.yml para no meter cambios
+grandes antes de la entrega. Siguen activas las alertas de Dependabot.

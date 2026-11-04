@@ -14,7 +14,7 @@ Alexander · 03/11/2026 · PR #39, commit `f004b08`.
 | Revisión de dependencias nuevas | Dependency Review | Librerías vulnerables que agrega un PR | Severidad alta o mayor; solo corre en PR |
 | Resultado de seguridad | — | Junta los cuatro resultados | Si alguno falló (`skipped` cuenta como válido) |
 
-Además, `.github/dependabot.yml` abre cada lunes PRs agrupados hacia `develop` con actualizaciones de npm y de las acciones de GitHub.
+Además, en el repositorio quedan activas las alertas de Dependabot: GitHub avisa en Security si alguna dependencia tiene una vulnerabilidad conocida. No se usa `dependabot.yml` (actualizaciones automáticas semanales): al probarlo abrió 5 PRs, 3 eran saltos de versión mayor y uno (TypeScript 7) rompía el lint, así que se retiró para no meter cambios grandes antes de la entrega.
 
 ## Evidencias
 
@@ -26,7 +26,7 @@ Además, `.github/dependabot.yml` abre cada lunes PRs agrupados hacia `develop` 
 
 ![Resultado de CodeQL](captura-us043-codeql.png)
 
-**Dependabot en el repositorio.** Alertas y security updates activados. El botón "Create dependabot.yml" desaparece cuando el archivo de este PR llega a `develop`, la rama por defecto.
+**Dependabot en el repositorio.** Alertas y security updates activados.
 
 ![Configuración de Dependabot](captura-us043-dependabot.png)
 
@@ -42,6 +42,5 @@ La primera ejecución falló en "Revisión de dependencias nuevas" porque el rep
 
 ## Límites conocidos
 
-- npm audit reporta 16 vulnerabilidades moderadas en herramientas de desarrollo (cadena de ESLint). No llegan a producción, por eso no bloquean; Dependabot propondrá la actualización.
-- Los PRs de Dependabot no reciben los secretos de Supabase, así que en esos PRs fallarán integración y E2E. Es esperado y no son checks obligatorios.
+- npm audit reporta 16 vulnerabilidades moderadas en herramientas de desarrollo (cadena de ESLint → minimatch 3.1.5). No llegan a producción, por eso no bloquean. Corregirlas exige migrar a ESLint 10; queda para después de la entrega.
 - Todos los entornos usan la misma base de Supabase; este pipeline no la toca.
