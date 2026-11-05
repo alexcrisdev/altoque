@@ -86,7 +86,7 @@ Asignación y títulos confirmados por el equipo para Sprint 3 (30/10–01/11/20
 | US-023 | 4 | Registrar pagos mediante Yape | Alexander | | | | | |
 | US-024 | 4 | Registrar pagos con tarjeta | Alexander | | | | | |
 | US-030 | 4 | Validar el flujo completo de pedidos | Erick | | | | | |
-| US-031 | 4 | Registrar y verificar la corrección de errores | Alina | | | | | |
+| US-031 | 4 | Registrar y verificar la corrección de errores | Alina | Registro US-031; `tests/unit/tendencias-servidor.test.ts`; regresión local; referencia US-030 | Inspección JSX + unitaria con mocks + revisión documental | Local: 31 archivos, 617/617 unitarias; tendencias-servidor: 12/12 (incluidas); typecheck y ESLint de reportes aprobados. US-030: 13/13 CP y 17/17 E2E reportados por Erick | En curso: DEF-002 verificado según confirmación visual de Alina; DEF-006/007 verificados con PR #50; DEF-004/008 aceptados con riesgo según confirmación indirecta de Alina (fecha original y mensaje del PO no disponibles); DEF-003 deuda candidata; DEF-005 hallazgo histórico cerrado. Build fallido por descarga bloqueada de fuentes; CI de esta rama pendiente; no RLS/E2E/Integración contra Supabase | [PR #50](https://github.com/alexcrisdev/altoque/pull/50); [evidencia de regresión US-031](evidencias/us031-regresion.txt); [evidencia US-030](https://github.com/alexcrisdev/altoque/blob/173953b/docs/pruebas/evidencias/us030-validacion.txt) |
 | US-032 | 4 | Preparar la demostración final del MVP | Fabrizio | | | | | |
 | US-040 | 4 | Automatizar las pruebas funcionales del flujo principal | Erick | | | | | |
 | US-042 | 4 | Adaptar la interfaz a celular y tablet con accesibilidad | Verónica | | | | | |
