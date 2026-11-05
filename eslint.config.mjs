@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     // Reportes generados por Vitest; no son código de la aplicación.
     "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    "blob-report/**",
     "next-env.d.ts",
   ]),
 ]);

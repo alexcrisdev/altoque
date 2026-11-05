@@ -1,0 +1,81 @@
+US-013: Recibir alertas de nuevos pedidos y solicitudes de ayuda
+Fecha de validación: 01/11/2026, America/Lima.
+Rama: dev/erick. PR: https://github.com/alexcrisdev/altoque/pull/30
+Este informe completa la evidencia histórica us013-validacion-parte-b.txt.
+
+MIGRACIÓN
+20261101180000_solicitudes_ayuda.sql, commit 3f8cbdc.
+El usuario confirmó que Alexander la aplicó y probó en Supabase antes de iniciar la parte C.
+El asistente NO la aplicó ni la modificó después de la confirmación.
+SHA-256 del archivo antes y después de la parte C:
+C73029E52397603690554AA99E0492B9CBDB8642EC138AA54459F667050CFC18
+
+PRUEBAS AUTOMÁTICAS
+npm run lint: aprobado, sin errores.
+npm test: 21 archivos, 393 casos aprobados.
+tests/unit/alertas-mesero.test.ts: 35 casos (detección, antigüedad, acciones y consulta).
+tests/unit/panel-mesero.test.ts: incluye respaldo ante fallo de lectura de ayuda.
+npm run build: aprobado.
+npm run typecheck y npx tsc --noEmit: aprobados.
+npm run test:rls -- --no-file-parallelism: 3 archivos, 20 casos aprobados.
+Se ejecuta con la opción de archivos secuenciales porque el script actual todavía no la
+incluye; evita competir por la única mesa demo libre. No se cambió package.json.
+Los 10 casos nuevos de ayuda prueban permisos RPC, contexto derivado del QR, deduplicación
+con llamadas simultáneas, aislamiento Pollería/Cevichería, restricciones de cocina,
+prohibición de escritura directa, atención por mesero, doble atención y sesión cerrada.
+La clave de servidor se usa exclusivamente en Node para preparar la solicitud de la prueba;
+las comprobaciones de acceso se hacen con clientes anónimo y autenticados normales.
+Las solicitudes de prueba quedan ATTENDED y sus sesiones propias cerradas.
+npm run start y npm run smoke: 8/8 comprobaciones aprobadas.
+
+RECORRIDO REAL EN CHROME LOCALHOST
+1. QR de Mesa 5 regenerado desde el panel administrador por autorización expresa.
+   No se modificaron los QR de otras mesas. El token no se guarda en este informe.
+2. Mesa 5 cerrada: la carta oculta Llamar al mesero y muestra el aviso de mesa no habilitada.
+3. El mesero abre Mesa 5; la carta recargada muestra Llamar al mesero.
+4. Diez clics rápidos: el cliente muestra Listo, avisamos al mesero y bloquea el botón.
+5. El panel observador muestra una sola solicitud Mesa 5 en 7798 ms desde el clic.
+   Aparecen aviso, hora, antigüedad y Atendida. El título es (1) Panel mesero.
+   Se verificó Web Audio: tono de activación y tono de solicitud nueva.
+   performance.timeOrigin no cambia: no se navegó ni se recargó manualmente el panel.
+6. Sin conexión en el panel: la lista de ayuda y los avisos siguen visibles; al recuperar
+   conexión se reintenta y no se duplica el aviso.
+7. Doble clic en Atendida: la solicitud desaparece, el título vuelve a Panel mesero y la
+   base registra ATTENDED con autor y fecha.
+8. El cooldown termina: se comprobó el botón habilitado después de 110262 ms desde la
+   primera llamada; estuvo bloqueado inmediatamente después del éxito.
+9. Pedido desde la carta QR: N.º 34, Mesa 5. Aviso Nuevo pedido N.º 34 · Mesa 5,
+   título (1) Panel mesero y nuevo tono Web Audio, sin nueva navegación.
+10. El dueño demo cancela únicamente ese pedido con motivo Prueba US-013.
+    El mesero cierra la sesión propia de Mesa 5.
+11. La carta antigua intenta pedir ayuda con la sesión ya cerrada: muestra Pide al mesero
+    que habilite la mesa antes de solicitar ayuda. Tras recargar, el botón no aparece.
+
+VERIFICACIÓN FINAL EN SUPABASE CON EL MESERO NORMAL (SIN SERVICE ROLE)
+Pedido: 34, id 71bea045-dce7-4fa9-873d-d2919d6d9633, estado CANCELLED.
+Solicitud: 0d204da6-34e6-4b67-9cf4-04e982d89115, única en ese QR/sesión, estado ATTENDED,
+con attended_by y attended_at registrados.
+Sesión propia de Mesa 5 cerrada. No se cambiaron pedidos previos ni otras sesiones.
+Las pruebas RLS también ejecutaron su propia preparación y limpieza.
+Los pedidos 31 y 32 de la fase B ya estaban cancelados y sus sesiones cerradas.
+
+CAPTURAS EN docs/pruebas/evidencias/
+captura-us013-boton-llamar.png: botón en la carta con mesa habilitada.
+captura-us013-llamada-confirmada.png: mensaje de éxito y cooldown.
+captura-us013-solicitud-ayuda.png: aviso y solicitud pendiente del mesero.
+captura-us013-ayuda-sin-conexion.png: lista conservada sin conexión.
+captura-us013-ayuda-atendida.png: solicitud retirada después de atender.
+captura-us013-aviso-pedido-qr.png: alerta del pedido confirmado desde la carta.
+captura-us013-mesa-cerrada.png: carta con mesa cerrada y sin botón.
+Las capturas de la fase B se conservan en el informe anterior.
+
+SEGURIDAD Y LÍMITES
+El navegador envía solo el token a solicitarAyudaAction. Los IDs de restaurante/mesa se
+resuelven en servidor; la RPC vuelve a comprobar QR activo y sesión abierta.
+crearClienteAdmin solo se usa en ayuda.ts, protegido por import server-only.
+Atender usa la sesión del personal y vuelve a comprobar rol/restaurante en SQL.
+La lectura de ayuda usa RLS y filtro de restaurante; si falla, las mesas y pedidos siguen
+visibles y se conserva la última lista de ayuda correcta para reintentar.
+No se incluyen claves ni contraseñas en archivos versionados o capturas.
+No se modificaron scripts/smoke.mjs, cocina, el detalle del pedido ni seguimiento QR.
+En src/app/m/[token]/page.tsx solo se añadió el import y el botón dentro de la tarjeta indicada.

@@ -20,7 +20,7 @@ async function CajaPanel() {
         </form>
       </header>
 
-      <h2 className="mt-8 text-xl font-semibold">Cuentas por cobrar</h2>
+      <h2 className="mt-8 text-xl font-semibold">Cuentas por cobrar o cerrar</h2>
       {cuentas.length === 0 ? (
         <p className="mt-3 rounded-lg border p-4 text-zinc-700">No hay cuentas abiertas.</p>
       ) : (
@@ -37,8 +37,13 @@ async function CajaPanel() {
                     {cuenta.detalle} · consumo {soles(cuenta.consumoCentimos)}
                   </span>
                 </span>
-                <span className={`font-bold ${cuenta.saldoCentimos > 0 ? "text-red-700" : "text-emerald-800"}`}>
-                  {cuenta.saldoCentimos > 0 ? `Saldo ${soles(cuenta.saldoCentimos)}` : "Pagada"}
+                <span className="text-right">
+                  <span className={`block font-bold ${cuenta.saldoCentimos > 0 ? "text-red-700" : "text-emerald-800"}`}>
+                    {cuenta.saldoCentimos > 0 ? `Saldo ${soles(cuenta.saldoCentimos)}` : "Pagada · por cerrar"}
+                  </span>
+                  {cuenta.porVerificar > 0 && (
+                    <span className="block text-sm text-amber-900">{cuenta.porVerificar} Yape por verificar</span>
+                  )}
                 </span>
               </Link>
             </li>
@@ -51,7 +56,7 @@ async function CajaPanel() {
 
 export default function CajaPage() {
   return (
-    <Suspense fallback={<main className="mx-auto w-full max-w-3xl p-6">Cargando caja…</main>}>
+    <Suspense fallback={<main role="status" aria-busy="true" className="mx-auto w-full max-w-3xl p-6">Cargando caja…</main>}>
       <CajaPanel />
     </Suspense>
   );

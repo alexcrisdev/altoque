@@ -9,6 +9,7 @@ import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { buscarSesionAbierta } from "@/features/mesero/sesiones";
 import { obtenerConfigParaLlevar } from "@/features/pedidos/para-llevar";
 import { MisPedidos } from "@/features/pedidos/mis-pedidos";
+import { BotonLlamarMesero } from "@/features/mesero/boton-llamar-mesero";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -37,21 +38,27 @@ async function Contenido({ params }: Props) {
 
   if (acceso.estado === "INVALIDO") {
     return (
-      <MensajeEstado
-        tipo="error"
-        titulo="Código QR no válido"
-        descripcion="Este código no pertenece a ninguna mesa. Pide ayuda al personal."
-      />
+      <section className="space-y-4">
+        <h1 className="text-2xl font-bold text-texto">Carta digital</h1>
+        <MensajeEstado
+          tipo="error"
+          titulo="Código QR no válido"
+          descripcion="Este código no pertenece a ninguna mesa. Pide ayuda al personal."
+        />
+      </section>
     );
   }
 
   if (acceso.estado === "DESHABILITADO") {
     return (
-      <MensajeEstado
-        tipo="error"
-        titulo="Mesa no disponible"
-        descripcion="Esta mesa o este código QR está deshabilitado. Pide ayuda al personal."
-      />
+      <section className="space-y-4">
+        <h1 className="text-2xl font-bold text-texto">Carta digital</h1>
+        <MensajeEstado
+          tipo="error"
+          titulo="Mesa no disponible"
+          descripcion="Esta mesa o este código QR está deshabilitado. Pide ayuda al personal."
+        />
+      </section>
     );
   }
 
@@ -87,6 +94,7 @@ async function Contenido({ params }: Props) {
           ¿Prefieres que te atiendan? Llama al mesero y él registra
           tu pedido desde su panel.
         </p>
+        {(acceso.modalidad === "TAKEAWAY" || sesionId !== null) && <BotonLlamarMesero token={token} />}
       </Tarjeta>
 
       {acceso.modalidad === "DINE_IN" && !sesionId && (

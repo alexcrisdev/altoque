@@ -51,3 +51,11 @@ export function textoBotonCocina(estado: EstadoPedido): string | null {
     default: return null;
   }
 }
+
+export function tieneIncidenciaAbierta(pedido: Pick<PedidoCocina, "incidenciasAbiertas">): boolean {
+  return pedido.incidenciasAbiertas.length > 0;
+}
+
+export function puedeReportarIncidencia(estado: EstadoPedido): boolean {
+  return estado === "ACCEPTED" || estado === "IN_PROGRESS" || estado === "READY";
+}

@@ -30,7 +30,7 @@ async function DetallePedido({ params }: PageProps<"/admin/pedidos/[id]">) {
 
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <Link href="/admin/pedidos" className="text-sm underline">← Volver a pedidos</Link>
+      <Link href="/admin/pedidos" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">← Volver a pedidos</Link>
       <h1 className="mt-4 text-3xl font-bold">Pedido n.º {pedido.numero}</h1>
       <p className="mt-2 text-slate-600">{fechaLima(pedido.creadoEn)} · {describirDestino(pedido)} · {ETIQUETA_ESTADO[pedido.estado]}</p>
       <AccionesPedido pedidoId={pedido.id} estado={pedido.estado} roles={sesion.membresias.filter((m) => m.restaurantId === restauranteId).map((m) => m.rol)} items={pedido.items} />
@@ -64,7 +64,7 @@ async function DetallePedido({ params }: PageProps<"/admin/pedidos/[id]">) {
 
 export default function DetallePedidoAdminPage(props: PageProps<"/admin/pedidos/[id]">) {
   return (
-    <Suspense fallback={<main className="p-6">Cargando pedido…</main>}>
+    <Suspense fallback={<main role="status" aria-busy="true" className="p-6">Cargando pedido…</main>}>
       <DetallePedido {...props} />
     </Suspense>
   );

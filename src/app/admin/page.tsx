@@ -74,6 +74,18 @@ async function AdminPanel() {
               </BotonEnlace>
             </Tarjeta>
           </li>
+
+          <li>
+            <Tarjeta>
+              <BotonEnlace
+                href="/admin/reportes"
+                variante="secundario"
+                className="w-full"
+              >
+                Reportes de ventas
+              </BotonEnlace>
+            </Tarjeta>
+          </li>
         </ul>
       </nav>
     </main>
