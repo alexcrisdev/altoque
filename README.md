@@ -40,7 +40,7 @@ El acceso a `/m/<token>` sigue siendo público para clientes que escanean el QR.
 | Código | Git + GitHub, VS Code |
 | App | Next.js (App Router), React, TypeScript, Tailwind CSS |
 | Datos | Supabase: PostgreSQL, Auth, Realtime y RLS |
-| Pruebas | Vitest (unitarias e integración RLS); Playwright pendiente para pruebas de extremo a extremo |
+| Pruebas | Vitest (unitarias e integración RLS) y Playwright (E2E) |
 | CI | GitHub Actions |
 | Despliegue | Vercel |
 | Monitoreo | Sentry y UptimeRobot (previstos; configuración pendiente de verificar) |
@@ -124,9 +124,11 @@ Sin información personal real. Incluye *Cevichería Demo* (1 local, 4 mesas y 7
 
 | Token para `/m/<token>` | Caso |
 |---|---|
-| `demo-mesa-1`, `demo-mesa-2`, `demo-mesa-3` | QR de mesa válido |
+| `demo-mesa-1`, `demo-mesa-2`, `demo-mesa-3` | QR de mesa válido en una base nueva cargada con el seed |
 | `demo-mesa-4` | QR anulado (mesa desactivada) |
 | `demo-mostrador` | QR de mostrador (para llevar) |
+
+En la base compartida *altoque-dev* estos tokens públicos ya están **anulados** (DEF-002): cualquiera podía leerlos en el repositorio. Para probar, genera un QR nuevo desde `/admin/mesas`. La Mesa 5 y el QR de mostrador del E2E tienen tokens privados guardados como secretos del CI; no los regeneres.
 
 ### Usuarios demo y pruebas
 
@@ -161,13 +163,13 @@ El [plan de pruebas del sistema](docs/pruebas/plan-de-pruebas.md) define los niv
 
 La [evidencia de cobertura al inicio del Sprint 3](docs/pruebas/evidencias/cobertura-sprint3-inicio.txt) conserva el resumen obtenido. El reporte predeterminado mide los archivos importados por las unitarias, no todo el sistema, y no sustituye pruebas RLS ni recorridos de navegador. No se añade un umbral ni se modifica el CI en US-038.
 
-Las pruebas funcionales E2E con Playwright se implementarán en US-040 (Erick, Sprint 4); todavía no hay suite `tests/e2e`. La aceptación manual se realizará con guion y evidencia en US-030, y los defectos corregidos se incorporarán a la regresión de US-031.
+Las pruebas funcionales E2E con Playwright están en `tests/e2e` (US-040 y US-030) y se ejecutan con `npm run test:e2e`. El guion de aceptación está en `docs/pruebas/casos/`, el registro de defectos en `docs/pruebas/defectos/` y la guía de la demo final en [docs/demo/guia-demostracion.md](docs/demo/guia-demostracion.md).
 
 **Entorno:** la guía actual de [despliegue](docs/despliegue.md#entornos) indica que staging y producción comparten `altoque-dev`. Verifica el destino antes de probar integración; no uses datos reales. La preparación del staging aislado y la automatización se coordinan en US-039. Las credenciales nunca se guardan en la documentación ni en las evidencias.
 
 ## CI/CD
 
-El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `develop` y `main`, y en cada push a esas ramas. Con Node.js 22, instala las dependencias con `npm ci` y ejecuta, en orden, npm run lint, npm run typecheck, npm test y npm run build para revisar el código, verificar los tipos, correr las pruebas unitarias y comprobar que la aplicación compila. El check se llama verificar. Las pruebas RLS (npm run test:rls) no corren en CI porque necesitan la base de datos; se ejecutan localmente. Las ejecuciones anteriores del mismo PR se cancelan cuando llega una nueva.
+El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `develop` y `main`, y en cada push a esas ramas. Con Node.js 22, instala las dependencias con `npm ci` y ejecuta, en orden, npm run lint, npm run typecheck, npm test y npm run build para revisar el código, verificar los tipos, correr las pruebas unitarias y comprobar que la aplicación compila. El check se llama verificar. Además, los workflows **Pruebas de integración** (`npm run test:rls`) y **Pruebas funcionales E2E** (`npm run test:e2e`) corren contra la base compartida y nunca al mismo tiempo, y **Seguridad (DevSecOps)** revisa secretos, dependencias y código. Las ejecuciones anteriores del mismo PR se cancelan cuando llega una nueva.
 
 | Origen | Entorno en Vercel |
 |---|---|
