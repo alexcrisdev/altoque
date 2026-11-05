@@ -55,7 +55,7 @@ async function clienteAdminDemo() {
 
 export async function pedidosPropios(cliente: SupabaseClient, marca: string) {
   const { data, error } = await cliente.from("orders")
-    .select("id, order_number, status, order_items!inner(observation, quantity)")
+    .select("id, order_number, status, table_session_id, total, order_items!inner(observation, quantity)")
     .eq("restaurant_id", RESTAURANTE).eq("order_items.observation", marca);
   if (error) throw new Error("No se pudieron consultar los pedidos propios de E2E.");
   return data;
@@ -85,11 +85,12 @@ export async function cerrarMesa(page: Page) {
   await expect(mesa.getByText("Libre", { exact: true })).toBeVisible();
 }
 
-type EntornoPedido = {
+export type EntornoPedido = {
   marca: string;
   admin: SupabaseClient;
   staff: (rol: RolDemo) => Promise<Page>;
   abrirMesa: () => Promise<void>;
+  alLimpiar: (tarea: () => Promise<void>) => void;
 };
 
 async function paginaStaff(browser: Browser, baseURL: string, rol: RolDemo) {
@@ -106,6 +107,7 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
     const admin = await clienteAdminDemo();
     const contextos: BrowserContext[] = [];
     const paginas = new Map<RolDemo, Page>();
+    const tareasLimpieza: (() => Promise<void>)[] = [];
     let sesionPropia: string | undefined;
     let intentoAbrir = false;
     const inicio = new Date().toISOString();
@@ -125,7 +127,7 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
       return data;
     }
     try {
-      await ejecutar({ marca, admin, staff, abrirMesa: async () => {
+      await ejecutar({ marca, admin, staff, alLimpiar: (tarea) => tareasLimpieza.push(tarea), abrirMesa: async () => {
         expect(await sesionMesa(), `Mesa ${MESA_NUMERO} ocupada: se suspende sin tocar datos ajenos`).toHaveLength(0);
         const mesero = await staff("mesero");
         intentoAbrir = true;
@@ -137,15 +139,30 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
     } finally {
       // Se intenta toda la limpieza aunque falle una de sus partes.
       const errores: string[] = [];
+      for (const tarea of tareasLimpieza.reverse()) {
+        try { await tarea(); }
+        catch { errores.push("No se pudo completar la recuperación de la cuenta propia de US-030."); }
+      }
+      async function conservadoPorCierre(p: Awaited<ReturnType<typeof pedidosPropios>>[number]) {
+        const consulta = admin.from("account_closures").select("id").eq("restaurant_id", RESTAURANTE);
+        const { data, error } = await (p.table_session_id
+          ? consulta.eq("table_session_id", p.table_session_id)
+          : consulta.eq("order_id", p.id)).maybeSingle();
+        if (error) throw new Error("No se pudo verificar el cierre del pedido propio.");
+        // Un pedido cobrado/exceptuado y entregado es historial, no se cancela.
+        return Boolean(data) && p.status === "DELIVERED";
+      }
       try {
         const pedidos = await pedidosPropios(admin, marca);
         for (const p of pedidos) {
-          if (p.status === "CANCELLED") continue;
+          if (p.status === "CANCELLED" || await conservadoPorCierre(p)) continue;
           try { await cancelarPedido(await staff("admin"), p.id, marca); }
           catch { errores.push(`No se canceló el pedido propio N.º ${p.order_number}.`); }
         }
         const restantes = await pedidosPropios(admin, marca);
-        if (restantes.some((p) => p.status !== "CANCELLED")) errores.push("Quedaron pedidos propios sin cancelar.");
+        for (const p of restantes) {
+          if (p.status !== "CANCELLED" && !await conservadoPorCierre(p)) errores.push(`Quedó sin finalizar el pedido propio N.º ${p.order_number}.`);
+        }
       } catch { errores.push("No se pudo comprobar la limpieza de pedidos propios."); }
       if (intentoAbrir) {
         try {
