@@ -1,0 +1,99 @@
+US-031 — Regresión local
+Fecha/hora: 2026-11-04 12:18 America/Lima
+Rama: dev/alina
+Commit base: 04b542b
+Entorno: Windows local; no se imprimieron valores de .env.local
+
+Consulta posterior: 2026-11-04 23:15 America/Lima
+Referencia remota: origin/develop `dc89187` (PR #48 integrado); se leyó sin fusionarla con el árbol local.
+
+Comando: npm.cmd run lint (equivalente del proyecto a npm run lint)
+Resultado: APROBADO, salida 0.
+
+Comando: npm.cmd run typecheck
+Resultado: APROBADO, salida 0; Next generó tipos de rutas y tsc terminó sin errores.
+
+Comando: npm.cmd test
+Resultado: APROBADO, 21 archivos / 378 casos; 378 aprobados, 0 fallidos.
+
+Comando: npm.cmd run build
+Resultado: FALLIDO por falta de conexión para descargar Geist y Geist Mono desde fonts.googleapis.com (next/font). La compilación no quedó verificada.
+
+Comando: npm run test:rls
+Resultado: NO EJECUTADO. El plan documenta Supabase compartido por entornos y riesgo de escritura; no se confirmó un proyecto aislado.
+
+Comando solicitado: npm run test:e2e
+Resultado en dev/alina `04b542b`: NO DISPONIBLE en package.json de ese checkout. La referencia `origin/develop` en `dc89187` sí incluye el comando. La evidencia de Erick de US-030 reporta 17/17 E2E aprobados localmente; no incluye enlace de Actions y no corresponde a esta rama.
+
+Referencia regresión US-030 integrada en origin/develop (`dc89187`):
+- Aceptación: Erick reporta 13/13 casos CP-030 aprobados; no se reportaron defectos funcionales.
+- Suites: Erick reporta 17/17 E2E aprobados, 615 unitarias aprobadas, lint/typecheck/build aprobados en su ejecución local.
+- Evidencia: `docs/pruebas/casos/cp-us030-flujo-completo.md` y `docs/pruebas/evidencias/us030-validacion.txt` en commit `dc89187`.
+- Límite: es evidencia de la versión de Erick/develop; no se integró a dev/alina ni se repitió aquí. No hay URL de una ejecución E2E de GitHub Actions.
+
+Comando: npm run test:integracion / npm run test:rls
+Resultado: NO EJECUTADOS. El workflow usa Supabase compartido y `tests/rls/pagos.test.ts` crea pagos confirmados; no se accedió a la base.
+
+Confirmación operativa de Alexander (04/11/2026): anuló `demo-mesa-2` y `demo-mesa-3`, cerró las sesiones de las Mesas 1, 2 y 3, e informó que canceló el pedido N.º 25 de Mesa 3; quedó un saldo a favor de S/ 37 por pagos de prueba antiguos. Esta revisión no repitió esas acciones ni modificó la base.
+
+Re-prueba de QR: se intentó abrir `/m/demo-mesa-2` y `/m/demo-mesa-3` en localhost:3000, pero el servidor local no respondió. La herramienta de navegación tampoco pudo acceder a la URL de staging documentada. Resultado: NO VERIFICADO; pendiente comprobar que ambas rutas muestren «QR no válido». No se crearon pedidos.
+
+Alcance al corte de 04/11/2026 23:15: la ejecución local era una línea base de `dev/alina`, no una segunda ejecución final. La regresión de US-030 era referencia separada en develop. En ese corte quedaban pendientes DEF-007, la decisión de DEF-004/008, la re-prueba visual de DEF-002 y la evidencia CI de la rama US-031; la actualización vigente se registra al final de este archivo.
+
+Actualización US-031 — 05/11/2026, 00:07 America/Lima
+Rama: dev/alina, fast-forward de develop integrado en `173953b` (incluye PR #50). Los cambios previos continúan en el árbol; el stash temporal y los dos stashes anteriores se conservaron.
+
+DEF-002 — verificación visual reportada por Alina:
+- Confirmó que `/m/demo-mesa-2` y `/m/demo-mesa-3` muestran «QR no válido».
+- No se creó ningún pedido ni se ejecutaron pruebas contra Supabase en esta revisión. No se adjuntó captura; el resultado se registra como confirmación de Alina.
+
+DEF-006 — revisión de jerarquía:
+- En `src/app/admin/reportes/page.tsx` (`173953b`), «Productos más vendidos» y «Pedidos por estado» usan `h3` dentro de la sección de tendencias.
+- `npm exec eslint -- src/app/admin/reportes/page.tsx`: APROBADO, salida 0.
+- Sin prueba automatizada específica de jerarquía ni recorrido de navegador; verificación por inspección del JSX y lint.
+- Corrección: [PR #50](https://github.com/alexcrisdev/altoque/pull/50).
+
+DEF-007 — paginación ante cambios concurrentes:
+- Comando: `npm exec vitest -- run tests/unit/tendencias-servidor.test.ts`
+- Resultado: APROBADO; 1 archivo, 12/12 pruebas.
+- Incluye reinicio desde la primera página, descarte del intento inconsistente y límite de reintentos ante cambios repetidos.
+- Es prueba unitaria con mocks; no hubo reproducción real ni acceso a Supabase. Corrección: [PR #50](https://github.com/alexcrisdev/altoque/pull/50).
+
+Regresión local segura en el checkout actualizado:
+- `npm test`: APROBADO; 31 archivos, 617/617 pruebas unitarias.
+- `npm run typecheck`: APROBADO; `next typegen` y `tsc --noEmit` terminaron sin errores una vez instalada la dependencia ya declarada `@playwright/test` 1.64.1. Instalación temporal con `--no-save`; no se modificaron `package.json` ni `package-lock.json`.
+- `npm exec eslint -- src/app/admin/reportes/page.tsx`: APROBADO.
+- `npm exec eslint -- src/features/pedidos/acciones-pedido.tsx`: APROBADO (verificación de la resolución del merge).
+- `npm run build`: NO EJECUTADO en esta actualización. La línea base anterior falló al descargar fuentes de Google; no se afirma resultado de build para `173953b`.
+- RLS, E2E e integración contra Supabase: NO EJECUTADOS. No hubo acceso/escritura a Supabase compartido.
+
+DEF-004 y DEF-008 — aprobación indirecta reportada por Alina:
+- El 05/11/2026 Alina confirmó en esta conversación que Fabrizio, como PO, aprobó ambos riesgos.
+- No se recibió el texto literal del mensaje del PO ni la fecha original en que lo emitió; 05/11/2026 es la fecha del registro indirecto, no una fecha atribuida a Fabrizio.
+- DEF-004: aceptación limitada a vulnerabilidades de herramientas de desarrollo; US-043 documenta 0 con `npm audit --omit=dev`.
+- DEF-008: aceptación para la demo usando y registrando el rango de fechas elegido; corregir la causa estructural requiere una base de pruebas separada. Falta reflejar esta limitación en la guía de US-032.
+
+Revisión documental adicional:
+- DEF-003: búsqueda en migraciones en `173953b`; la función antigua está definida en `20261026120000_registro_pedidos.sql`, con ejecución revocada a `public`, `anon` y `authenticated`, y concedida a `service_role`. No se invocó; sigue como deuda técnica candidata.
+- DEF-005: se revisó la evidencia histórica de US-043; PR #44 de TypeScript 7 no se integró y la validación de PR #39 permaneció verde con la versión mantenida. No se reejecutó CI ni `npm audit`; se conserva cerrado como hallazgo de CI, no de producto.
+
+Estado: DEF-002 verificado según confirmación visual de Alina; DEF-006 y DEF-007 verificados en el alcance descrito; DEF-004 y DEF-008 aceptados con riesgo por confirmación indirecta. US-031 no se declara terminada: falta documentar la limitación en US-032 y completar las verificaciones finales pendientes, incluido build y CI de esta rama.
+
+
+Actualizacion de cierre - 05/11/2026, 00:11 America/Lima
+Commit revisado: `173953b`, rama `dev/alina`.
+
+Comando: `npm.cmd run build`
+Resultado: FALLIDO (codigo 1). Next.js 16.4.3 no pudo descargar Geist ni Geist Mono desde `fonts.googleapis.com` para `next/font`; el build de produccion no quedo verificado.
+
+Resultados locales ya registrados antes de esta ejecucion: `npm test`, 31 archivos y 617/617 aprobadas; `npm exec vitest -- run tests/unit/tendencias-servidor.test.ts`, 12/12 aprobadas; `npm run typecheck` aprobado; ESLint de la pagina de reportes y del archivo de acciones de pedidos aprobado. No se volvieron a ejecutar en este turno.
+
+DEF-003: la busqueda estatica localiza `public.registrar_pedido_qr` en `supabase/migrations/20261026120000_registro_pedidos.sql`; la migracion revoca `EXECUTE` a `public`, `anon` y `authenticated`, y lo concede a `service_role`. La otra coincidencia es un comentario en `20261027230000_modalidad_de_consumo.sql`. No se modifico ni elimino ninguna migracion; no se invoco la funcion ni se consulto Supabase. Sigue pendiente la decision del responsable de US-002.
+
+US-032 / DEF-008: no se encontro una guia o entregable de US-032 bajo `docs/`. Cuando exista, documentar la limitacion en la guia o guion de demo junto al paso de seleccion del rango de fechas del dashboard y antes de interpretar sus metricas. No se modificaron archivos de US-032.
+
+CI: `.github/workflows/ci.yml` se activa para PR dirigidos a `develop`/`main` y pushes a esas ramas; no se activa por push a `dev/alina`. Para evidencia de esta rama, abrir o actualizar un PR `dev/alina` hacia `develop` y guardar el resultado del job `verificar`. No se creo PR ni se hizo push; no hay resultado de Actions de esta rama.
+
+Conteo de los 8 registros: severidad critica 0, alta 1 (DEF-002 verificado), media 3 (DEF-004/008 aceptados con riesgo y DEF-007 verificado), baja 3 (DEF-003 pendiente, DEF-005 cerrado como hallazgo historico de CI y DEF-006 verificado), No aplica 1 (DEF-001). Por estado: verificados 3; aceptados con riesgo 2; pendiente de decision tecnica 1; cerrado como hallazgo de CI 1; No aplica 1. No hay defectos criticos abiertos. La aceptacion de DEF-004/008 se basa en confirmacion indirecta de Alina del 05/11/2026; no se aporto texto literal ni fecha original de Fabrizio.
+
+No se ejecutaron RLS, E2E ni integracion contra Supabase compartido; no se modifico la base.
