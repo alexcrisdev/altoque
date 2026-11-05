@@ -2,6 +2,8 @@
 
 Última revisión: 05/11/2026, 00:11 (America/Lima). Rama `dev/alina` en `173953b`, actualizada por fast-forward desde `origin/develop` (incluye PR #50). Se conservaron los cambios locales y los tres stashes. Las confirmaciones de la comprobación visual de QR y de la aprobación del PO provienen de Alina en esta conversación; no se adjuntaron captura ni mensaje literal de Fabrizio.
 
+Actualización de cierre: 05/11/2026, 01:10 (America/Lima), Alexander, rama `dev/alexander` con develop en `fdbeb2b` (incluye PR #51). Se agregó la regresión final, se cerró DEF-003 y se actualizó el informe de cierre. El contenido de las demás fichas no cambió.
+
 ## Severidad y prioridad
 
 - **Crítica:** bloquea el flujo principal (pedir, cocina, cobrar), pierde/duplica pedidos o pagos, o rompe el aislamiento entre restaurantes / expone datos o claves.
@@ -19,7 +21,7 @@ Flujo: **Abierto → En corrección → Corregido (PR) → Verificado → Cerrad
 |---|---|---|---|---|---|---|---|---|
 | DEF-001 | Observación compuesta solo por espacios | US-008 | No aplica | — | Verónica (HU afectada) | No aplica: SQL convierte la cadena vacía en `null` | — | Revisión de función y SQL, 04/11/2026 |
 | DEF-002 | QR demo conocido en una base Supabase compartida por los entornos | US-001 / US-009 | Alta (provisional; mitigación verificada) | P1 | Alexander (entorno Supabase) | Verificado: Alina confirma que ambas rutas muestran «QR no válido» (05/11/2026); no se crearon pedidos | — | Verificación visual reportada por Alina; sin cambio de datos |
-| DEF-003 | Función antigua `registrar_pedido_qr` permanece en una migración (deuda técnica) | US-002 | Baja (candidato de deuda) | P3 (candidato) | Responsable de US-002, por confirmar | Pendiente de decisión técnica; no es fallo funcional reproducido y no hay invocación desde el código actual localizada | — | Responsable de US-002 debe decidir si conservarla o retirarla; cualquier retiro requiere migración nueva y verificación de dependencias/grants |
+| DEF-003 | Función antigua `registrar_pedido_qr` permanece en una migración (deuda técnica) | US-002 | Baja (deuda técnica) | P3 | Alexander (decisión técnica) | Cerrado: deuda técnica conservada, sin cambio (05/11/2026) | — | No aplica re-prueba: sin cambio de código; solo `service_role` puede ejecutarla y no tiene uso desde la app |
 | DEF-004 | Vulnerabilidades moderadas en dependencias de desarrollo | US-043 | Media (riesgo documentado) | P2 | Alexander (US-043); Fabrizio (PO) | Aceptado con riesgo: Alina reportó la aprobación explícita del PO el 05/11/2026; fecha original y mensaje literal no proporcionados | — | Aceptación indirecta; riesgo limitado a herramientas de desarrollo según evidencia US-043 |
 | DEF-005 | TypeScript 7 rompió la verificación en CI (hallazgo de CI, no de producto) | US-043 / CI | Baja (hallazgo de CI) | P3 | Alexander (US-043) | Cerrado como hallazgo de CI: PR #44 no se integró y la línea base volvió a estar verde | PR #44 (cerrado, según evidencia US-043) | US-043 registra `verificar` verde con TypeScript 5; no es re-prueba de `dev/alina` |
 | DEF-006 | Los subtítulos de tendencias usan nivel `h2` en lugar de `h3` | US-019 | Baja | P3 | Fabrizio (US-019) | Verificado por inspección JSX y lint en `173953b` | [PR #50](https://github.com/alexcrisdev/altoque/pull/50) | Productos más vendidos y Pedidos por estado son `h3`; no se hizo prueba en navegador |
@@ -55,7 +57,7 @@ Flujo: **Abierto → En corrección → Corregido (PR) → Verificado → Cerrad
 - **Corrección/PR/regresión/re-prueba:** corrección operativa de Alexander; re-prueba visual informada por Alina. Esta revisión no creó pedidos ni tocó Mesa 5 o el QR mostrador del E2E.
 - **Fecha/hora:** 05/11/2026 (America/Lima; hora no proporcionada).
 
-### DEF-003 — Función SQL antigua (deuda técnica candidata)
+### DEF-003 — Función SQL antigua (cerrado: se conserva)
 
 - **HU/criterio:** US-002; función reemplazada por `registrar_pedido_cliente`.
 - **Detección:** búsqueda en migraciones; `registrar_pedido_qr` aparece en `20261026120000_registro_pedidos.sql` y el grant de esa migración limita ejecución a `service_role`.
@@ -68,7 +70,8 @@ Flujo: **Abierto → En corrección → Corregido (PR) → Verificado → Cerrad
 - **Decisión técnica pendiente:** la definición permanece en la migración histórica, que no se modifica. La búsqueda actual no localizó invocaciones ejecutables desde el código de la aplicación; hay una mención en comentario de otra migración. Mantenerla no produjo un fallo funcional observado y la migración registrada limita `EXECUTE` a `service_role`.
 - **Recomendación para decisión del responsable de US-002:** conservarla si no hay una necesidad aprobada de retirarla; si se decide retirarla, crear una migración nueva y revisar primero las referencias y grants en los entornos desplegados. Esta revisión fue estática: no consultó la base ni ejecutó la función, por lo que no certifica los grants actuales de Supabase.
 - **Corrección/PR/regresión/re-prueba:** sin cambio y sin PR. Responsable de US-002 por confirmar; decisión de conservar o retirar aún pendiente. No editar la migración histórica.
-- **Fecha/hora:** 04/11/2026, 22:40 (America/Lima).
+- **Decisión (05/11/2026, Alexander):** se **conserva** la función. No tiene uso desde la aplicación, solo `service_role` puede ejecutarla y retirarla exigiría una migración nueva el día de la entrega sin beneficio funcional. Estado: **Cerrado: deuda técnica conservada, sin cambio**. Si se quiere retirar, se hará después de la entrega con una migración nueva.
+- **Fecha/hora:** 04/11/2026, 22:40 (America/Lima); cierre 05/11/2026.
 
 ### DEF-004 — Vulnerabilidades moderadas en dependencias de desarrollo (bloqueado)
 
@@ -155,12 +158,28 @@ Ejecución local de línea base el 04/11/2026, commit `04b542b`, America/Lima. T
 - `npm run test:e2e`: no disponible en el checkout local `04b542b`; sí está configurado en `origin/develop` (`dc89187`). Erick reporta 17/17 E2E aprobados, pero no hay enlace de Actions ni es una ejecución de `dev/alina`.
 - `npm run test:integracion`: no ejecutado. El workflow apunta a Supabase compartido y la suite de pagos escribe registros confirmados.
 
+**Regresión final (05/11/2026, 01:05–01:10 America/Lima, develop `fdbeb2b` integrado en `dev/alexander`, Alexander):**
+
+- `npm run lint`: aprobado.
+- `npm run typecheck`: aprobado.
+- `npm test`: 31 archivos, 617 casos, 617 aprobados, 0 fallidos.
+- `npm run build`: compila (local, con acceso a Google Fonts).
+- `npm run smoke` contra staging: 8/8.
+- CI del PR #51 (commit `47db2aa`, develop ya integrado), todos en verde: [verificar](https://github.com/alexcrisdev/altoque/actions/runs/41976679095/job/127077043224) (lint, typecheck, unitarias y build), [integracion](https://github.com/alexcrisdev/altoque/actions/runs/41976679089/job/127077043328) (RLS/RPC contra la base) y [e2e](https://github.com/alexcrisdev/altoque/actions/runs/41976679141/job/127077617934) (17 recorridos, incluidos los de US-030).
+- CI de develop después del merge (`fdbeb2b`), en verde: [CI](https://github.com/alexcrisdev/altoque/actions/runs/41977865093), [integración](https://github.com/alexcrisdev/altoque/actions/runs/41977865083), [seguridad](https://github.com/alexcrisdev/altoque/actions/runs/41977865134) y [smoke de staging](https://github.com/alexcrisdev/altoque/actions/runs/41977865040).
+
 ## Informe de cierre
 
-**US-031 sigue abierta.** Se revisaron 8 registros: por severidad hay 0 críticos, 1 alto (DEF-002, verificado), 3 medios (DEF-004 y DEF-008 aceptados con riesgo; DEF-007 verificado), 3 bajos (DEF-003 pendiente de decisión técnica; DEF-005 cerrado como hallazgo histórico de CI; DEF-006 verificado) y 1 No aplica (DEF-001). Por estado: 3 verificados (DEF-002/006/007), 2 aceptados con riesgo (DEF-004/008), 1 pendiente de decisión técnica (DEF-003), 1 cerrado como hallazgo de CI (DEF-005) y 1 No aplica (DEF-001). No hay defectos críticos abiertos. DEF-002, el único de severidad alta, consta como verificado por confirmación visual reportada por Alina; no hay aceptación de riesgo alto pendiente. Las aprobaciones de DEF-004 y DEF-008 se registraron indirectamente por confirmación de Alina; no se proporcionó el texto literal de Fabrizio ni la fecha original de aprobación.
+**US-031 cerrada el 05/11/2026.** Se revisaron 8 registros. Por severidad: 0 críticos, 1 alto (DEF-002), 3 medios (DEF-004, DEF-007, DEF-008), 3 bajos (DEF-003, DEF-005, DEF-006) y 1 No aplica (DEF-001).
 
-La comprobación unitaria global fue 617/617 y la prueba dirigida de tendencias 12/12; TypeScript y ESLint aprobaron según los resultados registrados previamente. El build ejecutado el 05/11/2026 falló al descargar fuentes de Google; no queda compilación verificada. No se ejecutaron RLS, E2E ni integración contra Supabase compartido. Erick reporta para US-030 13/13 casos de aceptación y 17/17 E2E, además de 615 unitarias; son resultados locales de Erick, no evidencia de CI de `dev/alina`.
+| Estado | Defectos |
+|---|---|
+| Verificado | DEF-002, DEF-006, DEF-007 |
+| Aceptado con riesgo | DEF-004, DEF-008 |
+| Cerrado | DEF-003 (deuda técnica conservada), DEF-005 (hallazgo de CI) |
+| No aplica | DEF-001 |
 
-DEF-003 requiere una decisión del responsable de US-002; no se editó ni eliminó su función o migración. La búsqueda documental no encontró una guía/entregable específico de US-032 en `docs/`. La limitación de DEF-008 debe añadirse en la guía o guion de demostración US-032, junto al paso donde se selecciona el rango de fechas del dashboard y su interpretación; no se modificó documentación de US-032. El workflow `.github/workflows/ci.yml` solo se activa con PR dirigidos a `develop`/`main` o pushes a esas ramas. Para obtener evidencia verde de esta rama, el flujo existente es abrir o actualizar un PR `dev/alina` → `develop` y conservar el enlace de la ejecución `verificar`; no se creó PR, no se hizo push y no hay ejecución de Actions registrada aquí.
-
-**Pendiente para completar US-031:** obtener un resultado de build en un entorno con acceso a Google Fonts; generar y enlazar CI verde mediante PR; documentar la limitación en el entregable de US-032 cuando esté disponible; y resolver la decisión técnica de DEF-003 si el alcance de cierre la exige. Las pruebas con Supabase compartido siguen excluidas. No se atribuyen aprobaciones directas ni verificaciones que no consten en evidencia.
+- **0 defectos críticos abiertos** y ningún defecto alto abierto: DEF-002 está verificado.
+- **Riesgos aceptados para la entrega:** DEF-004 (vulnerabilidades solo en herramientas de desarrollo; `npm audit --omit=dev` = 0) y DEF-008 (las pruebas automáticas suman datos a las métricas del dashboard). Aceptados por Fabrizio (PO) según la confirmación de Alina del 05/11/2026; no se adjuntó el mensaje literal. DEF-008 queda como limitación en la [guía de la demo](../../demo/guia-demostracion.md).
+- **Regresión final en verde:** 617/617 unitarias, lint, typecheck y build; integración y E2E en el CI del PR #51 y de develop (enlaces en la sección anterior).
+- La línea base inicial (378 casos en `04b542b`) se conserva como referencia histórica.
