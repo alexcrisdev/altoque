@@ -97,3 +97,27 @@ CI: `.github/workflows/ci.yml` se activa para PR dirigidos a `develop`/`main` y 
 Conteo de los 8 registros: severidad critica 0, alta 1 (DEF-002 verificado), media 3 (DEF-004/008 aceptados con riesgo y DEF-007 verificado), baja 3 (DEF-003 pendiente, DEF-005 cerrado como hallazgo historico de CI y DEF-006 verificado), No aplica 1 (DEF-001). Por estado: verificados 3; aceptados con riesgo 2; pendiente de decision tecnica 1; cerrado como hallazgo de CI 1; No aplica 1. No hay defectos criticos abiertos. La aceptacion de DEF-004/008 se basa en confirmacion indirecta de Alina del 05/11/2026; no se aporto texto literal ni fecha original de Fabrizio.
 
 No se ejecutaron RLS, E2E ni integracion contra Supabase compartido; no se modifico la base.
+
+========================================================
+Regresion final y cierre (05/11/2026, 01:05-01:10 America/Lima)
+Responsable: Alexander. Rama dev/alexander con develop en fdbeb2b (incluye PR #51).
+========================================================
+npm run lint ........ aprobado
+npm run typecheck ... aprobado
+npm test ............ 31 archivos / 617 casos / 617 aprobados / 0 fallidos
+npm run build ....... compila (con acceso a Google Fonts; el fallo anterior era de red)
+npm run smoke ....... staging 8/8 (solo lecturas)
+
+CI del PR #51 (commit 47db2aa, develop integrado), todo en verde:
+- verificar (lint, typecheck, unitarias, build): https://github.com/alexcrisdev/altoque/actions/runs/41976679095/job/127077043224
+- integracion (RLS/RPC contra la base): https://github.com/alexcrisdev/altoque/actions/runs/41976679089/job/127077043328
+- e2e (17 recorridos, incluidos los de US-030): https://github.com/alexcrisdev/altoque/actions/runs/41976679141/job/127077617934
+CI de develop despues del merge (fdbeb2b): CI, integracion, seguridad y smoke de staging en verde.
+
+DEF-003: cerrado. Se conserva la funcion (decision de Alexander, 05/11/2026): sin uso
+desde la app y solo ejecutable por service_role. Sin cambio de codigo ni migracion.
+US-032 / DEF-008: la limitacion queda en docs/demo/guia-demostracion.md, seccion 6.
+
+Conteo final: verificados 3 (DEF-002/006/007); aceptados con riesgo 2 (DEF-004/008);
+cerrados 2 (DEF-003 deuda conservada, DEF-005 hallazgo de CI); No aplica 1 (DEF-001).
+0 criticos abiertos. US-031 cerrada.
