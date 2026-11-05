@@ -1,0 +1,49 @@
+US-032 — Ensayo de la demostración final
+Responsable: Alexander (historia reasignada de Fabrizio). Guía: docs/demo/guia-demostracion.md
+No se incluyen claves, tokens ni la contraseña demo.
+
+1) Ensayo técnico (05/11/2026, 01:05-01:10 America/Lima)
+   Versión: develop fdbeb2b (todas las historias de los Sprints 3 y 4 integradas).
+   npm run lint ........ aprobado
+   npm run typecheck ... aprobado
+   npm test ............ 31 archivos / 617 casos / 617 aprobados / 0 fallidos
+   npm run build ....... compila
+   npm run smoke ....... staging 8/8 (solo lecturas)
+     https://altoque-app-usil-git-develop-alexandercris-projects.vercel.app
+   CI del PR #51 (47db2aa) en verde: verificar, integracion y e2e (17 recorridos)
+     https://github.com/alexcrisdev/altoque/actions/runs/41976679141/job/127077617934
+   CI de develop (fdbeb2b) en verde: CI, integración, seguridad y smoke de staging.
+
+2) Pasos de la guía y la prueba que ya los recorre
+   Paso 2  Admin: carta y QR ........ e2e accesos.spec.ts (admin y dueño entran a /admin);
+                                       manual US-001/US-027
+   Paso 3  Mesero abre la mesa ....... e2e pedido-en-mesa.spec.ts (Abrir sesión en Mesa 5)
+   Paso 4  Cliente pide por QR ....... e2e pedido-en-mesa, pedido-para-llevar, idempotencia
+                                       y conexion.spec.ts (sin red y reintento sin duplicar)
+   Paso 5  Cocina prepara ............ e2e pago-ayuda.ts: aceptar → empezar preparación → listo
+   Paso 6  Ayuda y entrega ........... ayuda: rls ayuda.test.ts + manual US-013;
+                                       entrega: e2e CP-030-07 (Confirmar entrega)
+   Paso 7  Pedido asistido ........... aceptación manual CP-030-03 (US-030)
+   Paso 8  Cobro y cierre ............ e2e pago-y-cierre.spec.ts CP-030-08 a 13
+                                       (Yape por verificar/rechazado/confirmado, tarjeta,
+                                       efectivo con vuelto, cierre, excepción, para llevar)
+   Paso 9  Dashboard ................. rls ventas.test.ts y tendencias.test.ts; manual US-018/019
+   Paso 10 Seguridad ................. e2e accesos.spec.ts (cocina → /sin-acceso) y qr.spec.ts
+                                       (QR anulado e inventado)
+   Resultado: todos los pasos tienen al menos una prueba en verde. Sin bloqueos críticos.
+
+3) Ensayo con el equipo (a completar el día de la presentación, en producción)
+   URL: https://altoque-app-usil.vercel.app       Commit desplegado: ________
+   Fecha y hora: ________   Navegador(es): ________
+   Roles: admin ______  mesero ______  cocina ______  caja ______  celular ______
+   [ ] Preparación de la sección 1 de la guía completa (smoke 8/8, QR Mesa 2 generado)
+   [ ] Paso 2  [ ] Paso 3  [ ] Paso 4  [ ] Paso 5  [ ] Paso 6
+   [ ] Paso 7  [ ] Paso 8  [ ] Paso 9  [ ] Paso 10
+   Duración total: ______ min
+   Bloqueos o defectos encontrados: ________
+   Resultado: [ ] sin bloqueos críticos   [ ] con bloqueos (detallar y registrar como DEF-0xx)
+
+Límites
+- El ensayo técnico usa staging (develop). La versión de producción se publica con el PR
+  develop -> main "Cierre Sprint 3 y 4"; el workflow Smoke despliegue la revisa solo.
+- Los datos del ensayo quedan en la base compartida (DEF-008, aceptado con riesgo).

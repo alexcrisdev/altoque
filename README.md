@@ -158,7 +158,7 @@ El [plan de pruebas del sistema](docs/pruebas/plan-de-pruebas.md) define los niv
 | Comando | Alcance y ejecución |
 |---|---|
 | `npm test` | Unitarias de `tests/unit`, incluyendo las variantes parametrizadas. Se ejecutan localmente y en el job `verificar` del CI |
-| `npm run test:rls` | Integración real de permisos y sesiones en `tests/rls`. Manual por ahora; Alina automatiza en US-039. Requiere verificar el entorno, preparar seed/usuarios demo y configurar `.env.local`; puede escribir datos |
+| `npm run test:rls` | Integración real de permisos, sesiones, pagos y cierre en `tests/rls`. Corre en el workflow **Pruebas de integración** (US-039) en cada PR y push a `develop`; en local requiere el seed, los usuarios demo y `.env.local`. Escribe datos en la base compartida |
 | `npm run test:cobertura` | Unitarias con `@vitest/coverage-v8`; imprime cobertura por sentencias, ramas, funciones y líneas. Los reportes se generan en `coverage/`, ignorado por Git |
 
 La [evidencia de cobertura al inicio del Sprint 3](docs/pruebas/evidencias/cobertura-sprint3-inicio.txt) conserva el resumen obtenido. El reporte predeterminado mide los archivos importados por las unitarias, no todo el sistema, y no sustituye pruebas RLS ni recorridos de navegador. No se añade un umbral ni se modifica el CI en US-038.
