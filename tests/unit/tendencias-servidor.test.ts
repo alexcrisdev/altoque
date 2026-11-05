@@ -94,7 +94,11 @@ describe("consulta de tendencias US-019", () => {
     );
 
     expect(resultado.productos).toEqual([
-      { productId: "producto-1", nombre: "Ceviche", unidades: 2 },
+      {
+        productId: "producto-1",
+        nombre: "Ceviche",
+        unidades: 2,
+      },
     ]);
     expect(resultado.total).toBe(1);
 
@@ -104,7 +108,7 @@ describe("consulta de tendencias US-019", () => {
       { count: "exact" },
     );
 
-    // No filtramos CANCELLED en la consulta: cuenta por estado.
+    // Los cancelados también se consultan porque cuentan por estado.
     expect(consulta.eq).toHaveBeenCalledExactlyOnceWith(
       "restaurant_id",
       restauranteId,
@@ -150,7 +154,9 @@ describe("consulta de tendencias US-019", () => {
   });
 
   it("sin pedidos devuelve top vacío y los seis estados en cero", async () => {
-    simularConsulta([{ data: [], error: null, count: 0 }]);
+    simularConsulta([
+      { data: [], error: null, count: 0 },
+    ]);
 
     expect(
       await obtenerTendencias(restauranteId, desde, hasta),
@@ -233,7 +239,7 @@ describe("consulta de tendencias US-019", () => {
     const registro = vi.spyOn(console, "error")
       .mockImplementation(() => {});
 
-    simularConsulta([
+    const { consulta } = simularConsulta([
       { data: null, error: { code: "XX001" }, count: null },
     ]);
 
@@ -245,12 +251,13 @@ describe("consulta de tendencias US-019", () => {
       "obtenerTendencias",
       "XX001",
     );
+    expect(consulta.overrideTypes).toHaveBeenCalledTimes(1);
   });
 
   it("no devuelve resultados parciales si falla otra página", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    simularConsulta([
+    const { consulta } = simularConsulta([
       { data: [crearPedido()], error: null, count: 2 },
       { data: null, error: { code: "XX002" }, count: null },
     ]);
@@ -258,6 +265,8 @@ describe("consulta de tendencias US-019", () => {
     await expect(
       obtenerTendencias(restauranteId, desde, hasta),
     ).rejects.toThrow("No se pudieron consultar las tendencias");
+
+    expect(consulta.overrideTypes).toHaveBeenCalledTimes(2);
   });
 
   it("rechaza un resultado incompleto", async () => {
@@ -270,18 +279,121 @@ describe("consulta de tendencias US-019", () => {
     ).rejects.toThrow("No se pudieron consultar las tendencias");
   });
 
-  it("rechaza cambios de conteo entre páginas", async () => {
-    simularConsulta([
+  it("reinicia desde la primera página si ingresan pedidos y descarta el intento anterior", async () => {
+    const pedidoAnterior = crearPedido({
+      id: "pedido-anterior",
+      order_items: [
+        {
+          product_id: "producto-descartado",
+          product_name: "Producto del intento descartado",
+          quantity: 20,
+        },
+      ],
+    });
+
+    const primero = crearPedido({ id: "pedido-1" });
+    const segundo = crearPedido({ id: "pedido-2" });
+    const tercero = crearPedido({ id: "pedido-3" });
+
+    const { consulta } = simularConsulta([
+      // Primer intento: cambia el conteo entre páginas.
+      { data: [pedidoAnterior], error: null, count: 2 },
+      { data: [segundo], error: null, count: 3 },
+
+      // Segundo intento: se vuelve a leer desde el inicio.
+      { data: [primero, segundo], error: null, count: 3 },
+      { data: [tercero], error: null, count: 3 },
+    ]);
+
+    const resultado = await obtenerTendencias(
+      restauranteId,
+      desde,
+      hasta,
+    );
+
+    expect(resultado.total).toBe(3);
+    expect(resultado.porEstado.PENDING).toBe(3);
+    expect(resultado.productos).toEqual([
+      {
+        productId: "producto-1",
+        nombre: "Ceviche",
+        unidades: 6,
+      },
+    ]);
+
+    expect(consulta.range.mock.calls).toEqual([
+      [0, 499],
+      [1, 500],
+      [0, 499],
+      [2, 501],
+    ]);
+
+    expect(crearClienteServidor).toHaveBeenCalledTimes(1);
+  });
+
+  it("limita los intentos si el conteo sigue cambiando", async () => {
+    const { consulta } = simularConsulta([
+      // Primer intento.
       { data: [crearPedido()], error: null, count: 2 },
       {
         data: [crearPedido({ id: "pedido-2" })],
         error: null,
         count: 3,
       },
+
+      // Segundo intento: vuelve a cambiar el conteo.
+      { data: [crearPedido()], error: null, count: 3 },
+      {
+        data: [crearPedido({ id: "pedido-2" })],
+        error: null,
+        count: 4,
+      },
     ]);
 
     await expect(
       obtenerTendencias(restauranteId, desde, hasta),
-    ).rejects.toThrow("No se pudieron consultar las tendencias");
+    ).rejects.toThrow(
+      "No se pudieron consultar las tendencias. Intenta de nuevo.",
+    );
+
+    expect(consulta.range.mock.calls).toEqual([
+      [0, 499],
+      [1, 500],
+      [0, 499],
+      [1, 500],
+    ]);
+
+    expect(consulta.overrideTypes).toHaveBeenCalledTimes(4);
+  });
+
+  it("no reintenta errores de la base durante la recuperación", async () => {
+    const registro = vi.spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    const { consulta } = simularConsulta([
+      { data: [crearPedido()], error: null, count: 2 },
+      {
+        data: [crearPedido({ id: "pedido-2" })],
+        error: null,
+        count: 3,
+      },
+      {
+        data: null,
+        error: { code: "XX003" },
+        count: null,
+      },
+    ]);
+
+    await expect(
+      obtenerTendencias(restauranteId, desde, hasta),
+    ).rejects.toThrow(
+      "No se pudieron consultar las tendencias. Intenta de nuevo.",
+    );
+
+    expect(consulta.overrideTypes).toHaveBeenCalledTimes(3);
+    expect(registro).toHaveBeenCalledExactlyOnceWith(
+      "obtenerTendencias",
+      "XX003",
+    );
   });
 });
