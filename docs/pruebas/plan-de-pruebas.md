@@ -201,7 +201,7 @@ Para cerrar una historia:
 
 - **Aceptación (US-030):** guion CP-030-01 a 13 en [casos/cp-us030-flujo-completo.md](casos/cp-us030-flujo-completo.md); los pagos y el cierre también se automatizan en `tests/e2e/pago-y-cierre.spec.ts`.
 - **Gestión de defectos (US-031):** severidad, prioridad, estados y fichas en [defectos/registro-defectos.md](defectos/registro-defectos.md). Cada defecto corregido se vuelve a probar y suma un caso de regresión en el nivel más bajo que lo reproduzca.
-- **Demostración (US-032):** guion, datos de prueba y limitaciones en [../demo/guia-demostracion.md](../demo/guia-demostracion.md); el ensayo se registra en [evidencias/us032-ensayo.txt](evidencias/us032-ensayo.txt).
+- **Demostración (US-032):** recorrido, datos de prueba y limitaciones en [../demo/guia-demostracion.md](../demo/guia-demostracion.md).
 
 ## Mantenimiento
 

@@ -18,8 +18,8 @@ prueba, un plan B y las limitaciones conocidas.
 | 2 | Comprobar la URL publicada | `npm run smoke -- https://altoque-app-usil.vercel.app` termina sin fallos |
 | 3 | Preparar **un navegador o perfil por rol**: admin, mesero, cocina y caja | Cada perfil tiene su propia sesión; en el mismo perfil la sesión se comparte entre pestañas |
 | 4 | En `/admin/mesas`, pulsar **Generar QR** en la **Mesa 2** y dejar la imagen lista en pantalla o impresa | El QR solo se muestra al generarlo; si se pierde, se vuelve a generar |
-| 5 | Comprobar en `/mesero` que la Mesa 2 está **Libre** | Si tiene una sesión abierta de un ensayo, cerrarla desde caja |
-| 6 | En `/admin/productos`, todos los productos deben estar **Disponible** | Si alguno quedó **Agotado** en el ensayo, pulsar **Marcar disponible** |
+| 5 | Comprobar en `/mesero` que la Mesa 2 está **Libre** | Si tiene una sesión abierta, cerrarla desde caja |
+| 6 | En `/admin/productos`, todos los productos deben estar **Disponible** | Si alguno está **Agotado**, pulsar **Marcar disponible** |
 | 7 | Tener a mano un celular con cámara y datos móviles | Abrir la cámara y comprobar que lee un QR |
 
 **No usar la Mesa 5 ni el QR de mostrador del E2E:** están reservados para las pruebas
@@ -152,10 +152,3 @@ rechazada/aprobada, cierre ordinario y con excepción, dashboard y acceso por ro
   `npm audit --omit=dev` da 0.
 - DEF-003: se conserva una función SQL antigua sin uso (`registrar_pedido_qr`), que solo
   puede ejecutar el servidor.
-
-## 7. Ensayo
-
-Antes de la presentación se hace un ensayo completo con esta guía, en producción, y se
-registra en `docs/pruebas/evidencias/us032-ensayo.txt`: fecha y hora, URL, commit
-desplegado, quién hizo cada rol, resultado de cada paso y cualquier bloqueo. El ensayo se
-da por bueno si los pasos 2 a 10 se completan sin bloqueos críticos.
