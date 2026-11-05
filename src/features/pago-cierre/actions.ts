@@ -15,6 +15,14 @@ import {
   type CuentaACobrar,
 } from "./pago-logica";
 import { registrarPagoEfectivo, registrarPagoTarjeta, registrarPagoYape, verificarPago } from "./pagos";
+import {
+  mensajeErrorCierre,
+  normalizarMotivo,
+  puedeAutorizarExcepcion,
+  validarMotivo,
+  type TipoCierre,
+} from "./cierre-logica";
+import { cerrarCuenta } from "./cierres";
 
 export type RespuestaPago =
   | { ok: true; vueltoCentimos: number }
@@ -122,4 +130,33 @@ export async function verificarPagoAction(
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
   refrescarCaja(cuenta);
   return { ok: true };
+}
+
+// US-020: cerrar la cuenta. Sin motivo es un cierre ordinario (saldo en cero); con
+// motivo es una excepción que solo autorizan el dueño o el admin. La base vuelve a
+// revisar saldo, pagos por verificar y permisos, y guarda quién, cuándo e importes.
+export async function cerrarCuentaAction(
+  cuenta: CuentaACobrar,
+  motivo: unknown,
+): Promise<{ ok: true; tipo: TipoCierre } | { ok: false; mensaje: string }> {
+  const sesion = await obtenerSesion();
+  const membresia = sesion?.membresias.find((m) => tienePermiso(m.rol, "registrar_pagos"));
+  if (!sesion || !membresia) return { ok: false, mensaje: mensajeErrorCierre("FORBIDDEN") };
+  if (!cuenta || (cuenta.tipo !== "MESA" && cuenta.tipo !== "PARA_LLEVAR") || !esUuid(cuenta.id)) {
+    return { ok: false, mensaje: mensajeErrorCierre("INVALID_CLOSURE") };
+  }
+
+  const motivoLimpio = normalizarMotivo(motivo);
+  if (motivoLimpio !== null) {
+    const roles = sesion.membresias.filter((m) => m.restaurantId === membresia.restaurantId).map((m) => m.rol);
+    if (!puedeAutorizarExcepcion(roles)) return { ok: false, mensaje: mensajeErrorCierre("EXCEPTION_FORBIDDEN") };
+    const invalido = validarMotivo(motivoLimpio);
+    if (invalido) return { ok: false, mensaje: invalido };
+  }
+
+  const resultado = await cerrarCuenta(cuenta, motivoLimpio);
+  if (!resultado.ok) return { ok: false, mensaje: mensajeErrorCierre(resultado.codigo) };
+  refrescarCaja(cuenta);
+  if (cuenta.tipo === "MESA") revalidatePath("/mesero");
+  return { ok: true, tipo: resultado.tipo };
 }

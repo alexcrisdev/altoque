@@ -56,7 +56,7 @@ export type ResumenCuenta = {
   consumoCentimos: number;
   pagadoCentimos: number;
   saldoCentimos: number;
-  puedeCerrar: boolean; // cierre ordinario solo con saldo 0
+  puedeCerrar: boolean; // cierre ordinario: saldo 0 y ningún Yape por verificar (US-020)
 };
 
 export function subtotalCentimos(linea: LineaCuenta): number {
@@ -89,6 +89,6 @@ export function calcularCuenta(pedidos: readonly PedidoCuenta[], pagos: readonly
     consumoCentimos,
     pagadoCentimos,
     saldoCentimos,
-    puedeCerrar: saldoCentimos <= 0,
+    puedeCerrar: saldoCentimos <= 0 && !pagosNoVerificados.some((pago) => pago.estado === "PENDING"),
   };
 }
