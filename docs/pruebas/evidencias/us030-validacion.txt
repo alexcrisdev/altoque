@@ -1,0 +1,128 @@
+US-030 — Validar el flujo completo de pedidos
+Responsable: Erick. Zona horaria: America/Lima.
+Entorno de ejecución previsto: http://localhost:3100, compilación de producción
+local conectada al Supabase demo compartido. Navegador: Chromium/Playwright.
+Versión de partida: develop 34ceb13 integrado en dev/erick; cambios locales US-030.
+
+Preparación:
+- Actualización de rama y npm ci realizados antes de comenzar.
+- PR #46 confirmado como integrado. Existe cerrar-cuenta.tsx y la app compila.
+- Sin E2E/integración de Actions activos en la consulta inicial.
+- Ambos QR configurados verificados activos sin mostrar tokens ni regenerarlos.
+- Mesa 5 libre y account_closures accesible con admin demo normal.
+- Se reutilizan fixture pedido, autenticación y recorridos de US-040.
+- Solo se modifican pruebas/documentación de Erick; no código de aplicación,
+  migraciones, funciones SQL ni historias de otros compañeros.
+
+Estados iniciales CP-030-01 a CP-030-13: Pendiente de ejecución US-030.
+Este documento se completa con resultados observados, sin aprobar por anticipado.
+
+RESULTADOS POR CASO — 04/11/2026, America/Lima
+URL base: http://localhost:3100 (se omiten rutas QR y tokens).
+Commit base: 34ceb13; cambios locales US-030. Navegador: Chromium.
+
+CP-030-01 | 4/11/26, 9:45:37 p. m. | comensal, cocina, mesero | Chromium | Aprobado
+Pedido QR de Mesa 5 confirmado, una unidad persistida y mismo número en cocina/mesero; cancelado y sesión propia cerrada.
+Evidencia: pedido-en-mesa.spec.ts, Mesa 5 → abrir sesión → pedido en cocina y mesero → limpiar; duración del recorrido 12.9 s.
+
+CP-030-02 | 4/11/26, 9:45:50 p. m. | comensal, cocina, mesero | Chromium | Aprobado
+Pedido QR para llevar confirmado y visible en cocina/mesero; un único registro propio, cancelado en la limpieza.
+Evidencia: pedido-para-llevar.spec.ts, mostrador → carta → carrito → pedido en cocina y mesero; duración del recorrido 8.3 s.
+
+CP-030-03 | 4/11/26, 9:40:09 p. m. | mesero, cocina, admin (limpieza) | Chromium | Aprobado
+Pedido asistido N.º 203, source WAITER, una unidad, visible en cocina y mesero; cancelado y sesión propia cerrada en finally.
+Evidencia: docs/pruebas/evidencias/us030/cp030-03-asistido.png.
+
+CP-030-04 | 4/11/26, 9:36:55 p. m. | admin y comensal | Chromium | Aprobado
+Inca Kola 500 ml: agregar deshabilitado y carrito anterior rechazado por agotado; ningún pedido creado. Disponibilidad original restaurada.
+Evidencia: docs/pruebas/evidencias/us030/cp030-04-agotado.png y cp030-04-carrito-rechazado.png.
+
+CP-030-05 | 4/11/26, 9:44:07 p. m. | comensal, cocina, mesero | Chromium | Aprobado
+Sin conexión: mensaje claro, carrito conservado y cero pedidos; reconexión y reintento: exactamente un pedido. Limpieza completada.
+Evidencia: conexion.spec.ts, CP-030-05: sin conexión conserva el carrito y reintenta sin duplicar; duración del recorrido 9.6 s.
+
+CP-030-06 | 4/11/26, 9:44:17 p. m. | comensal, cocina, mesero | Chromium | Aprobado
+Dos pulsaciones inmediatas produjeron un único pedido de una unidad, comprobado antes y después de recorrer los paneles.
+Evidencia: idempotencia.spec.ts, dos pulsaciones inmediatas en Confirmar registran un solo pedido; duración del recorrido 9.6 s.
+
+CP-030-07 | 4/11/26, 9:44:26 p. m. | cocina y mesero | Chromium | Aprobado
+Cocina pasó por ACCEPTED, IN_PROGRESS y READY; el mesero confirmó DELIVERED, comprobado en los datos propios.
+Evidencia: pago-y-cierre.spec.ts, CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 5; duración del recorrido 31.2 s.
+
+CP-030-08 | 4/11/26, 9:44:26 p. m. | caja | Chromium | Aprobado
+Dos cobros en efectivo: parcial con reducción exacta del saldo y resto con vuelto de S/ 1.00; saldo final cero.
+Evidencia: pago-y-cierre.spec.ts, CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 5; duración del recorrido 31.2 s.
+
+CP-030-09 | 4/11/26, 9:44:26 p. m. | caja | Chromium | Aprobado
+Yape PENDING bloqueó cierre y no descontó; FAILED conservó saldo; otro Yape CONFIRMED descontó su importe.
+Evidencia: pago-y-cierre.spec.ts, CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 5; duración del recorrido 31.2 s.
+
+CP-030-10 | 4/11/26, 9:44:26 p. m. | caja | Chromium | Aprobado
+Tarjeta rechazada conservó saldo; aprobación posterior descontó el importe parcial, con referencias ficticias.
+Evidencia: pago-y-cierre.spec.ts, CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 5; duración del recorrido 31.2 s.
+
+CP-030-11 | 4/11/26, 9:44:26 p. m. | caja y mesero | Chromium | Aprobado
+Cierre ORDINARY persistido con balance 0 y autor; resumen visible y Mesa 5 libre en mesero.
+Evidencia: pago-y-cierre.spec.ts, CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 5; duración del recorrido 31.2 s.
+
+CP-030-12 | 4/11/26, 9:44:58 p. m. | caja y admin | Chromium | Aprobado
+Caja no mostró excepción; admin cerró con motivo explícito y el resumen conservó ese motivo; sesión propia finalizada.
+Evidencia: pago-y-cierre.spec.ts, CP-030-12: caja no autoriza excepción; admin cierra con motivo; duración del recorrido 20.3 s.
+
+CP-030-13 | 4/11/26, 9:45:18 p. m. | comensal, cocina, mesero, caja y admin (intento rechazado con RLS) | Chromium | Aprobado
+Para llevar entregado, cobrado y cerrado; interfaz sin nuevos cobros y RPC rechazó el intento posterior sin insertar pagos.
+Evidencia: pago-y-cierre.spec.ts, CP-030-13: para llevar pagado y cerrado rechaza nuevos pagos; duración del recorrido 18.8 s.
+
+COMPROBACIONES EXPLORATORIAS Y DEFECTOS
+No se identificaron defectos funcionales de la app en el alcance ejecutado; no se crean IDs DEF-030 ficticios. Alina (US-031) recibe estos resultados como entrada de aceptación.
+Se corrigieron únicamente selectores de prueba: etiquetas de monto/voucher/mesa incluyen ayuda u opciones y se buscaron por prefijo accesible. En para llevar, el intento posterior al cierre devolvió NOTHING_TO_PAY; se comprueba rechazo y cantidad de pagos invariable, sin exigir un código interno específico.
+La primera exploración se interrumpió por un selector: los pedidos entregados propios N.º 198 y N.º 200 quedaron cerrados con excepción administrativa de recuperación explícita; no se borraron ni se inventaron cobros. Los casos finales pasaron sin esa recuperación. Pedido asistido N.º 203 cancelado y Mesa 5 cerrada.
+No se modificó código de aplicación, esquema ni funciones SQL. Producto restaurado disponible. No se regeneraron QR ni se tocaron sesiones de Mesas 1–3.
+
+SALIDA DE LA SUITE COMPLETA
+Comando: npm run test:e2e (reporteros list,json), E2E_BASE_URL=http://localhost:3100
+
+Running 17 tests using 1 worker
+
+(node:21408) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [chromium] › tests\e2e\accesos.spec.ts:12:7 › mesero accede a su pantalla (3.0s)
+  ok  2 [chromium] › tests\e2e\accesos.spec.ts:12:7 › cocina accede a su pantalla (1.1s)
+  ok  3 [chromium] › tests\e2e\accesos.spec.ts:12:7 › caja accede a su pantalla (1.7s)
+  ok  4 [chromium] › tests\e2e\accesos.spec.ts:12:7 › admin accede a su pantalla (855ms)
+  ok  5 [chromium] › tests\e2e\accesos.spec.ts:12:7 › dueno accede a su pantalla (861ms)
+  ok  6 [chromium] › tests\e2e\accesos.spec.ts:20:7 › cocina no accede a /caja (1.4s)
+  ok  7 [chromium] › tests\e2e\accesos.spec.ts:20:7 › cocina no accede a /admin (1.6s)
+  ok  8 [chromium] › tests\e2e\accesos.spec.ts:27:5 › sin sesión no accede a mesero (240ms)
+  ok  9 [chromium] › tests\e2e\conexion.spec.ts:4:5 › CP-030-05: sin conexión conserva el carrito y reintenta sin duplicar (9.6s)
+  ok 10 [chromium] › tests\e2e\idempotencia.spec.ts:3:5 › dos pulsaciones inmediatas en Confirmar registran un solo pedido (9.6s)
+  ok 11 [chromium] › tests\e2e\pago-y-cierre.spec.ts:9:5 › CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 5 (31.2s)
+  ok 12 [chromium] › tests\e2e\pago-y-cierre.spec.ts:84:5 › CP-030-12: caja no autoriza excepción; admin cierra con motivo (20.3s)
+  ok 13 [chromium] › tests\e2e\pago-y-cierre.spec.ts:104:5 › CP-030-13: para llevar pagado y cerrado rechaza nuevos pagos (18.8s)
+  ok 14 [chromium] › tests\e2e\pedido-en-mesa.spec.ts:3:5 › Mesa 5 → abrir sesión → pedido en cocina y mesero → limpiar (12.9s)
+  ok 15 [chromium] › tests\e2e\pedido-para-llevar.spec.ts:3:5 › mostrador → carta → carrito → pedido en cocina y mesero (8.3s)
+  ok 16 [chromium] › tests\e2e\qr.spec.ts:3:5 › QR anulado no permite pedir (488ms)
+  ok 17 [chromium] › tests\e2e\qr.spec.ts:9:5 › token inventado informa QR no válido (491ms)
+
+  17 passed (2.1m)
+
+Totales: 17 aprobadas, 0 fallidas, 0 omitidas, 0 inestables. 123.5 s.
+Otras verificaciones: npm run lint y npm run typecheck correctos; npm test: 615/615 en 31 archivos. Build de producción correcto antes de los recorridos; se registrará también el cierre de validación.
+
+CIERRE DE VALIDACIÓN LOCAL
+Build final: npm run build correcto, compilación y tipos sin errores.
+Mesa 5 verificada Libre en /mesero; captura docs/pruebas/evidencias/us030/mesa5-libre-final.png.
+Verificación: 4/11/2026, 9:47:54 p. m. (Lima).
+Pedido 206 | ORDINARY | consumo S/ 6.00 | pagado S/ 6.00 | saldo S/ 0.00 | DELIVERED
+  YAPE FAILED: S/ 1.50
+  YAPE CONFIRMED: S/ 1.50
+  CARD FAILED: S/ 1.50
+  CARD CONFIRMED: S/ 1.50
+  CASH CONFIRMED: S/ 1.50
+  CASH CONFIRMED: S/ 1.50 (vuelto S/ 1.00)
+Pedido 207 | EXCEPTION | consumo S/ 6.00 | pagado S/ 0.00 | saldo S/ 6.00 | DELIVERED
+Pedido 208 | ORDINARY | consumo S/ 6.00 | pagado S/ 6.00 | saldo S/ 0.00 | DELIVERED
+  CASH CONFIRMED: S/ 6.00
+Pagos confirmados sumados y comparados con el cierre; autor y fecha persistidos verificados.
+Servidor temporal 3100 detenido. Aplicación y migraciones sin cambios.
+Revisión del workflow del PR pendiente de publicar los avances.
