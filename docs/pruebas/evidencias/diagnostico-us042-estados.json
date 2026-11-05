@@ -1,0 +1,13 @@
+{
+  "error": "Simulado mediante la frontera de error de React en el navegador; no se modifica el servidor",
+  "recuperacionTeclado": true,
+  "foco": {
+    "tag": "BUTTON",
+    "texto": "Reintentar",
+    "outline": "2px",
+    "style": "solid",
+    "alto": 50
+  },
+  "vacio": "Reporte sin ventas del 1900-01-01; consulta de solo lectura",
+  "qrDeshabilitadoConTitulo": true
+}

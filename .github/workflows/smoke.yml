@@ -1,0 +1,62 @@
+name: Smoke despliegue
+
+# US-029: después de cada push a develop (staging) o main (producción)
+# espera a que Vercel termine de publicar y prueba la URL. Solo hace lecturas.
+# También se puede lanzar a mano desde Actions con cualquier URL.
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL a probar
+        required: true
+
+permissions:
+  contents: read
+  statuses: read
+
+jobs:
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v7.0.1
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+
+      - name: Elegir la URL
+        id: destino
+        env:
+          URL_MANUAL: ${{ inputs.url }}
+        run: |
+          if [ -n "$URL_MANUAL" ]; then url="$URL_MANUAL"
+          elif [ "$GITHUB_REF_NAME" = "main" ]; then url="https://altoque-app-usil.vercel.app"
+          else url="https://altoque-app-usil-git-develop-alexandercris-projects.vercel.app"
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Esperar a que Vercel publique
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for intento in $(seq 1 40); do
+            estado=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/status" \
+              --jq '[.statuses[] | select(.context == "Vercel")][0].state // "pending"')
+            echo "Vercel: $estado"
+            [ "$estado" = "success" ] && exit 0
+            if [ "$estado" = "failure" ] || [ "$estado" = "error" ]; then exit 1; fi
+            sleep 15
+          done
+          echo "Vercel no terminó en 10 minutos"; exit 1
+
+      - name: Probar la URL publicada
+        env:
+          URL_DESPLIEGUE: ${{ steps.destino.outputs.url }}
+        run: node scripts/smoke.mjs "$URL_DESPLIEGUE"

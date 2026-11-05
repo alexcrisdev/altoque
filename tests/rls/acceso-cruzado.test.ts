@@ -18,6 +18,29 @@ beforeAll(async () => {
 afterAll(async () => { await owner?.auth.signOut(); });
 
 describe("aislamiento por restaurante", () => {
+  it("US-012: aísla pedidos y sesiones de mesa entre Pollería y Cevichería", async () => {
+    const polleria = createClient(url!, anonKey!, { auth: { persistSession: false, autoRefreshToken: false } });
+    try {
+      const { error } = await polleria.auth.signInWithPassword({ email: "dueno@polleria.demo", password: password! });
+      expect(error).toBeNull();
+      for (const tabla of ["orders", "table_sessions"] as const) {
+        const ajenosParaPolleria = await polleria.from(tabla).select("id").eq("restaurant_id", cevicheriaId);
+        expect(ajenosParaPolleria.error).toBeNull();
+        expect(ajenosParaPolleria.data).toEqual([]);
+        const ajenosParaCevicheria = await owner.from(tabla).select("id").eq("restaurant_id", polleriaId);
+        expect(ajenosParaCevicheria.error).toBeNull();
+        expect(ajenosParaCevicheria.data).toEqual([]);
+      }
+      // Evita aprobar por accidente si el restaurante objetivo no tenía ningún dato.
+      const propiosPedidos = await owner.from("orders").select("id").eq("restaurant_id", cevicheriaId).limit(1);
+      const propiasSesiones = await owner.from("table_sessions").select("id").eq("restaurant_id", cevicheriaId).limit(1);
+      expect(propiosPedidos.error).toBeNull();
+      expect(propiasSesiones.error).toBeNull();
+      expect(propiosPedidos.data?.length, "Prepara un pedido demo en Cevichería antes de probar US-012").toBeGreaterThan(0);
+      expect(propiasSesiones.data?.length, "Prepara una sesión de mesa demo antes de probar US-012").toBeGreaterThan(0);
+    } finally { await polleria.auth.signOut(); }
+  }, 30_000);
+
   it("permite lo propio y bloquea lectura y cambios en Pollería", async () => {
     const ownProducts = await owner.from("products").select("id").eq("restaurant_id", cevicheriaId);
     expect(ownProducts.error).toBeNull();

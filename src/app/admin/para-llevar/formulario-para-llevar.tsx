@@ -15,12 +15,12 @@ export function FormularioParaLlevar({ config }: { config: ConfigParaLlevar }) {
   return (
     <form action={accion} className="mt-6 grid gap-4 rounded-xl border p-4">
       <p className="font-semibold">Datos que se le piden al cliente en un pedido para llevar</p>
-      <label className="flex items-center gap-2">
-        <input type="checkbox" name="pideNombre" defaultChecked={config.pideNombre} />
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-borde px-3 py-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-marca">
+        <input type="checkbox" name="pideNombre" defaultChecked={config.pideNombre} className="h-5 w-5 accent-marca" />
         Nombre obligatorio
       </label>
-      <label className="flex items-center gap-2">
-        <input type="checkbox" name="pideTelefono" defaultChecked={config.pideTelefono} />
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-borde px-3 py-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-marca">
+        <input type="checkbox" name="pideTelefono" defaultChecked={config.pideTelefono} className="h-5 w-5 accent-marca" />
         Teléfono obligatorio
       </label>
       <p className="text-sm text-zinc-600">

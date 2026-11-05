@@ -1,0 +1,60 @@
+US-043 — Pipeline de seguridad (DevSecOps)
+Responsable: Alexander. Fecha: 03/11/2026, America/Lima.
+Versión: PR #39 (dev/alexander -> develop), commit f004b08.
+Workflow: .github/workflows/seguridad.yml, ejecución 41771705980.
+Datos tomados de la API pública de GitHub Actions. No se incluyen claves ni tokens.
+
+Revisión previa (local, antes de subir):
+- YAML de seguridad.yml validado con js-yaml.
+- npm run lint: sin errores.
+- npm audit (todas las dependencias): 16 moderadas, 0 altas, 0 críticas.
+  Todas vienen de la cadena de ESLint (minimatch, GHSA-g3hv-75wg-m249),
+  que solo se usa en desarrollo.
+- npm audit --omit=dev: 0 vulnerabilidades. Por eso el pipeline bloquea
+  con --omit=dev --audit-level=high: no frena por algo que no llega a producción.
+- Búsqueda en todo el historial (git log -p) de claves de Supabase
+  (sb_secret_/sb_publishable_), JWT, tokens de GitHub y llaves privadas: sin hallazgos.
+
+Intento 1 (al abrir el PR):
+  Secretos filtrados (Gitleaks) ............ success  9 s
+  Análisis del código (CodeQL) ............. success  67 s
+  Dependencias vulnerables (npm audit) ..... success  52 s
+  Revisión de dependencias nuevas .......... FAILURE  6 s
+  Resultado de seguridad ................... FAILURE  4 s
+Causa: "Dependency review is not supported on this repository. Please ensure
+that Dependency graph is enabled". El repositorio no tenía activado el
+Dependency graph. El job final hizo su trabajo: marcó en rojo el pipeline
+porque una de las revisiones falló.
+
+Corrección (configuración del repositorio, sin cambiar código):
+Settings -> Advanced Security: se activó Dependabot security updates,
+que también enciende el Dependency graph (548 paquetes detectados).
+
+Intento 2 (re-run de los jobs fallidos):
+  Secretos filtrados (Gitleaks) ............ success  9 s
+  Análisis del código (CodeQL) ............. success  67 s
+  Dependencias vulnerables (npm audit) ..... success  52 s
+  Revisión de dependencias nuevas .......... success  10 s
+  Resultado de seguridad ................... success  4 s
+
+Resto de checks del PR sobre el mismo commit:
+  verificar (CI) ........................... success
+  integracion (RLS) ........................ success
+  e2e (Playwright) ......................... success
+  CodeQL (code scanning) ................... success: "No new alerts in code
+                                             changed by this pull request"
+
+Alertas abiertas de code scanning en el repositorio: 0.
+
+Configuración de seguridad del repositorio al cierre:
+  Secret scanning .......................... enabled
+  Push protection .......................... enabled
+  Dependabot security updates .............. enabled
+  Dependency graph ......................... enabled
+
+Ajuste posterior (04/11/2026):
+Al llegar dependabot.yml a develop, Dependabot abrió 5 PRs (#40-#44).
+Tres eran versiones mayores (TypeScript 7, ESLint 10, @types/node 26);
+el de TypeScript 7 falló en "verificar" (typescript-eslint no soporta TS 7).
+Se cerraron los 5 y se retiró dependabot.yml para no meter cambios
+grandes antes de la entrega. Siguen activas las alertas de Dependabot.

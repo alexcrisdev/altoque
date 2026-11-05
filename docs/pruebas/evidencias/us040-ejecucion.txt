@@ -1,0 +1,162 @@
+US-040 — Automatizar las pruebas funcionales del flujo principal
+Responsable: Erick. Fecha: 03/11/2026, America/Lima.
+Versión: cambios locales US-040 sobre develop f765513, todavía sin commit.
+Entorno: Next.js compilado localmente, Chromium, Supabase compartido del equipo.
+No se incluyen contraseñas, claves ni estados de autenticación.
+
+Dependencia autorizada: @playwright/test 1.64.1; navegador Chromium.
+
+Validaciones iniciales:
+- npm test: 27 archivos, 527 pruebas aprobadas.
+- npm run build: compilación, generación de páginas y tipos correctas.
+- npx tsc --noEmit: código de salida 0 tras el build.
+- npm run lint: detectó el nombre `use` de la fixture como hook React;
+  se renombró a `ejecutar` y la siguiente ejecución terminó con código 0.
+
+Primera ejecución exploratoria: npm run test:e2e
+Running 13 tests using 1 worker
+9 passed (1.6m), 4 failed:
+1. Cocina accedió correctamente; el test esperaba "Panel cocina" en lugar de
+   "Cocina". Se corrigió la expectativa, sin cambiar la app.
+2. Idempotencia: demo-mostrador mostró "Mesa no disponible".
+3. Pedido en mesa: Mesa 3 tenía una sesión anterior abierta desde el 01/11.
+   La suite se detuvo sin modificar ni cerrar esa sesión ajena.
+4. Pedido para llevar: demo-mostrador mostró "Mesa no disponible".
+
+Los accesos de mesero, caja, admin y dueño, los rechazos de cocina a caja/admin,
+la redirección sin sesión y ambos casos QR pasaron. No se crearon pedidos en
+esta ejecución. La limpieza consultó por marca única y no encontró pedidos propios.
+Se generaron capturas, error-context.md y trace.zip en test-results/ para los
+fallos, y reporte HTML en playwright-report/. Son salidas ignoradas por Git.
+
+Pendiente: preparar datos demo, obtener dos ejecuciones E2E completas consecutivas
+en verde, revisar diff de la única fila US-040, guardar commits, subir y abrir PR.
+Primera ejecución verde de Actions: pendiente; no se ha declarado aprobada.
+
+Revisión de datos posterior, autorizada por Erick:
+- Mesa 3 conserva pedidos anteriores: N.º 22 DELIVERED, N.º 25 IN_PROGRESS
+  y N.º 23 CANCELLED; tiene un pago Yape confirmado de S/ 62.00.
+  No se cancelaron ni modificaron esos pedidos y no se cerró su sesión.
+- El QR demo-mostrador del seed está anulado. Existe otro QR TAKEAWAY activo;
+  se detuvo la reactivación antes de escribir para no reemplazarlo accidentalmente.
+- Mesa 5 es la única mesa activa libre; Erick autorizó usar otra mesa demo libre.
+  Se configuró E2E_MESA_NUMERO=5 únicamente en .env.local (no versionado).
+- Los tokens actuales de mostrador y Mesa 5 no se pueden recuperar de sus hashes.
+  Pendiente obtenerlos mediante configuración local o regeneración autorizada.
+  No se regeneró ningún QR en esta revisión.
+
+Segunda ejecución exploratoria (sin datos definitivos):
+- npm run test:e2e: 10 aprobados y 3 fallidos, duración 1.2 minutos.
+- Los ocho casos de acceso y ambos casos QR pasaron.
+- Los tokens configurados aún eran marcadores de ejemplo: no se encontró el QR.
+- El recorrido de mesa detectó un inicio duplicado de tracing en la fixture antes
+  de abrir la sesión. Se eliminó el tracing manual: lo administra Playwright.
+- La autenticación de los usuarios de prueba se trasladó a Node con cookies SSR,
+  fuera de las trazas del navegador. Estos casos validan accesos y rechazos por rol;
+  no prueban el envío del formulario de login. No se añadió ninguna dependencia.
+- Se retiraron los reportes exploratorios locales generados antes de ese ajuste
+  para excluir los formularios de autenticación grabados en ellos. No se subieron.
+- Se añadió validación anticipada de tokens de ejemplo o enlaces completos.
+- Pendiente: tokens reales, dos ejecuciones completas en verde y Actions.
+
+Validación con tokens configurados posteriormente:
+- El puerto 3000 estaba ocupado. Se inició temporalmente la compilación con
+  `npm run start -- --port 3100` y E2E_BASE_URL=http://localhost:3100.
+- Suite completa: 10 aprobados y 3 fallidos (1.4m). Ocho accesos y ambos QR
+  correctos. El token de mostrador corresponde a un QR desactivado.
+- Mesa 5 tiene token activo y corresponde a la ubicación esperada. Su primer
+  recorrido falló por esperar el mensaje transitorio "Sesión abierta.", que
+  refresh() reemplaza. La sesión propia se cerró en la limpieza.
+- Se corrigió la expectativa para comprobar el botón persistente "Cerrar sesión".
+- `npm run test:e2e -- tests/e2e/pedido-en-mesa.spec.ts`:
+  Running 1 test using 1 worker
+  ok 1 Mesa 5 → abrir sesión → pedido en cocina y mesero → limpiar (15.5s)
+  1 passed (16.7s)
+- Ese recorrido creó un pedido identificado, comprobó una sola unidad/registro,
+  lo vio en cocina y mesero, lo canceló con motivo y cerró su sesión propia.
+- Pendiente resolver únicamente el token del mostrador y obtener dos suites
+  completas consecutivas en verde; no hay commit, push ni PR de US-040 todavía.
+
+Diagnóstico posterior del mostrador (03/11/2026, hora de Lima):
+- El valor de E2E_MOSTRADOR_TOKEN leído por Node coincide con el archivo guardado;
+  no hay otra configuración de entorno que lo sustituya en esta revisión.
+- El token configurado corresponde al QR creado a las 20:39:39, anulado a las
+  20:41:12. Los servidores 3000 y 3100 muestran el mismo estado deshabilitado.
+- Hay numerosas regeneraciones posteriores, aproximadamente cada 1–2 minutos.
+  En consultas consecutivas el QR activo cambió de uno creado a las 20:55:41
+  a otro creado a las 20:56:55, sin ejecutar acciones de regeneración en el diagnóstico.
+- Las pruebas E2E implementadas no regeneran QR. No se ha identificado todavía
+  el origen de estas escrituras; no atribuirlas a un usuario o proceso sin evidencia.
+- Se pidió cerrar las pestañas del panel de mesas para aislar el origen, sin cambiar
+  lógica de la app, migraciones ni registros QR durante el diagnóstico.
+- Después de cerrar las pestañas, dos consultas de solo lectura a las 21:00:58
+  y 21:03:55 (Lima) devolvieron 19 registros y el mismo QR activo, creado a las
+  20:56:55. No hubo nuevas regeneraciones en ese intervalo. Esto sugiere relación
+  con una pestaña abierta, pero no demuestra cuál ni la causa exacta del código.
+
+Ejecución completa 1, 2026-11-04T02:14:28.661Z (UTC).
+Comando: npm run test:e2e; E2E_BASE_URL=http://localhost:3100
+
+Running 13 tests using 1 worker
+
+(node:32380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [chromium] › tests\e2e\accesos.spec.ts:12:7 › mesero accede a su pantalla (2.9s)
+  ok  2 [chromium] › tests\e2e\accesos.spec.ts:12:7 › cocina accede a su pantalla (1.1s)
+  ok  3 [chromium] › tests\e2e\accesos.spec.ts:12:7 › caja accede a su pantalla (1.4s)
+  ok  4 [chromium] › tests\e2e\accesos.spec.ts:12:7 › admin accede a su pantalla (918ms)
+  ok  5 [chromium] › tests\e2e\accesos.spec.ts:12:7 › dueno accede a su pantalla (974ms)
+  ok  6 [chromium] › tests\e2e\accesos.spec.ts:20:7 › cocina no accede a /caja (1.3s)
+  ok  7 [chromium] › tests\e2e\accesos.spec.ts:20:7 › cocina no accede a /admin (1.4s)
+  ok  8 [chromium] › tests\e2e\accesos.spec.ts:27:5 › sin sesión no accede a mesero (291ms)
+  ok  9 [chromium] › tests\e2e\idempotencia.spec.ts:3:5 › dos pulsaciones inmediatas en Confirmar registran un solo pedido (8.7s)
+  ok 10 [chromium] › tests\e2e\pedido-en-mesa.spec.ts:3:5 › Mesa 5 → abrir sesión → pedido en cocina y mesero → limpiar (14.2s)
+  ok 11 [chromium] › tests\e2e\pedido-para-llevar.spec.ts:3:5 › mostrador → carta → carrito → pedido en cocina y mesero (8.9s)
+  ok 12 [chromium] › tests\e2e\qr.spec.ts:3:5 › QR anulado no permite pedir (609ms)
+  ok 13 [chromium] › tests\e2e\qr.spec.ts:9:5 › token inventado informa QR no válido (529ms)
+
+  13 passed (44.6s)
+
+Código de salida: 0
+
+Ejecución completa 2, 2026-11-04T02:15:43.447Z (UTC).
+Comando: npm run test:e2e; E2E_BASE_URL=http://localhost:3100
+
+Running 13 tests using 1 worker
+
+(node:33612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [chromium] › tests\e2e\accesos.spec.ts:12:7 › mesero accede a su pantalla (3.1s)
+  ok  2 [chromium] › tests\e2e\accesos.spec.ts:12:7 › cocina accede a su pantalla (1.2s)
+  ok  3 [chromium] › tests\e2e\accesos.spec.ts:12:7 › caja accede a su pantalla (1.2s)
+  ok  4 [chromium] › tests\e2e\accesos.spec.ts:12:7 › admin accede a su pantalla (880ms)
+  ok  5 [chromium] › tests\e2e\accesos.spec.ts:12:7 › dueno accede a su pantalla (1.1s)
+  ok  6 [chromium] › tests\e2e\accesos.spec.ts:20:7 › cocina no accede a /caja (1.4s)
+  ok  7 [chromium] › tests\e2e\accesos.spec.ts:20:7 › cocina no accede a /admin (1.5s)
+  ok  8 [chromium] › tests\e2e\accesos.spec.ts:27:5 › sin sesión no accede a mesero (270ms)
+  ok  9 [chromium] › tests\e2e\idempotencia.spec.ts:3:5 › dos pulsaciones inmediatas en Confirmar registran un solo pedido (9.0s)
+  ok 10 [chromium] › tests\e2e\pedido-en-mesa.spec.ts:3:5 › Mesa 5 → abrir sesión → pedido en cocina y mesero → limpiar (13.1s)
+  ok 11 [chromium] › tests\e2e\pedido-para-llevar.spec.ts:3:5 › mostrador → carta → carrito → pedido en cocina y mesero (8.8s)
+  ok 12 [chromium] › tests\e2e\qr.spec.ts:3:5 › QR anulado no permite pedir (598ms)
+  ok 13 [chromium] › tests\e2e\qr.spec.ts:9:5 › token inventado informa QR no válido (544ms)
+
+  13 passed (43.8s)
+
+Código de salida: 0
+
+Cierre de validación local — 03/11/2026, America/Lima:
+- Erick autorizó regenerar únicamente el QR de mostrador una vez. Se realizó
+  desde el panel, se guardó su token directamente en .env.local y se cerró el
+  navegador usado. Mesa 5 no se regeneró. Ningún token se incluye en esta evidencia.
+- Dos suites completas consecutivas: 13/13 en 44.6 s y 13/13 en 43.8 s.
+  Cada vuelta creó tres pedidos de una unidad, los canceló con motivo y cerró
+  la sesión de mesa propia. La limpieza y comprobación persistida formaron parte
+  del resultado aprobado. No se tocaron pedidos previos de las Mesas 1, 2 o 3.
+- Verificaciones finales: npm run lint, npm test (527/527 en 27 archivos),
+  npm run build y después npx tsc --noEmit: todos con código de salida 0.
+- Servidor temporal del puerto 3100 detenido. El servidor del usuario en 3000
+  no se detuvo. No hay cambios en src/ ni en supabase/migrations/.
+- Actions: pendiente de subir la rama, abrir el PR y configurar los QR vigentes
+  en los secretos E2E_MESA_TOKEN / E2E_MOSTRADOR_TOKEN y la variable
+  E2E_MESA_NUMERO=5. No declarar CI aprobado hasta observar su ejecución.
+Configuración de Actions: Erick confirmó ambos secretos E2E y E2E_MESA_NUMERO=5. Pendiente observar la ejecución remota del PR.

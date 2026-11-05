@@ -1,0 +1,76 @@
+US-020 — Cerrar la cuenta después del pago
+Responsable: Alexander. Fecha: 04/11/2026, America/Lima.
+Rama dev/alexander. Migración 20261104120000_cierre_de_cuenta.sql.
+No se incluyen claves ni tokens.
+
+Criterios de aceptación y dónde se prueban
+1. Cierre ordinario solo con saldo cero
+   -> cerrar_cuenta y el trigger de table_sessions devuelven SALDO_PENDIENTE.
+2. Excepción con permiso autorizado y motivo registrado
+   -> solo OWNER/ADMIN (EXCEPTION_FORBIDDEN para cajero y mesero), motivo
+      de 10 a 300 caracteres (REASON_REQUIRED), se guarda en account_closures.reason.
+3. Estado del pago separado del estado del pedido
+   -> el cierre no toca orders.status; se cierra igual con el pedido en
+      PENDING, IN_PROGRESS, READY o DELIVERED.
+4. El cierre registra usuario, fecha/hora e importe final
+   -> account_closures: closed_by, closed_at, consumption, paid, balance.
+      También cuando el mesero cierra con su botón (trigger).
+5. Pagos fallidos o no verificados no cierran la cuenta
+   -> FAILED no baja el saldo; un Yape PENDING bloquea todo cierre,
+      incluida la excepción (PENDING_PAYMENTS).
+
+1) Prueba local de la migración (PGlite, todas las migraciones + seed)
+  ok  saldo 32 -> SALDO_PENDIENTE
+  ok  mesero cierra directo con saldo -> SALDO_PENDIENTE
+  ok  tarjeta rechazada
+  ok  Yape por verificar bloquea incluso la excepción -> PENDING_PAYMENTS
+  ok  cierre directo con Yape pendiente -> PENDING_PAYMENTS
+  ok  rechazado no cuenta: saldo 2 -> SALDO_PENDIENTE
+  ok  cajero no puede excepción -> EXCEPTION_FORBIDDEN
+  ok  motivo corto -> REASON_REQUIRED
+  ok  otro restaurante -> FORBIDDEN
+  ok  anónimo -> error
+  ok  admin cierra con excepción
+  ok  1 cierre con usuario, hora, importes y motivo
+  ok  la mesa quedó cerrada por el admin
+  ok  estado del pedido no cambia (PENDING)
+  ok  cerrar dos veces -> ACCOUNT_NOT_FOUND
+  ok  botón del mesero -> cierre ordinario registrado
+  ok  excepción por cajero bloqueada
+  ok  excepción sin saldo -> EXCEPTION_NOT_NEEDED
+  ok  para llevar pagado: cierre ordinario
+  ok  dos veces -> ACCOUNT_CLOSED
+  ok  pago a cuenta cerrada -> ACCOUNT_CLOSED
+  ok  cambiar productos de cuenta cerrada -> ACCOUNT_CLOSED
+  ok  insert directo en account_closures bloqueado
+  ok  caja ve los 3 cierres
+  ok  cocina no ve cierres
+  ok  otro restaurante no ve cierres
+  Resultado: 26/26 aprobados.
+  Regresión con el mismo banco: los casos de pagos de US-022/023/024 siguen
+  pasando. La única diferencia es un conteo desactualizado del script local
+  (5 pagos en vez de 6), que falla igual sin la migración nueva.
+
+2) Aplicación en Supabase (04/11/2026)
+  npx supabase db push --linked -> 20261104120000_cierre_de_cuenta.sql aplicada.
+
+3) Pruebas automáticas (commit acb56bf + ajuste de la prueba de integración)
+  npm run lint ........ sin errores
+  npm run typecheck ... sin errores
+  npm test ............ 28 archivos / 565 casos / 565 aprobados / 0 fallidos
+                        (nuevo: tests/unit/cierre-cuenta.test.ts, 18 casos)
+  npm run test:rls .... 8 archivos / 52 casos / 52 aprobados / 0 fallidos
+                        (nuevo: tests/rls/cierre.test.ts, 11 casos contra la base)
+  npm run build ....... compila
+
+4) Limpieza de la prueba de integración
+  Los pedidos de prueba se cancelan y la mesa usada queda cerrada. Después de
+  correrla, la Mesa 5 (la de E2E) sigue libre. Los pagos y cierres de prueba
+  se conservan como registro.
+
+Límites conocidos
+- La excepción se registra para cuentas con saldo (cortesía, cliente que se fue).
+  El saldo a favor del cliente (pedido cancelado después de pagar) se cierra
+  de forma ordinaria y queda en balance negativo; la devolución se hace por fuera.
+- En caja, los pedidos para llevar pagados y sin cerrar se muestran 12 horas.
+- E2E del flujo completo: queda para US-030 (Erick).

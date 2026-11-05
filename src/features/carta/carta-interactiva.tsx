@@ -2,11 +2,29 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Boton,
+  BotonEnlace,
+  Insignia,
+  Tarjeta,
+  clasesBoton,
+} from "../../components/ui";
 import { formatearPrecio } from "./formato";
 import { DetalleProducto } from "./detalle-producto";
 import { PanelCarrito } from "../pedidos/panel-carrito";
-import { registrarPedidoQrAction, type ResultadoRegistroPedido } from "../pedidos/actions";
-import { datosFaltantes, type ConfigParaLlevar, type Modalidad } from "../pedidos/modalidad";
+import {
+  registrarPedidoQrAction,
+  type ResultadoRegistroPedido,
+} from "../pedidos/actions";
+import {
+  datosFaltantes,
+  type ConfigParaLlevar,
+  type Modalidad,
+} from "../pedidos/modalidad";
+import {
+  agregarPedidoGuardado,
+  type PedidoGuardado,
+} from "../pedidos/estado-cliente";
 import { SelectorModalidad } from "../pedidos/selector-modalidad";
 import {
   agregarAlCarrito,
@@ -40,19 +58,38 @@ export function CartaInteractiva({
   pedido,
   observacionesHabilitadas = false,
 }: Props) {
-  const [seleccionado, setSeleccionado] = useState<Producto | null>(null);
+  const [seleccionado, setSeleccionado] = useState<Producto | null>(
+    null,
+  );
   const dialogo = useRef<HTMLDialogElement>(null);
 
   const [items, setItems] = useState<ItemCarrito[]>([]);
   const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState<ResultadoRegistroPedido | null>(null);
+  const [resultado, setResultado] =
+    useState<ResultadoRegistroPedido | null>(null);
+
+  // US-037: conserva la clave del pedido confirmado para abrir su estado.
+  const [claveConfirmada, setClaveConfirmada] =
+    useState<string | null>(null);
+
   const clavePedido = useRef<string | null>(null);
+
   // El bloqueo es inmediato, incluso antes del siguiente render de React.
   const envioEnCurso = useRef(false);
-  const [modalidad, setModalidad] = useState<Modalidad>(pedido.modalidadQr);
+
+  const [modalidad, setModalidad] = useState<Modalidad>(
+    pedido.modalidadQr,
+  );
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
-  const faltaDato = datosFaltantes(modalidad, nombre, telefono, pedido.paraLlevar);
+
+  const faltaDato = datosFaltantes(
+    modalidad,
+    nombre,
+    telefono,
+    pedido.paraLlevar,
+  );
+
   const [aviso, setAviso] = useState("");
   const itemsAnteriores = useRef<ItemCarrito[]>([]);
 
@@ -110,13 +147,20 @@ export function CartaInteractiva({
   }
 
   function agregarProducto(producto: Producto) {
-    actualizarCarrito((actuales) => agregarAlCarrito(actuales, producto));
+    actualizarCarrito((actuales) =>
+      agregarAlCarrito(actuales, producto),
+    );
   }
 
-  function actualizarCarrito(cambiar: (actuales: ItemCarrito[]) => ItemCarrito[]) {
+  function actualizarCarrito(
+    cambiar: (actuales: ItemCarrito[]) => ItemCarrito[],
+  ) {
     if (envioEnCurso.current) return;
+
     const nuevos = cambiar(items);
+
     if (JSON.stringify(nuevos) === JSON.stringify(items)) return;
+
     clavePedido.current = null;
     setResultado(null);
     setItems(nuevos);
@@ -125,26 +169,88 @@ export function CartaInteractiva({
   // Cambiar la modalidad o los datos es otro pedido: nueva clave.
   function cambiarOpciones(cambiar: () => void) {
     if (envioEnCurso.current) return;
+
     cambiar();
     clavePedido.current = null;
     setResultado(null);
   }
 
   async function confirmar() {
-    if (envioEnCurso.current || !pedidosHabilitados || items.length === 0 || faltaDato) return;
+    if (
+      envioEnCurso.current ||
+      !pedidosHabilitados ||
+      items.length === 0 ||
+      faltaDato
+    ) {
+      return;
+    }
+
     envioEnCurso.current = true;
     setEnviando(true);
     setResultado(null);
+
     try {
       const entrada = aItemsPedido(items, productos);
       clavePedido.current ??= crypto.randomUUID();
-      const respuesta = await registrarPedidoQrAction(token, clavePedido.current, entrada, {
-        modalidad,
-        nombre,
-        telefono,
-      });
+
+      // Conservamos la misma clave utilizada al registrar el pedido.
+      const clave = clavePedido.current;
+
+      const respuesta = await registrarPedidoQrAction(
+        token,
+        clave,
+        entrada,
+        {
+          modalidad,
+          nombre,
+          telefono,
+        },
+      );
+
       setResultado(respuesta);
+
       if (respuesta.ok) {
+        setClaveConfirmada(clave);
+
+        const ahora = Date.now();
+
+        const nuevo: PedidoGuardado = {
+          clave,
+          numero: respuesta.numero,
+          creadoEn: new Date(ahora).toISOString(),
+        };
+
+        const almacenamiento = `altoque:pedidos:${token}`;
+        let anteriores: unknown = [];
+
+        try {
+          anteriores = JSON.parse(
+            window.localStorage.getItem(almacenamiento) ?? "[]",
+          );
+        } catch {
+          // Si falla la lectura, el enlace sigue disponible en pantalla.
+        }
+
+        try {
+          const guardados = agregarPedidoGuardado(
+            Array.isArray(anteriores) ? anteriores : [],
+            nuevo,
+            ahora,
+          );
+
+          window.localStorage.setItem(
+            almacenamiento,
+            JSON.stringify(guardados),
+          );
+
+          // Actualiza "Mis pedidos" dentro de esta misma pestaña.
+          window.dispatchEvent(
+            new Event("altoque:pedidos-actualizados"),
+          );
+        } catch {
+          // El pedido sigue confirmado aunque no se pueda guardar aquí.
+        }
+
         setItems([]);
         setAviso("");
         clavePedido.current = null;
@@ -152,9 +258,11 @@ export function CartaInteractiva({
     } catch (error) {
       setResultado({
         ok: false,
-        mensaje: error instanceof Error && error.message.includes("ya no está en la carta")
-          ? error.message
-          : "No se pudo confirmar el pedido. Revisa tu conexión e inténtalo otra vez.",
+        mensaje:
+          error instanceof Error &&
+          error.message.includes("ya no está en la carta")
+            ? error.message
+            : "No se pudo confirmar el pedido. Revisa tu conexión e inténtalo otra vez.",
       });
     } finally {
       envioEnCurso.current = false;
@@ -162,7 +270,10 @@ export function CartaInteractiva({
     }
   }
 
-  function cambiarCantidad(productoId: string, cantidad: number) {
+  function cambiarCantidad(
+    productoId: string,
+    cantidad: number,
+  ) {
     const producto = productos.find(
       (producto) => producto.id === productoId,
     );
@@ -200,13 +311,13 @@ export function CartaInteractiva({
     <div className="pt-4 pb-28">
       <nav
         aria-label="Categorías de la carta"
-        className="sticky top-0 z-10 -mx-1 mb-6 flex gap-2 overflow-x-auto border-b border-gray-200 bg-background px-1 py-3"
+        className="sticky top-0 z-10 -mx-1 mb-6 flex gap-2 overflow-x-auto border-b border-borde bg-background px-1 py-3"
       >
         {categorias.map((categoria) => (
           <a
             key={categoria.id}
             href={`#categoria-${categoria.id}`}
-            className="shrink-0 rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+            className={`${clasesBoton("secundario", "md")} shrink-0`}
           >
             {categoria.name}
           </a>
@@ -223,7 +334,7 @@ export function CartaInteractiva({
           >
             <h2
               id={`titulo-${categoria.id}`}
-              className="mb-3 text-xl font-bold"
+              className="mb-3 text-xl font-bold text-texto"
             >
               {categoria.name}
             </h2>
@@ -231,11 +342,13 @@ export function CartaInteractiva({
             <ul className="grid gap-3">
               {categoria.productos.map((producto) => (
                 <li key={producto.id}>
-                  <button
+                  <Boton
                     type="button"
+                    variante="secundario"
+                    tamano="lg"
                     onClick={() => abrirDetalle(producto)}
                     aria-haspopup="dialog"
-                    className="flex w-full gap-4 rounded-xl border border-gray-200 p-4 text-left transition hover:border-teal-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+                    className="w-full gap-4 text-left"
                   >
                     {producto.image_url && (
                       <Image
@@ -244,17 +357,17 @@ export function CartaInteractiva({
                         width={88}
                         height={88}
                         unoptimized
-                        className="h-22 w-22 shrink-0 rounded-lg object-cover"
+                        className="h-22 w-22 shrink-0 rounded-xl object-cover"
                       />
                     )}
 
-                    <span className="min-w-0 flex-1 space-y-2">
+                    <span className="min-w-0 flex-1 space-y-2 text-left">
                       <span className="block break-words font-semibold">
                         {producto.name}
                       </span>
 
                       {producto.description && (
-                        <span className="block break-words text-sm opacity-80">
+                        <span className="block break-words text-sm font-normal text-texto-suave">
                           {producto.description}
                         </span>
                       )}
@@ -264,12 +377,12 @@ export function CartaInteractiva({
                       </span>
 
                       {!producto.available && (
-                        <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+                        <Insignia tono="neutro">
                           Agotado
-                        </span>
+                        </Insignia>
                       )}
                     </span>
-                  </button>
+                  </Boton>
                 </li>
               ))}
             </ul>
@@ -299,17 +412,39 @@ export function CartaInteractiva({
             modalidad={modalidad}
             nombre={nombre}
             telefono={telefono}
-            onModalidad={(valor) => cambiarOpciones(() => setModalidad(valor))}
-            onNombre={(valor) => cambiarOpciones(() => setNombre(valor))}
-            onTelefono={(valor) => cambiarOpciones(() => setTelefono(valor))}
+            onModalidad={(valor) =>
+              cambiarOpciones(() => setModalidad(valor))
+            }
+            onNombre={(valor) =>
+              cambiarOpciones(() => setNombre(valor))
+            }
+            onTelefono={(valor) =>
+              cambiarOpciones(() => setTelefono(valor))
+            }
           />
         }
       />
 
       {resultado?.ok && (
-        <p role="status" className="my-4 rounded-xl border border-teal-600 p-4 font-semibold">
-          Tu número de pedido es {resultado.numero}
-        </p>
+        <Tarjeta role="status" className="my-4">
+          <Insignia tono="exito">
+            Pedido confirmado
+          </Insignia>
+
+          <p className="mt-3 font-semibold">
+            Tu número de pedido es {resultado.numero}
+          </p>
+
+          {claveConfirmada && (
+            <BotonEnlace
+              href={`/m/${encodeURIComponent(token)}/pedido/${encodeURIComponent(claveConfirmada)}`}
+              variante="primario"
+              className="mt-4 w-full"
+            >
+              Ver el estado de mi pedido
+            </BotonEnlace>
+          )}
+        </Tarjeta>
       )}
 
       <DetalleProducto
@@ -324,7 +459,7 @@ export function CartaInteractiva({
         aria-atomic="true"
         className={
           aviso
-            ? "pointer-events-none fixed inset-x-4 bottom-24 z-40 mx-auto max-w-md rounded-xl border border-teal-600 bg-background px-4 py-3 text-sm font-medium text-foreground shadow-lg"
+            ? "pointer-events-none fixed inset-x-4 bottom-24 z-40 mx-auto max-w-md rounded-xl border border-borde bg-superficie px-4 py-3 text-sm font-medium text-texto shadow-lg"
             : "sr-only"
         }
       >

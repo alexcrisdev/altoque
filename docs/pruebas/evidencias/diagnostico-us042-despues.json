@@ -1,0 +1,674 @@
+[
+  {
+    "pantalla": "carta",
+    "ruta": "/m/demo-mesa-2",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/m/demo-mesa-2",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "estado-pedido",
+    "ruta": "/m/demo-mesa-2/pedido/[clave]",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/m/demo-mesa-2/pedido/119d158b-c2bc-4e1f-ab47-a718073c6d08",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "login",
+    "ruta": "/login",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/login",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "mesero",
+    "ruta": "/mesero",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/mesero",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "cocina",
+    "ruta": "/cocina",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/cocina",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "caja",
+    "ruta": "/caja",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/caja",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "admin",
+    "ruta": "/admin",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ],
+    "lighthouse": {
+      "puntaje": 100,
+      "url": "http://localhost:3005/admin",
+      "version": "13.5.0",
+      "fallos": []
+    }
+  },
+  {
+    "pantalla": "mesero-pedido",
+    "ruta": "/mesero/pedido",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "mesero-detalle",
+    "ruta": "/mesero/pedidos/[id]",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-mesas",
+    "ruta": "/admin/mesas",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-productos",
+    "ruta": "/admin/productos",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-pedidos",
+    "ruta": "/admin/pedidos",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-detalle",
+    "ruta": "/admin/pedidos/[id]",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-para-llevar",
+    "ruta": "/admin/para-llevar",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 768,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1024,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1280,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  },
+  {
+    "pantalla": "admin-reportes",
+    "ruta": "/admin/reportes",
+    "medidas": [
+      {
+        "ancho": 360,
+        "anchoDocumento": 360,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 768,
+        "anchoDocumento": 753,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1024,
+        "anchoDocumento": 1009,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      },
+      {
+        "ancho": 1280,
+        "anchoDocumento": 1265,
+        "desborde": false,
+        "h1": 1,
+        "tactilesMenores44": [],
+        "sinEtiqueta": [],
+        "desbordes": []
+      }
+    ]
+  }
+]

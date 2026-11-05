@@ -1,26 +1,75 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #0f172a;
 }
 
 @theme inline {
+  /* Compatibilidad con las pantallas existentes. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Fuentes configuradas en layout.tsx. */
+  --font-sans: var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+
+  /* Marca y superficies. */
+  --color-marca: var(--color-teal-700);
+  --color-marca-hover: var(--color-teal-800);
+  --color-superficie: #ffffff;
+  --color-superficie-suave: var(--color-slate-100);
+  --color-borde: var(--color-slate-300);
+  --color-texto: var(--foreground);
+  --color-texto-suave: var(--color-slate-600);
+
+  /* Botones de acciones destructivas. */
+  --color-peligro: var(--color-red-700);
+  --color-peligro-hover: var(--color-red-800);
+
+  /* Entregado y estados generales. */
+  --color-neutro-fondo: var(--color-slate-100);
+  --color-neutro-borde: var(--color-slate-300);
+  --color-neutro-texto: var(--color-slate-700);
+
+  /* Aceptado. */
+  --color-info-fondo: var(--color-blue-50);
+  --color-info-borde: var(--color-blue-300);
+  --color-info-texto: var(--color-blue-800);
+
+  /* Pendiente. */
+  --color-aviso-fondo: var(--color-amber-50);
+  --color-aviso-borde: var(--color-amber-300);
+  --color-aviso-texto: var(--color-amber-900);
+
+  /* En preparación. */
+  --color-progreso-fondo: var(--color-violet-50);
+  --color-progreso-borde: var(--color-violet-300);
+  --color-progreso-texto: var(--color-violet-800);
+
+  /* Listo. */
+  --color-exito-fondo: var(--color-emerald-50);
+  --color-exito-borde: var(--color-emerald-300);
+  --color-exito-texto: var(--color-emerald-800);
+
+  /* Cancelado y errores. */
+  --color-peligro-fondo: var(--color-red-50);
+  --color-peligro-borde: var(--color-red-300);
+  --color-peligro-texto: var(--color-red-800);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  /* Escala compartida de espacios. */
+  --spacing: 0.25rem;
+
+  /* Esquinas de botones y tarjetas. */
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
 }

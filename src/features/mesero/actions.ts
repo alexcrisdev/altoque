@@ -49,7 +49,8 @@ export async function cerrarSesionAction(
   const sesionId = String(formData.get("sesionId") ?? "");
   if (!sesionId) return { tipo: "error", mensaje: "No se encontró una sesión válida." };
 
-  // TODO US-020: exigir que la cuenta esté pagada antes de cerrar la sesión.
+  // US-021 / US-020: la base impide cerrar con saldo o con un Yape por verificar, y registra
+  // el cierre. La excepción con saldo (dueño o admin, con motivo) se hace desde caja.
   const resultado = await cerrarSesion(restauranteId, sesionId, sesion.usuario.id);
   if (resultado.ok) {
     refresh();
@@ -57,6 +58,12 @@ export async function cerrarSesionAction(
   }
   if (resultado.motivo === "NO_ENCONTRADA") {
     return { tipo: "error", mensaje: "No se encontró una sesión abierta para esa mesa." };
+  }
+  if (resultado.motivo === "SALDO_PENDIENTE") {
+    return { tipo: "error", mensaje: "La mesa tiene saldo pendiente. Cobra la cuenta en caja antes de cerrarla." };
+  }
+  if (resultado.motivo === "PAGOS_POR_VERIFICAR") {
+    return { tipo: "error", mensaje: "La mesa tiene un pago Yape por verificar. Pide a caja que lo confirme antes de cerrarla." };
   }
   return { tipo: "error", mensaje: "No se pudo cerrar la sesión. Inténtalo de nuevo." };
 }
