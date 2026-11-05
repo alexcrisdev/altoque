@@ -197,6 +197,12 @@ Para cerrar una historia:
 6. Tiene PR hacia `develop` con al menos una aprobación del compañero; el autor no realiza el merge por su cuenta.
 7. Actualiza Jira con estado, evidencia de pruebas, incidencias pendientes y enlace al PR. No declarar actualizaciones de Jira ni aprobaciones que todavía no se hayan realizado.
 
+## Aceptación, defectos y demostración
+
+- **Aceptación (US-030):** guion CP-030-01 a 13 en [casos/cp-us030-flujo-completo.md](casos/cp-us030-flujo-completo.md); los pagos y el cierre también se automatizan en `tests/e2e/pago-y-cierre.spec.ts`.
+- **Gestión de defectos (US-031):** severidad, prioridad, estados y fichas en [defectos/registro-defectos.md](defectos/registro-defectos.md). Cada defecto corregido se vuelve a probar y suma un caso de regresión en el nivel más bajo que lo reproduzca.
+- **Demostración (US-032):** guion, datos de prueba y limitaciones en [../demo/guia-demostracion.md](../demo/guia-demostracion.md); el ensayo se registra en [evidencias/us032-ensayo.txt](evidencias/us032-ensayo.txt).
+
 ## Mantenimiento
 
 Cada responsable completa su fila al terminar una historia y adjunta la evidencia. En cada sprint el equipo revisa huecos de trazabilidad, defectos y cobertura. Alina actualiza este plan con la automatización real de US-039; Erick con los comandos, navegadores y recorridos de US-040. US-030 y US-031 incorporarán los guiones de aceptación y el registro de regresión.
