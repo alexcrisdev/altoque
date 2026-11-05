@@ -3,11 +3,20 @@ import {
   Boton,
   BotonEnlace,
   EncabezadoPantalla,
+  Insignia,
   MensajeEstado,
   Tarjeta,
 } from "@/components/ui";
 import { requerirRol } from "@/features/auth/sesion";
-import { consultarVentasAction } from "@/features/dashboard/actions";
+import {
+  consultarVentasAction,
+  consultarTendenciasAction,
+} from "@/features/dashboard/actions";
+import { ESTADOS_TENDENCIAS } from "@/features/dashboard/tendencias-logica";
+import {
+  ETIQUETA_ESTADO,
+  TONO_ESTADO,
+} from "@/features/pedidos/estados";
 import {
   ETIQUETA_METODO,
   type MetodoPago,
@@ -71,7 +80,11 @@ async function ContenidoReportes({
       ? parametros.hasta
       : "";
 
-  const resultado = await consultarVentasAction(desde, hasta);
+  // Ambas consultas usan las mismas fechas y resultados independientes.
+  const [resultado, resultadoTendencias] = await Promise.all([
+    consultarVentasAction(desde, hasta),
+    consultarTendenciasAction(desde, hasta),
+  ]);
 
   const claseCampo =
     "min-h-11 w-full rounded-xl border border-borde " +
@@ -228,8 +241,161 @@ async function ContenidoReportes({
         </div>
       </Tarjeta>
 
-      {/* US-019: los productos más vendidos y pedidos por estado
-          se incorporarán aquí en su historia correspondiente. */}
+      <section
+        aria-labelledby="tendencias-titulo"
+        className="space-y-4"
+      >
+        <h2
+          id="tendencias-titulo"
+          className="text-xl font-bold"
+        >
+          Tendencias de pedidos
+        </h2>
+
+        {!resultadoTendencias.ok ? (
+          <MensajeEstado
+            tipo="error"
+            titulo="No pudimos mostrar las tendencias"
+            descripcion={resultadoTendencias.mensaje}
+          />
+        ) : (
+          <>
+            {resultadoTendencias.tendencias.total === 0 && (
+              <MensajeEstado
+                tipo="vacio"
+                titulo="No hay pedidos en este rango"
+                descripcion="Selecciona otro periodo para consultar las tendencias."
+              />
+            )}
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <section aria-labelledby="productos-mas-vendidos">
+                <Tarjeta className="h-full">
+                  <h2
+                    id="productos-mas-vendidos"
+                    className="text-lg font-bold"
+                  >
+                    Productos más vendidos
+                  </h2>
+
+                  <p className="mt-1 text-sm text-texto-suave">
+                    Los cinco productos con más unidades de pedidos
+                    no cancelados.
+                  </p>
+
+                  {resultadoTendencias.tendencias.productos.length === 0 ? (
+                    <div className="mt-4">
+                      <MensajeEstado
+                        tipo="vacio"
+                        titulo="No hay productos para mostrar"
+                        descripcion="El ranking excluye los pedidos cancelados."
+                      />
+                    </div>
+                  ) : (
+                    <ol className="mt-4 list-decimal space-y-3 pl-6">
+                      {resultadoTendencias.tendencias.productos.map(
+                        (producto) => (
+                          <li
+                            key={producto.productId}
+                            className="pl-1 marker:font-semibold marker:text-marca"
+                          >
+                            <div className="flex items-start justify-between gap-4 border-b border-borde pb-3">
+                              <span className="min-w-0 break-words font-medium">
+                                {producto.nombre}
+                              </span>
+
+                              <span className="shrink-0 text-sm font-semibold">
+                                {producto.unidades}{" "}
+                                {producto.unidades === 1
+                                  ? "unidad"
+                                  : "unidades"}
+                              </span>
+                            </div>
+                          </li>
+                        ),
+                      )}
+                    </ol>
+                  )}
+                </Tarjeta>
+              </section>
+
+              <section aria-labelledby="pedidos-por-estado">
+                <Tarjeta className="h-full">
+                  <h2
+                    id="pedidos-por-estado"
+                    className="text-lg font-bold"
+                  >
+                    Pedidos por estado
+                  </h2>
+
+                  <p className="mt-2 font-semibold">
+                    Total de pedidos:{" "}
+                    {resultadoTendencias.tendencias.total}
+                  </p>
+
+                  <dl className="mt-4 divide-y divide-borde">
+                    {ESTADOS_TENDENCIAS.map((estado) => (
+                      <div
+                        key={estado}
+                        className="flex items-center justify-between gap-4 py-3"
+                      >
+                        <dt>
+                          <Insignia tono={TONO_ESTADO[estado]}>
+                            {ETIQUETA_ESTADO[estado]}
+                          </Insignia>
+                        </dt>
+
+                        <dd className="font-semibold">
+                          {resultadoTendencias.tendencias.porEstado[estado]}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </Tarjeta>
+              </section>
+            </div>
+          </>
+        )}
+
+        <Tarjeta>
+          <h2 className="text-lg font-bold">
+            Cómo se calculan las tendencias
+          </h2>
+
+          <div className="mt-3 space-y-3 text-sm text-texto-suave">
+            <p>
+              El periodo usa la fecha de creación del pedido en hora
+              de Lima. Se incluyen los pedidos creados desde las 00:00
+              de Desde hasta antes de las 00:00 del día siguiente a Hasta.
+            </p>
+
+            <p>
+              Productos más vendidos: suma de las cantidades actuales
+              registradas en los pedidos no cancelados, agrupadas por
+              identificador del producto. No depende de que el pedido
+              esté pagado.
+            </p>
+
+            <p>
+              Se muestran hasta cinco productos, ordenados por unidades
+              de mayor a menor. Los empates se resuelven alfabéticamente.
+              El nombre corresponde al pedido no cancelado más reciente.
+            </p>
+
+            <p>
+              Pedidos por estado: cada pedido cuenta una sola vez según
+              su estado actual. El total incluye cancelados y los seis
+              estados se muestran incluso cuando tienen cero pedidos.
+            </p>
+
+            <p>
+              Las ventas usan la fecha de confirmación del pago; las
+              tendencias usan la fecha de creación del pedido. Por eso
+              sus cantidades no tienen que coincidir.
+            </p>
+          </div>
+        </Tarjeta>
+      </section>
     </div>
   );
 }
