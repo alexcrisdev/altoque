@@ -10,7 +10,7 @@ export function normalizarFiltro(filtro: unknown): FiltroCocina {
 }
 
 export function ordenarPorLlegada(pedidos: PedidoCocina[]): PedidoCocina[] {
-  return [...pedidos].sort((a, b) => Date.parse(a.creadoEn) - Date.parse(b.creadoEn));
+  return [...pedidos].sort((a, b) => Date.parse(a.creadoEn) - Date.parse(b.creadoEn) || a.numero - b.numero);
 }
 
 export function agruparPorEstado(pedidos: PedidoCocina[]) {
@@ -36,17 +36,20 @@ export function minutosDesde(fechaIso: string, ahora: string | number | Date): n
 }
 
 export function siguienteEstadoCocina(estado: EstadoPedido): EstadoPedido | null {
-  const siguiente = estado === "PENDING" ? "ACCEPTED"
-    : estado === "ACCEPTED" ? "IN_PROGRESS"
-    : estado === "IN_PROGRESS" ? "READY" : null;
+  const siguiente = estado === "IN_PROGRESS" ? "READY" : estado === "READY" ? "IN_PROGRESS" : null;
   return siguiente && puedeCambiarEstado(estado, siguiente, ["KITCHEN"]) ? siguiente : null;
+}
+
+export function puedeDeshacerListo(listoEn: string | null | undefined, ahora: string | number): boolean {
+  if (!listoEn) return false;
+  const transcurrido = new Date(ahora).getTime() - Date.parse(listoEn);
+  return Number.isFinite(transcurrido) && transcurrido >= 0 && transcurrido <= 5 * 60_000;
 }
 
 export function textoBotonCocina(estado: EstadoPedido): string | null {
   if (!siguienteEstadoCocina(estado)) return null;
   switch (estado) {
-    case "PENDING": return "Aceptar pedido";
-    case "ACCEPTED": return "Empezar preparación";
+    case "READY": return "Deshacer";
     case "IN_PROGRESS": return "Marcar listo";
     default: return null;
   }

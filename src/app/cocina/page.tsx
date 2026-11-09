@@ -8,8 +8,8 @@ import { AvisosCocina } from "@/features/cocina/avisos-cocina";
 import { BotonAvanzarEstado } from "@/features/cocina/boton-avanzar-estado";
 import { ReportarIncidencia, MarcarIncidenciaResuelta } from "@/features/cocina/reportar-incidencia";
 import { ETIQUETA_TIPO_INCIDENCIA } from "@/features/pedidos/incidencias";
-import { agruparPorEstado, filtrarPorEstado, minutosDesde, normalizarFiltro, tieneIncidenciaAbierta } from "@/features/cocina/cocina-logica";
-import { ESTADOS_ACTIVOS, ETIQUETA_ESTADO, TONO_ESTADO } from "@/features/pedidos/estados";
+import { agruparPorEstado, filtrarPorEstado, minutosDesde, normalizarFiltro, tieneIncidenciaAbierta, puedeDeshacerListo } from "@/features/cocina/cocina-logica";
+import { ETIQUETA_ESTADO, TONO_ESTADO } from "@/features/pedidos/estados";
 import { describirDestino } from "@/features/pedidos/modalidad";
 
 const horaLima = new Intl.DateTimeFormat("es-PE", {
@@ -33,9 +33,9 @@ async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
       {!resultado.ok ? <MensajeEstado tipo="error" titulo="No pudimos cargar los pedidos"
         descripcion="Revisa tu conexión. Volveremos a intentarlo automáticamente." /> : <>
         <nav aria-label="Filtrar pedidos por estado" className="mb-6 flex flex-wrap gap-2">
-          {["TODOS", ...ESTADOS_ACTIVOS].map((estado) => {
-            const etiqueta = estado === "TODOS" ? "Todos" : estado === "PENDING" ? "Nuevos"
-              : estado === "ACCEPTED" ? "Aceptados" : estado === "READY" ? "Listos" : ETIQUETA_ESTADO.IN_PROGRESS;
+          {["TODOS", "IN_PROGRESS", "READY"].map((estado) => {
+            const etiqueta = estado === "TODOS" ? "Todos"
+              : estado === "READY" ? "Listos" : ETIQUETA_ESTADO.IN_PROGRESS;
             const cantidad = estado === "TODOS" ? pedidos.length : grupos[estado as keyof typeof grupos].length;
             return <a key={estado} href={estado === "TODOS" ? "/cocina" : `/cocina?estado=${estado}`}
               className={clasesBoton(filtro === estado ? "primario" : "secundario")} aria-current={filtro === estado ? "page" : undefined}>
@@ -79,8 +79,9 @@ async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
                     <MarcarIncidenciaResuelta pedidoId={pedido.id} incidenciaId={incidencia.id} descripcion={incidencia.descripcion} />
                   </div>)}
                 </section>}
-                {pedido.estado === "READY" ? <p className="mt-4 text-sm font-semibold text-texto-suave">Esperando al mesero</p>
-                  : <BotonAvanzarEstado key={`${pedido.id}:${pedido.estado}`} pedidoId={pedido.id} estado={pedido.estado} numero={pedido.numero} />}
+                {pedido.estado === "READY" && <p className="mt-4 text-sm font-semibold text-texto-suave">Esperando al mesero</p>}
+                {(pedido.estado !== "READY" || puedeDeshacerListo(pedido.listoEn, ahora!)) &&
+                  <BotonAvanzarEstado key={`${pedido.id}:${pedido.estado}`} pedidoId={pedido.id} estado={pedido.estado} numero={pedido.numero} />}
                 <ReportarIncidencia pedidoId={pedido.id} estado={pedido.estado} numero={pedido.numero} />
               </Tarjeta>
             </li>)}
