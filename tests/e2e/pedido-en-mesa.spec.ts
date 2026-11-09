@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { test, prepararCarrito, confirmarYVerificar, pedidosPropios, MESA_NUMERO, TOKEN_MESA } from "./ayuda";
+import { aceptarDialogoDeAccion } from "./dialogos";
 
 test(`Mesa ${MESA_NUMERO} → abrir sesión → pedido en cocina y mesero → limpiar`, async ({ page, pedido }) => {
   await pedido.abrirMesa();
@@ -21,7 +22,28 @@ test(`Mesa ${MESA_NUMERO} → abrir sesión → pedido en cocina y mesero → li
   await expect.poll(async () => (await pedidosPropios(pedido.admin, pedido.marca))[0].status).toBe("IN_PROGRESS");
   const mesero = await pedido.staff("mesero");
   await mesero.goto(`/mesero/pedidos/${propio.id}`);
-  mesero.once("dialog", (dialogo) => dialogo.accept("US-069: cancelación E2E por mesero"));
-  await mesero.getByRole("button", { name: "Cancelar pedido", exact: true }).click();
-  await expect.poll(async () => (await pedidosPropios(pedido.admin, pedido.marca))[0].status).toBe("CANCELLED");
+
+  const botonCancelar = mesero.getByRole("button", {
+    name: "Cancelar pedido",
+    exact: true,
+  });
+
+  // Comprobar primero que el botón esté visible.
+  await expect(botonCancelar).toBeVisible({ timeout: 10000 });
+
+  // Confirmar la cancelación con su motivo y retirar el listener si falla el clic.
+  await aceptarDialogoDeAccion(
+    mesero,
+    () => botonCancelar.click(),
+    "prompt",
+    "Escribe el motivo de cancelación:",
+    "US-069: cancelación E2E por mesero",
+  );
+  // Verificar que el pedido quedó cancelado.
+  await expect.poll(
+    async () => {
+      const [actual] = await pedidosPropios(pedido.admin, pedido.marca);
+      return actual?.status;
+    }
+  ).toBe("CANCELLED");
 });
