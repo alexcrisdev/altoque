@@ -33,7 +33,7 @@ Cómo repetir la prueba
             (buscar "disable_signup":true)
 - Registro: curl -s -X POST "$SUPABASE_URL/auth/v1/signup" -H "apikey: $ANON_KEY"
             -H "Content-Type: application/json"
-            -d '{"email":"intruso@example.com","password":"Prueba-12345"}'
+            -d '{"email":"intruso@example.com","password":"<cualquiera>"}'
             (debe responder 422 signup_disabled)
 - Script:   node --env-file=.env.local scripts/usuarios-demo.mjs
 
