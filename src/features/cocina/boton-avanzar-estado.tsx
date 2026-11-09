@@ -65,7 +65,7 @@ export function BotonAvanzarEstado({ pedidoId, estado, numero }: {
 
   return <div className="mt-4">
     <Boton type="button" tamano="lg" className="w-full" disabled={guardando}
-      aria-label={texto === "Aceptar pedido" ? `${texto} N.º ${numero}` : `${texto} el pedido N.º ${numero}`} onClick={guardar}>
+      aria-label={`${texto} el pedido N.º ${numero}`} onClick={guardar}>
       {guardando ? "Guardando…" : texto}
     </Boton>
     {error && <p role="alert" className="mt-2 text-sm text-peligro-texto">{error}</p>}

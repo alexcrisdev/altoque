@@ -7,7 +7,7 @@ export function detectarNuevos<T extends { id: string; estado: EstadoPedido }>(
   if (idsAnteriores === null) return [];
   const encontrados = new Set<string>();
   return pedidos.filter((pedido) => {
-    if (pedido.estado !== "PENDING" || idsAnteriores.has(pedido.id) || encontrados.has(pedido.id)) return false;
+    if (!["PENDING", "IN_PROGRESS"].includes(pedido.estado) || idsAnteriores.has(pedido.id) || encontrados.has(pedido.id)) return false;
     encontrados.add(pedido.id);
     return true;
   });

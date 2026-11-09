@@ -17,17 +17,17 @@ import { requerirRol } from "../../src/features/auth/sesion";
 import { solicitarAyudaAction, atenderSolicitudAction } from "../../src/features/mesero/ayuda-actions";
 import { listarSolicitudesAbiertas } from "../../src/features/mesero/ayuda";
 
-const pedido = (id: string, estado: EstadoPedido = "PENDING") => ({ id, estado, numero: 31 });
+const pedido = (id: string, estado: EstadoPedido = "IN_PROGRESS") => ({ id, estado, numero: 31 });
 
 describe("detectarNuevos", () => {
   it("no avisa con los pedidos anteriores de la primera carga", () => {
     expect(detectarNuevos(null, [pedido("viejo")])).toEqual([]);
   });
-  it("devuelve únicamente los PENDING que no se habían visto", () => {
+  it("detecta pedidos en preparación y conserva compatibilidad con avisos PENDING", () => {
     const nuevo = pedido("nuevo");
     expect(detectarNuevos(new Set(["viejo"]), [pedido("viejo"), nuevo, pedido("listo", "READY"),
       pedido("aceptado", "ACCEPTED"), pedido("preparacion", "IN_PROGRESS"), pedido("entregado", "DELIVERED"), pedido("cancelado", "CANCELLED")]))
-      .toEqual([nuevo]);
+      .toEqual([nuevo, pedido("preparacion", "IN_PROGRESS")]);
   });
   it("no repite un pedido visto en un refresco posterior", () => {
     const vistos = new Set<string>();
