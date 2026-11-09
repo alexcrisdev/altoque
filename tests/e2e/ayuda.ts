@@ -234,11 +234,17 @@ export async function confirmarYVerificar(page: Page, pedido: EntornoPedido, dob
   await expect.poll(async () => (await pedidosPropios(pedido.admin, pedido.marca)).length).toBe(1);
   const registros = await pedidosPropios(pedido.admin, pedido.marca);
   expect(Number(registros[0].order_number)).toBe(numero);
+  expect(registros[0].status).toBe("IN_PROGRESS");
+  const inicial = await pedido.admin.from("order_status_history").select("to_status")
+    .eq("restaurant_id", RESTAURANTE).eq("order_id", registros[0].id).is("from_status", null).single();
+  expect(inicial.error).toBeNull();
+  expect(inicial.data?.to_status).toBe("IN_PROGRESS");
   expect(registros[0].order_items).toHaveLength(1);
   expect(registros[0].order_items[0].quantity).toBe(1);
   const cocina = await pedido.staff("cocina");
   await expect(cocina.getByRole("heading", { name: `N.º ${numero}`, exact: true })).toBeVisible();
   await expect(cocina.getByText(`Observación: ${pedido.marca}`, { exact: true })).toBeVisible();
+  await expect(cocina.getByRole("button", { name: `Marcar listo el pedido N.º ${numero}`, exact: true })).toBeVisible();
   const mesero = await pedido.staff("mesero");
   await mesero.goto("/mesero");
   await expect(mesero.getByRole("link", { name: `Ver pedido N.º ${numero}`, exact: true }).first()).toBeVisible();
