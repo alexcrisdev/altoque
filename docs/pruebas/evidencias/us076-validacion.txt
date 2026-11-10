@@ -1,0 +1,86 @@
+US-076 — Pagar con tarjeta online (Stripe, modo prueba)
+Responsable: Alexander. Verificado el 10/11/2026 (America/Lima).
+Stripe: entorno de prueba (sandbox) "Entorno de prueba de ALTOQUE", API 2026-10-28.endive,
+librería stripe 23.1.0. Proyecto Supabase altoque-dev. No se incluyen claves ni tokens.
+
+Cómo funciona
+1. El cliente pulsa «Pagar con tarjeta» en su celular (carta de la mesa o página de su
+   pedido para llevar).
+2. El servidor saca la cuenta del token del QR, pide el saldo a la base
+   (saldo_cuenta_online) y crea la sesión de Stripe Checkout en soles.
+3. El cliente paga en la página de Stripe. AlToque nunca ve la tarjeta.
+4. Al volver ve «Procesando pago…» hasta que llega el webhook.
+5. Stripe llama a /api/stripe/webhook con un evento firmado. Si la firma es válida, se
+   registra el pago (registrar_pago_stripe) como CARD, CONFIRMED, sin cajero.
+6. Caja lo ve como «Stripe (online)» con su referencia pi_...
+
+Criterios de aceptación y resultado
+1. Botón «Pagar con tarjeta» en la vista del cliente
+   -> src/features/pago-cierre/cuenta-cliente.tsx en /m/[token] (mesa con sesión abierta)
+      y /m/[token]/pedido/[clave] (para llevar). Muestra el saldo «Tu cuenta: S/ ...».
+   Captura: captura-us076-boton-pagar.png                                   [PENDIENTE]
+2. El monto lo calcula la base, nunca el navegador
+   -> iniciarPagoTarjetaAction solo recibe token y clave; el monto sale de
+      saldo_cuenta_online. Prueba unitaria: «no acepta un monto del navegador».
+   -> Prueba con rollback en altoque-dev (pedido para llevar real):
+      saldo_cuenta_online = saldo de caja (S/ 25.00).
+3. Modo prueba y tarjetas
+   -> Aprobada: 4242 4242 4242 4242 (fecha futura, CVC 3 dígitos cualquiera)
+   -> Rechazada: 4000 0000 0000 0002 (card_declined)
+   -> Fondos insuficientes: 4000 0000 0000 9995 (insufficient_funds)
+   -> Requiere 3D Secure: 4000 0025 0000 3155
+   -> Mínimo: Stripe rechaza menos de ~US$ 0.50; probado en el sandbox:
+      S/ 1.00 rechazado, S/ 2.00 aceptado. AlToque exige S/ 2.00 o más.
+   Captura: captura-us076-checkout-stripe.png                               [PENDIENTE]
+   Captura: captura-us076-tarjeta-rechazada.png                             [PENDIENTE]
+4. Al volver de Stripe se muestra «Procesando pago…» hasta la confirmación
+   -> estado-pago-online.tsx consulta cada 3 s si el webhook ya registró el pago.
+   Captura: captura-us076-pago-confirmado.png                               [PENDIENTE]
+5. /api/stripe/webhook verifica la firma; sin firma válida responde 400
+   -> POST sin cabecera stripe-signature           -> 400 {"error":"Falta la firma"}
+   -> POST con firma inventada                     -> 400 {"error":"Firma inválida"}
+   -> GET                                          -> 405
+   -> Evento real firmado por Stripe (stripe trigger checkout.session.completed)
+      -> 200. Se descartó sin tocar la base porque el evento de prueba es en USD
+      (log: "[stripe] evento evt_... rechazado: MONEDA").
+   -> Pruebas unitarias: firma falsa, firmado con otro secreto y monto alterado
+      después de firmar -> 400 y no se llama a la base.
+6. Migración 20261110180000_pagos_stripe_online.sql
+   -> stripe_session_id único; created_by vacío solo para pagos de Stripe
+      (CARD + CONFIRMED). registrar_pago_stripe y saldo_cuenta_online solo para
+      service_role (anon y authenticated: sin permiso).
+   -> Probada con rollback en altoque-dev: los 219 pagos existentes cumplen las
+      reglas nuevas.
+7. Pago CONFIRMED como CARD con referencia de Stripe; reenvío sin duplicar
+   -> Prueba con rollback: 1.er evento registra "CARD CONFIRMED created_by=null
+      ref=pi_..."; el mismo evento otra vez devuelve el mismo pago (duplicado=true);
+      saldo queda en 0.00; un pago extra da AMOUNT_EXCEEDS_BALANCE.
+   -> Pago real con 4242: fila en payments con stripe_session_id cs_test_...    [PENDIENTE]
+8. Caja ve el pago con la etiqueta «Stripe (online)»
+   -> detalle-cuenta.tsx: «Stripe (online) · hora · Confirmado» y «Ref. Stripe pi_...».
+   Captura: captura-us076-caja-stripe.png                                   [PENDIENTE]
+9. Claves de Stripe solo en el servidor
+   -> STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET sin prefijo NEXT_PUBLIC_, solo en
+      .env.local (ignorado por git) y en Vercel. stripe.ts importa "server-only".
+10. Pruebas unitarias y prueba con Stripe CLI
+   -> tests/unit/stripe-logica.test.ts (22), pago-online-actions.test.ts (7),
+      webhook-stripe.test.ts (13). Total del proyecto: 693 pruebas OK.
+   -> npm run lint y npm run build sin errores.
+
+Cómo repetir la prueba en local
+1. .env.local con STRIPE_SECRET_KEY=sk_test_... y STRIPE_WEBHOOK_SECRET=whsec_...
+   (este último sale de: stripe listen --print-secret).
+2. Terminal 1: npm run dev
+3. Terminal 2: stripe listen --forward-to localhost:3000/api/stripe/webhook
+4. Abrir una mesa desde /mesero, pedir algo desde el QR de la mesa y pulsar
+   «Pagar con tarjeta». Pagar con 4242 4242 4242 4242.
+5. Revisar /caja: el pago aparece como «Stripe (online)».
+6. Webhook sin firma:
+   curl -X POST http://localhost:3000/api/stripe/webhook -d '{}'   (debe dar 400)
+
+Riesgo conocido
+Si la cuenta se paga en caja mientras el cliente está en la página de Stripe, Stripe sí
+cobra pero AlToque no registra un pago de más. El log del servidor muestra
+"REQUIERE REEMBOLSO" con el pi_..., y el reembolso se hace desde el dashboard de Stripe.
+
+Resultado: [PENDIENTE: completar con el pago real]
