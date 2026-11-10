@@ -3,7 +3,7 @@
 //
 // Uso:
 //   node scripts/smoke.mjs https://altoque-app-usil.vercel.app
-//   SMOKE_QR_TOKEN=demo-mesa-2 node scripts/smoke.mjs <url>   (prueba también la carta)
+//   SMOKE_QR_TOKEN=<token-de-un-QR-vigente> node scripts/smoke.mjs <url>   (prueba también la carta)
 
 const base = (process.argv[2] ?? process.env.SMOKE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const tokenQr = process.env.SMOKE_QR_TOKEN;

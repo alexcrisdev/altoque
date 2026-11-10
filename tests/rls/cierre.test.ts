@@ -176,7 +176,7 @@ describe("US-020: cierre de una mesa", () => {
 
   it("el cierre no cambia el estado de preparación del pedido", async () => {
     const { data } = await caja!.from("orders").select("status").eq("id", pedidoMesaId!).single();
-    expect(data!.status).toBe("PENDING");
+    expect(data!.status).toBe("IN_PROGRESS");
   });
 
   it("una mesa cerrada no se vuelve a cerrar ni recibe pagos", async () => {

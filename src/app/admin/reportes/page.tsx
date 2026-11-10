@@ -271,12 +271,12 @@ async function ContenidoReportes({
             <div className="grid gap-4 lg:grid-cols-2">
               <section aria-labelledby="productos-mas-vendidos">
                 <Tarjeta className="h-full">
-                  <h2
+                  <h3
                     id="productos-mas-vendidos"
                     className="text-lg font-bold"
                   >
                     Productos más vendidos
-                  </h2>
+                  </h3>
 
                   <p className="mt-1 text-sm text-texto-suave">
                     Los cinco productos con más unidades de pedidos
@@ -321,12 +321,12 @@ async function ContenidoReportes({
 
               <section aria-labelledby="pedidos-por-estado">
                 <Tarjeta className="h-full">
-                  <h2
+                  <h3
                     id="pedidos-por-estado"
                     className="text-lg font-bold"
                   >
                     Pedidos por estado
-                  </h2>
+                  </h3>
 
                   <p className="mt-2 font-semibold">
                     Total de pedidos:{" "}
@@ -358,9 +358,9 @@ async function ContenidoReportes({
         )}
 
         <Tarjeta>
-          <h2 className="text-lg font-bold">
+          <h3 className="text-lg font-bold">
             Cómo se calculan las tendencias
-          </h2>
+          </h3>
 
           <div className="mt-3 space-y-3 text-sm text-texto-suave">
             <p>
