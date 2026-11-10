@@ -95,6 +95,23 @@ export function interpretarSesionPagada(
   return { ok: true, sesionStripe: sesion.id, intentoPago: intento, ...datos, montoCentimos: monto };
 }
 
+// A dónde vuelve el cliente desde Stripe: la carta de la mesa o la página de su
+// pedido para llevar. {CHECKOUT_SESSION_ID} lo reemplaza Stripe; no se codifica.
+export function urlsRetornoCheckout(
+  base: string,
+  token: string,
+  clave: string | null,
+): { exito: string; cancelado: string } {
+  const raiz = base.replace(/\/+$/, "");
+  const pagina = clave
+    ? `${raiz}/m/${encodeURIComponent(token)}/pedido/${encodeURIComponent(clave)}`
+    : `${raiz}/m/${encodeURIComponent(token)}`;
+  return {
+    exito: `${pagina}?pago=procesando&sesion={CHECKOUT_SESSION_ID}`,
+    cancelado: `${pagina}?pago=cancelado`,
+  };
+}
+
 // Lo que se muestra al cliente al volver de Stripe (?pago=...).
 export type EstadoRetornoPago = "PROCESANDO" | "CANCELADO" | null;
 

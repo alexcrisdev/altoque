@@ -26,6 +26,38 @@ alter table public.payments
     or (stripe_session_id is not null and reference ~ '^pi_[A-Za-z0-9]{8,64}$')
   );
 
+-- Saldo de una cuenta abierta para crear la sesión de Checkout. Solo la usa el
+-- servidor (service role): el monto nunca sale del navegador.
+-- Devuelve null si la cuenta no existe, ya se cerró o el pedido se canceló.
+create or replace function public.saldo_cuenta_online(p_sesion_id uuid, p_pedido_id uuid)
+returns numeric
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if (p_sesion_id is null) = (p_pedido_id is null) then return null; end if;
+  if p_sesion_id is not null then
+    if not exists (select 1 from public.table_sessions where id = p_sesion_id and closed_at is null) then
+      return null;
+    end if;
+    return private.saldo_pendiente_sesion(p_sesion_id);
+  end if;
+  if not exists (
+    select 1 from public.orders o
+    where o.id = p_pedido_id and o.modality = 'TAKEAWAY' and o.status <> 'CANCELLED'
+      and not exists (select 1 from public.account_closures c where c.order_id = o.id)
+  ) then
+    return null;
+  end if;
+  return private.saldo_pendiente_pedido(p_pedido_id);
+end;
+$$;
+
+revoke all on function public.saldo_cuenta_online(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.saldo_cuenta_online(uuid, uuid) to service_role;
+
 -- Registra el pago confirmado por Stripe. Solo la llama el webhook del servidor
 -- (service role), después de verificar la firma del evento.
 -- Si Stripe reenvía el mismo evento, devuelve el pago ya registrado (no duplica).

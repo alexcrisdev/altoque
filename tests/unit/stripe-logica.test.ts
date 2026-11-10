@@ -8,6 +8,7 @@ import {
   metadatosCheckout,
   MINIMO_STRIPE_CENTIMOS,
   nombreLineaCheckout,
+  urlsRetornoCheckout,
   validarMontoCheckout,
   type SesionCheckoutRecibida,
 } from "../../src/features/pago-cierre/stripe-logica";
@@ -108,6 +109,20 @@ describe("retorno desde Stripe", () => {
     expect(esSesionStripe("cs_live_ABC123")).toBe(true);
     expect(esSesionStripe("cs_test_")).toBe(false);
     expect(esSesionStripe("cs_test_abc;drop")).toBe(false);
+  });
+});
+
+describe("urlsRetornoCheckout", () => {
+  it("vuelve a la carta de la mesa y deja el marcador de Stripe sin codificar", () => {
+    expect(urlsRetornoCheckout("https://altoque.app/", "tok_ABC", null)).toEqual({
+      exito: "https://altoque.app/m/tok_ABC?pago=procesando&sesion={CHECKOUT_SESSION_ID}",
+      cancelado: "https://altoque.app/m/tok_ABC?pago=cancelado",
+    });
+  });
+
+  it("vuelve a la página del pedido para llevar", () => {
+    expect(urlsRetornoCheckout("http://localhost:3000", "tok", CUENTA).exito)
+      .toBe(`http://localhost:3000/m/tok/pedido/${CUENTA}?pago=procesando&sesion={CHECKOUT_SESSION_ID}`);
   });
 });
 
