@@ -3,9 +3,10 @@
 // US-076: acciones del pago con tarjeta online. Las usa el cliente desde su
 // celular, sin iniciar sesión: todo se valida con el token del QR.
 
-import { resolverCuentaOnline } from "./pago-online";
+import { pagoStripeRegistrado, resolverCuentaOnline } from "./pago-online";
 import { crearClienteStripe, stripeConfigurado } from "./stripe";
 import {
+  esSesionStripe,
   MONEDA_STRIPE,
   mensajeErrorStripe,
   metadatosCheckout,
@@ -69,5 +70,26 @@ export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown): 
     return { ok: true, url: sesion.url };
   } catch {
     return { ok: false, mensaje: mensajeErrorStripe("STRIPE_ERROR") };
+  }
+}
+
+export type EstadoPagoOnline = "CONFIRMADO" | "PENDIENTE" | "ERROR";
+
+// «Procesando pago…»: el pago solo cuenta cuando el webhook de Stripe lo registró.
+// Volver de Stripe no prueba nada (cualquiera puede abrir esa URL).
+export async function consultarPagoOnlineAction(
+  token: unknown,
+  clave: unknown,
+  sesionStripe: unknown,
+): Promise<EstadoPagoOnline> {
+  if (typeof token !== "string" || (clave !== null && typeof clave !== "string") || !esSesionStripe(sesionStripe)) {
+    return "ERROR";
+  }
+  try {
+    const cuenta = await resolverCuentaOnline(token, clave);
+    if (!cuenta) return "ERROR";
+    return (await pagoStripeRegistrado(cuenta.cuenta, sesionStripe)) ? "CONFIRMADO" : "PENDIENTE";
+  } catch {
+    return "ERROR";
   }
 }
