@@ -22,4 +22,4 @@ Este documento define qué necesita saber el dueño del restaurante y cómo medi
 
 ## Pendientes
 
-Generar los seis meses de datos sintéticos, documentar cómo regenerarlos y revisar las preguntas y los datos con el equipo antes de iniciar US-084 y US-087.
+Revisar las preguntas y los datos con el equipo antes de US-084 y US-087.
