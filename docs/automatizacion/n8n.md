@@ -7,8 +7,9 @@ ficticio y un correo autorizado; no recibe eventos reales de AlToque.
 
 Configuración preparada, **arranque local, correo local y conservación de registros
 tras reinicio comprobados**. Túnel HTTPS y bloqueo público del editor comprobados.
-Envío autenticado desde Internet confirmado por Erick. Quedan pendientes las
-comprobaciones negativas en ejecución y la verificación del login local.
+Envío autenticado desde Internet y login local comprobados. El webhook rechaza
+solicitudes sin cabecera o con clave incorrecta con HTTP 403. Una solicitud
+autenticada con campos requeridos ausentes devuelve HTTP 400 sin ejecutar Gmail.
 
 Se necesita Docker Desktop con contenedores Linux y motor WSL 2 funcionando,
 PowerShell, un navegador y una cuenta Gmail de prueba autorizada. En Docker Desktop,
@@ -17,7 +18,7 @@ seguir la [guía oficial de Windows](https://docs.docker.com/desktop/setup/insta
 La instalación/activación de componentes de Windows puede requerir reinicio.
 
 Las imágenes están fijadas: n8n `2.46.7`, nginx `1.30.6-alpine` y cloudflared
-`2026.10.7`. Su descarga y compatibilidad real se comprueban al autorizar el arranque.
+`2026.10.7`. Las tres imágenes se descargaron y sus servicios se ejecutaron correctamente en Docker Desktop.
 No se instala cloudflared ni ninguna librería Node en Windows.
 
 ## Archivos y secretos
@@ -46,12 +47,12 @@ if (-not (Test-Path .env)) {
 }
 ```
 
-En esta computadora ya se generó la clave local sin mostrarla. No rotarla al reiniciar.
+Generar la clave local sin mostrarla y conservarla entre reinicios.
 No usar `docker compose config` sin `--quiet`: podría imprimirla. Nunca exportar
 credenciales descifradas ni subir el volumen. Antes de un commit, revisar que solo
 se preparen los archivos públicos explícitos, nunca `.env`.
 
-## Arranque local (requiere autorización)
+## Arranque local
 
 Los siguientes comandos se ejecutan dentro de `infra/n8n`:
 
@@ -71,17 +72,16 @@ no se usan las antiguas variables `N8N_BASIC_AUTH_*`. No desactivar las cookies
 seguras globalmente: si un navegador rechaza el acceso local, probar localhost en
 Chrome/Edge y diagnosticar antes de cambiar seguridad.
 
-## Gmail OAuth y autorización de la prueba
+## Gmail OAuth
 
-Erick eligió Gmail con OAuth. **Elegir el servicio no autoriza todavía un envío.**
-Antes de configurar servicios externos, confirmar con Erick la cuenta que usará y
-el único buzón destinatario autorizado. No pedir secretos por el chat.
+Usar una cuenta Gmail de prueba propia y un único buzón destinatario de prueba.
+Configurar las credenciales en el editor local; no compartir secretos por chat.
 
 1. En el editor local, importar el JSON mediante Import from File. Mantenerlo inactivo.
 2. En el nodo Webhook, crear una credencial **Header Auth** con nombre de cabecera
    `X-AlToque-Prueba` y un valor aleatorio privado (diferente de la clave de cifrado).
    Seleccionarla; el flujo no debe publicarse sin autenticación.
-3. En Google Cloud Console, con autorización del titular, crear o reutilizar un
+3. En Google Cloud Console, desde la cuenta del titular, crear o reutilizar un
    proyecto, habilitar Gmail API y configurar la pantalla de consentimiento OAuth.
    Si la aplicación está en modo Testing, añadir la cuenta de prueba a Test users.
 4. Crear un cliente OAuth de tipo Web application. Copiar **exactamente** la OAuth
@@ -91,14 +91,14 @@ el único buzón destinatario autorizado. No pedir secretos por el chat.
    Sign in with Google en el navegador. Revisar los permisos solicitados.
 6. Seleccionar esa credencial en Enviar correo de prueba. Introducir el único correo
    autorizado en Destinatario autorizado. El JSON de entrada nunca elige destinatarios.
-7. Guardar. Solicitar autorización explícita para enviar la prueba y luego publicar
-   el workflow para habilitar su Production URL.
+7. Guardar y publicar el workflow para habilitar su Production URL. Cada solicitud
+   válida enviará un correo al buzón configurado.
 
 Las credenciales viven cifradas en el volumen. Los tokens de una app Google en
 Testing pueden caducar; revisar las restricciones de Google si deja de autenticar.
 No afirmar que funcionó hasta comprobar la ejecución y la recepción.
 
-## Túnel rápido y editor privado (requiere autorización)
+## Túnel rápido y editor privado
 
 Un Quick Tunnel no necesita cuenta ni dominio: entrega una URL temporal
 `trycloudflare.com`. Cambia al recrearlo, carece de garantía de disponibilidad y no
@@ -127,13 +127,13 @@ El proxy limita tamaño y frecuencia; no sustituye Header Auth. Las solicitudes
 comparten un límite conservador, suficiente para una demostración manual.
 
 Para una URL estable, usar un túnel administrado con cuenta y dominio configurado
-en Cloudflare. Su creación, DNS y token necesitan autorización adicional. Apuntar
+en Cloudflare. Configurar el dominio, el túnel y su token desde esa cuenta. Apuntar
 también al filtro `entrada-webhook:8080`, conservar el rechazo de otras rutas y
 guardar el token solo en configuración privada. No está implementado en este Compose.
 
 ## Prueba desde Internet
 
-Con autorización para el envío, ejecutar en PowerShell. El encabezado se introduce
+Para enviar un correo de prueba, ejecutar en PowerShell. El encabezado se introduce
 sin mostrarlo ni guardarlo en historial como texto literal. No pegar valores al chat.
 
 ```powershell
@@ -215,85 +215,44 @@ Mantener `active: false`. No exportar credenciales.
 
 ## Validación y futura integración
 
-Pendiente comprobar en ejecución: login obligatorio del editor local, casos
-inválidos y rechazo sin autenticación del webhook publicado.
-No reenviar correos sin autorización adicional.
-Registrar resultados reales; no marcar criterios por anticipado.
+Los resultados y capturas de US-071 se conservan en
+[us071-validacion.txt](../pruebas/evidencias/us071-validacion.txt).
+Las capturas de informes HTTP identifican las respuestas reales y omiten la URL
+pública y las credenciales. La captura del editor usa un contexto Chromium privado,
+sin cookies ni sesión previa.
+
+Se comprobaron el arranque de n8n 2.46.7, su estado healthy, HTTP 200 en el endpoint
+local de salud y la conservación del workflow y de las credenciales tras reiniciar.
+El correo local y el envío posterior mediante HTTPS llegaron al buzón de prueba.
+El filtro público bloquea el editor, las API administrativas y el webhook de test.
+La plantilla compartida permanece inactiva, sin credenciales ni destinatario real.
+
+La revisión del 09/11/2026 aprobó los siguientes casos:
+
+| Caso | Resultado | Evidencia |
+|---|---|---|
+| POST sin cabecera | HTTP 403; ninguna ejecución nueva | [Captura](../pruebas/evidencias/us071-sin-cabecera.png) |
+| POST con clave incorrecta | HTTP 403; ninguna ejecución nueva | [Captura](../pruebas/evidencias/us071-clave-incorrecta.png) |
+| POST autenticado con campos ausentes | HTTP 400; rama de error sin Gmail | [Captura](../pruebas/evidencias/us071-json-invalido.png) |
+| Editor sin sesión previa | Login; API privada HTTP 401 | [Captura](../pruebas/evidencias/us071-editor-sin-sesion.png) |
+| Correo recibido mediante HTTPS | Asunto y mensaje de prueba visibles en el buzón | [Captura](../pruebas/evidencias/us071-correo-recibido.png) |
+
+Los casos negativos no enviaron correos nuevos. El caso de JSON inválido prueba un
+objeto JSON sintácticamente válido pero incompleto: faltan restaurante, mesa y
+mensaje. La rama de respuesta de error finaliza correctamente en n8n, por eso su
+ejecución interna figura como success aunque la respuesta HTTP sea 400.
 
 Desde la raíz del repo ejecutar `npm run lint`, `npm run typecheck`, `npm run build`
 y `npm test`. Estas comprobaciones de AlToque no validan por sí solas Docker/Gmail.
 
-Revisión local del 09/11/2026: lint aprobado, typecheck aprobado, 615 pruebas
-unitarias aprobadas y build aprobado. El primer build falló al descargar Google
-Fonts en el entorno restringido; la repetición autorizada con red terminó bien.
-`docker compose config --quiet` aprobó sin levantar servicios. Se revisaron el JSON,
-las conexiones, la sintaxis de los scripts y entradas válidas/inválidas del validador;
-esto no sustituye importar y ejecutar el flujo en n8n. Git confirmó que el `.env`
-local está ignorado.
+El log de n8n advierte que el modo interno de task runners está obsoleto. Migrar a un
+runner externo antes de actualizar a una versión que retire ese modo.
 
-Después de la autorización de arranque del 09/11/2026, se descargó la imagen fijada
-de n8n y se inició únicamente ese servicio. Docker informa `healthy`, el puerto
-está publicado en `127.0.0.1:5678` y `/healthz` devuelve HTTP 200. Se creó el volumen
-`altoque-n8n_datos_n8n`; aún no se verificó la conservación de un workflow tras
-reiniciar. El log confirma n8n 2.46.7 y el editor local disponible. Advierte que el
-modo interno de task runners está obsoleto: el runner JavaScript inició, pero su
-migración a un runner externo debe resolverse antes de actualizar a una versión
-que retire ese modo. No se inició el túnel ni se enviaron correos.
-
-Validación posterior del 09/11/2026: Erick importó el workflow, configuró Header Auth
-y Gmail OAuth y autorizó un único correo local. La captura del buzón confirma su
-recepción con el asunto y los datos ficticios previstos. Después autorizó reiniciar
-únicamente n8n. Tras `docker compose restart n8n`, el servicio volvió a `healthy` y
-`/healthz` respondió HTTP 200. Una consulta de solo lectura confirmó el workflow
-guardado e inactivo, una credencial `gmailOAuth2` y una `httpHeaderAuth`, sin leer
-sus valores secretos. Esto confirma conservación de registros; no se volvió a enviar
-correo ni se comprobó otra autorización OAuth después del reinicio. El túnel sigue
-sin iniciarse.
-
-Con autorización adicional del 09/11/2026 se iniciaron nginx y cloudflared; sus
-imágenes fijadas se descargaron correctamente. Se guardó la URL HTTPS real entregada
-por Cloudflare únicamente en `.env`, se recreó n8n y se reinició el filtro. Los tres
-servicios están activos y n8n está `healthy`. Las consultas HTTPS públicas a `/`,
-`/signin`, `/rest/settings`, `/rest/oauth2-credential/callback` y al webhook de test
-devolvieron 404; GET al webhook de producción devolvió 403, como corresponde a la
-restricción POST. El endpoint local de salud sigue devolviendo 200. `nginx -t`
-aprobó. No se envió otro correo ni se publicó el workflow en este paso. La URL
-temporal no se fija en documentación ni en el workflow exportado.
-
-Prueba HTTPS del 09/11/2026: Erick publicó el workflow y autorizó un segundo correo
-al mismo destinatario. Ejecutó el POST contra la URL pública de Cloudflare con
-Header Auth y el mensaje ficticio `Prueba HTTPS por Cloudflare - US-071`. Confirmó
-expresamente la recepción en el buzón. Queda aprobado el recorrido HTTPS → túnel
-→ n8n → validación → Gmail → recepción, con evidencia de recepción reportada por
-Erick. Este envío ocurrió después del reinicio y recreación de n8n, por lo que también
-confirma que la configuración y las credenciales conservadas siguieron funcionando.
-La plantilla del repositorio permanece inactiva, sin destinatario ni credenciales
-reales; la copia local publicada en n8n conserva la configuración privada.
-
-Para Alexander: informar URL pública vigente, ruta, método POST, esquema del JSON,
-Header Auth por medio privado y disponibilidad limitada a esta PC. La futura historia
-de integración debe definir eventos reales, autenticación, idempotencia y reintentos;
-no reutilizar este flujo de correo como procesamiento productivo.
-
-## Texto propuesto para PR (no creado)
-
-**Título:** US-071: configurar n8n con Docker y Cloudflare Tunnel
-
-Preparé n8n en Docker Compose con almacenamiento persistente, editor local y un
-túnel HTTPS que solo permite el webhook de prueba. Incluí un flujo inactivo con
-validación de entrada y correo mediante Gmail OAuth, sin credenciales exportadas,
-y una guía de instalación, operación y pruebas en PowerShell.
-
-- [x] Arranque y persistencia comprobados
-- [ ] Editor protegido y bloqueado desde Internet
-- [ ] HTTPS y autenticación del webhook comprobados
-- [x] Correo local y correo HTTPS recibidos, confirmados por Erick
-- [x] Plantilla JSON sin secretos revisada; no exporta la configuración privada
-- [x] Lint, tipos, build y 615 unitarias en verde
-- [x] Sin cambios en Supabase ni integración de eventos reales
-
-Mensaje de commit propuesto: `US-071: configurar n8n con Docker y Cloudflare Tunnel`.
-No hacer commit, push ni abrir PR sin autorización.
+Para la futura integración, comunicar al equipo la URL pública vigente, ruta,
+método POST y esquema del JSON. Compartir Header Auth por un medio privado. La
+disponibilidad depende de esta PC. La historia de integración debe definir los
+eventos reales, autenticación, idempotencia y reintentos; este flujo no registra
+pedidos ni pagos de AlToque.
 
 ## Referencias oficiales
 
