@@ -1,36 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton, MensajeEstado, Tarjeta } from "../../components/ui";
 import { detectarNuevos, textoAntiguedad } from "./alertas-logica";
 import { minutosDesde } from "./panel-logica";
 import { atenderSolicitudAction } from "./ayuda-actions";
+import { emitirAviso, reproducirTonoAviso, textoPedidoListo, crearSeguimientoPedidosListos, type PedidoParaAviso } from "../pedidos/notificaciones";
+import { suscribirPedidosRestaurante, type EstadoCanalPedidos } from "./pedidos-realtime";
 import type { SolicitudAyuda } from "./ayuda";
 import type { PedidoActivo } from "./pedidos-activos";
 
 type Aviso = { id: string; texto: string };
 const CLAVE_SONIDO = "altoque:mesero:sonido";
 
-function emitirSonido(audio: AudioContext | null) {
-  if (!audio || audio.state !== "running") return;
-  try {
-    const oscilador = audio.createOscillator();
-    const volumen = audio.createGain();
-    oscilador.type = "sine";
-    oscilador.frequency.value = 880;
-    volumen.gain.setValueAtTime(0.12, audio.currentTime);
-    volumen.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.18);
-    oscilador.connect(volumen);
-    volumen.connect(audio.destination);
-    oscilador.start();
-    oscilador.stop(audio.currentTime + 0.2);
-    oscilador.onended = () => { oscilador.disconnect(); volumen.disconnect(); };
-  } catch {
-    // El aviso visible sigue funcionando si el navegador rechaza el audio.
-  }
-}
-
-export function AlertasMesero({ pedidos, solicitudes, actualizadoEn, error = false, errorSolicitudes = false }: {
+export function AlertasMesero({ restauranteId, mesas, pedidos, solicitudes, actualizadoEn, error = false, errorSolicitudes = false }: {
+  restauranteId: string;
+  mesas: readonly { id: string; numero: number }[];
   pedidos: readonly PedidoActivo[] | null;
   solicitudes: readonly SolicitudAyuda[] | null;
   actualizadoEn: string | null;
@@ -44,12 +29,32 @@ export function AlertasMesero({ pedidos, solicitudes, actualizadoEn, error = fal
   const audio = useRef<AudioContext | null>(null);
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [sonido, setSonido] = useState(false);
+  const sonidoActivo = useRef(false);
+  const seguimientoListos = useRef<ReturnType<typeof crearSeguimientoPedidosListos> | null>(null);
+  seguimientoListos.current ??= crearSeguimientoPedidosListos(pedidos ?? []);
+  const numerosMesa = useRef<Record<string, number>>({});
+  const [estadoRealtime, setEstadoRealtime] = useState<EstadoCanalPedidos | "CONNECTING">("CONNECTING");
   const [preferenciaGuardada, setPreferenciaGuardada] = useState(false);
   const [errorSonido, setErrorSonido] = useState("");
   const [listaAyuda, setListaAyuda] = useState<readonly SolicitudAyuda[]>(solicitudes ?? []);
   const [ultimaHoraAyuda, setUltimaHoraAyuda] = useState(actualizadoEn);
   const [atendiendo, setAtendiendo] = useState<string | null>(null);
   const [mensajeAyuda, setMensajeAyuda] = useState("");
+
+  useEffect(() => {
+    numerosMesa.current = Object.fromEntries(mesas.map((mesa) => [mesa.id, mesa.numero]));
+  }, [mesas]);
+
+  const avisarPedidoListo = useCallback((pedido: PedidoParaAviso, clave: string) => {
+    const idAviso = `listo:${clave}`;
+    emitirAviso({
+      audio: sonidoActivo.current ? audio.current : null,
+      mostrar: () => setAvisos((actuales) => actuales.some((aviso) => aviso.id === idAviso) ? actuales : [
+        ...actuales,
+        { id: idAviso, texto: textoPedidoListo(pedido) },
+      ]),
+    });
+  }, []);
 
   useEffect(() => {
     const tituloOriginal = document.title;
@@ -89,10 +94,33 @@ export function AlertasMesero({ pedidos, solicitudes, actualizadoEn, error = fal
           ? `Para llevar${pedido.nombreCliente ? ` · ${pedido.nombreCliente}` : ""}`
           : `Mesa ${pedido.mesaNumero ?? "sin identificar"}`}`,
       }))]);
-      if (sonido) emitirSonido(audio.current);
+      if (sonido) reproducirTonoAviso(audio.current);
     }, 0);
     return () => window.clearTimeout(temporizador);
   }, [pedidos, sonido]);
+
+  useEffect(() => {
+    if (pedidos === null) return;
+    for (const pedido of pedidos) {
+      const aviso = seguimientoListos.current?.observar(pedido);
+      if (aviso) avisarPedidoListo(aviso.pedido, aviso.clave);
+    }
+  }, [pedidos, avisarPedidoListo]);
+
+  useEffect(() => {
+    let activo = true;
+    const cancelar = suscribirPedidosRestaurante(
+      restauranteId,
+      (mesaId) => numerosMesa.current[mesaId] ?? null,
+      (pedido) => {
+        if (!activo) return;
+        const aviso = seguimientoListos.current?.observar(pedido);
+        if (aviso) avisarPedidoListo(aviso.pedido, aviso.clave);
+      },
+      (estado) => { if (activo) setEstadoRealtime(estado); },
+    );
+    return () => { activo = false; cancelar(); };
+  }, [restauranteId, avisarPedidoListo]);
 
   useEffect(() => {
     if (solicitudes === null) return; // Conservar la última lectura correcta si falla ayuda.
@@ -111,7 +139,7 @@ export function AlertasMesero({ pedidos, solicitudes, actualizadoEn, error = fal
         ...nuevos.map((solicitud) => ({ id: `ayuda:${solicitud.id}`,
           texto: `Solicitud de ayuda · ${solicitud.mesaNumero === null ? "Mostrador" : `Mesa ${solicitud.mesaNumero}`}` })),
       ]);
-      if (nuevos.length && sonido) emitirSonido(audio.current);
+      if (nuevos.length && sonido) reproducirTonoAviso(audio.current);
     }, 0);
     return () => window.clearTimeout(temporizador);
   }, [solicitudes, actualizadoEn, sonido]);
@@ -144,10 +172,11 @@ export function AlertasMesero({ pedidos, solicitudes, actualizadoEn, error = fal
       if (activar) {
         audio.current ??= new AudioContext();
         await audio.current.resume();
-        emitirSonido(audio.current);
+        reproducirTonoAviso(audio.current);
       } else {
         await audio.current?.suspend();
       }
+      sonidoActivo.current = activar;
       setSonido(activar);
       setPreferenciaGuardada(activar);
       try { localStorage.setItem(CLAVE_SONIDO, String(activar)); } catch { /* No bloquear alertas sin almacenamiento. */ }
@@ -159,10 +188,17 @@ export function AlertasMesero({ pedidos, solicitudes, actualizadoEn, error = fal
   return <section aria-label="Alertas del mesero" className="mt-6 space-y-3">
     <div className="flex flex-wrap items-center gap-3">
       <Boton type="button" variante="secundario" aria-pressed={sonido} onClick={cambiarSonido}>
-        {sonido ? "Desactivar sonido" : "Activar sonido"}
+        {sonido ? "Desactivar avisos" : "Activar avisos"}
       </Boton>
-      {preferenciaGuardada && !sonido && <p className="text-sm text-texto-suave">Activa el sonido guardado en esta pestaña.</p>}
+      {preferenciaGuardada && !sonido && <p className="text-sm text-texto-suave">Activa los avisos guardados en esta pestaña.</p>}
     </div>
+    <p role="status" className="text-sm text-texto-suave">
+      {estadoRealtime === "SUBSCRIBED"
+        ? "Avisos en vivo conectados."
+        : estadoRealtime === "CONNECTING"
+          ? "Conectando avisos en vivo; el panel se actualiza cada 10 segundos."
+          : "Avisos en vivo desconectados; el panel seguirá actualizándose cada 10 segundos."}
+    </p>
     {errorSonido && <p role="status" className="text-sm text-texto-suave">{errorSonido}</p>}
     {error && <p role="status" className="text-sm text-aviso-texto">No pudimos actualizar las alertas. Conservamos los avisos y volveremos a intentarlo.</p>}
     <div role="status" aria-live="polite" aria-atomic="true" className="space-y-2">

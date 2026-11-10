@@ -56,7 +56,9 @@ async function MeseroPanel() {
     </div>
 
     <AlertasMesero key={resultado.restauranteId}
-      pedidos={resultado.ok ? pedidos.filter((pedido) => pedido.estado === "PENDING") : null}
+      restauranteId={resultado.restauranteId}
+      mesas={mesas.map(({ id, numero }) => ({ id, numero }))}
+      pedidos={resultado.ok ? pedidos : null}
       solicitudes={resultado.ok ? resultado.solicitudes : null}
       actualizadoEn={resultado.ok ? resultado.actualizadoEn : null}
       errorSolicitudes={!resultado.ok || resultado.errorSolicitudes}
