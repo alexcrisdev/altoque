@@ -18,7 +18,8 @@ Criterios de aceptación y resultado
 1. Botón «Pagar con tarjeta» en la vista del cliente
    -> src/features/pago-cierre/cuenta-cliente.tsx en /m/[token] (mesa con sesión abierta)
       y /m/[token]/pedido/[clave] (para llevar). Muestra el saldo «Tu cuenta: S/ ...».
-   Captura: captura-us076-boton-pagar.png                                   [PENDIENTE]
+   Captura: captura-us076-boton-pagar.png («Tu cuenta: S/ 15.00» y el botón, Mesa 3)
+   -> Prueba real 10/11 13:43: Mesa 3, pedido N.º 516 (1 × Ceviche clásico, S/ 25.00) desde QR.
 2. El monto lo calcula la base, nunca el navegador
    -> iniciarPagoTarjetaAction solo recibe token y clave; el monto sale de
       saldo_cuenta_online. Prueba unitaria: «no acepta un monto del navegador».
@@ -31,11 +32,15 @@ Criterios de aceptación y resultado
    -> Requiere 3D Secure: 4000 0025 0000 3155
    -> Mínimo: Stripe rechaza menos de ~US$ 0.50; probado en el sandbox:
       S/ 1.00 rechazado, S/ 2.00 aceptado. AlToque exige S/ 2.00 o más.
-   Captura: captura-us076-checkout-stripe.png                               [PENDIENTE]
-   Captura: captura-us076-tarjeta-rechazada.png                             [PENDIENTE]
+   -> Prueba real: Stripe mostró «Cuenta de la mesa 3 · PEN 25.00 · Cevichería Demo» en el
+      entorno de prueba (el monto es el saldo de la base, en soles).
+      Captura: captura-us076-checkout-stripe.png
+   -> 4000 0000 0000 0002: «Se rechazó tu tarjeta». No llegó webhook y no se registró pago.
+      Captura: captura-us076-tarjeta-rechazada.png
 4. Al volver de Stripe se muestra «Procesando pago…» hasta la confirmación
    -> estado-pago-online.tsx consulta cada 3 s si el webhook ya registró el pago.
-   Captura: captura-us076-pago-confirmado.png                               [PENDIENTE]
+   -> Prueba real con 4242: al volver mostró «Procesando pago…» y luego «¡Pago confirmado!».
+      Captura: captura-us076-pago-confirmado.png
 5. /api/stripe/webhook verifica la firma; sin firma válida responde 400
    -> POST sin cabecera stripe-signature           -> 400 {"error":"Falta la firma"}
    -> POST con firma inventada                     -> 400 {"error":"Firma inválida"}
@@ -55,10 +60,17 @@ Criterios de aceptación y resultado
    -> Prueba con rollback: 1.er evento registra "CARD CONFIRMED created_by=null
       ref=pi_..."; el mismo evento otra vez devuelve el mismo pago (duplicado=true);
       saldo queda en 0.00; un pago extra da AMOUNT_EXCEEDS_BALANCE.
-   -> Pago real con 4242: fila en payments con stripe_session_id cs_test_...    [PENDIENTE]
+   -> Pago real con 4242 (10/11, 13:47): webhook checkout.session.completed -> 200.
+      Fila en payments: CARD | CONFIRMED | S/ 25.00 | created_by = null | reference pi_...
+      | stripe_session_id cs_test_... Es el único pago Stripe de la base (el rechazado no
+      dejó fila). Saldo de la Mesa 3 después del pago: S/ 0.00.
 8. Caja ve el pago con la etiqueta «Stripe (online)»
    -> detalle-cuenta.tsx: «Stripe (online) · hora · Confirmado» y «Ref. Stripe pi_...».
-   Captura: captura-us076-caja-stripe.png                                   [PENDIENTE]
+   -> Prueba real: «Stripe (online) · 01:47 p. m. · Confirmado · Ref. Stripe pi_3UaK…»,
+      saldo pendiente S/ 0.00. En la lista de caja: «Mesa 3 · Pagada · por cerrar».
+      Captura: captura-us076-caja-stripe.png y captura-us076-caja-por-cerrar.png
+   -> Después: cocina marcó el pedido 516 como listo, el mesero lo entregó (DELIVERED) y
+      caja cerró la cuenta de la Mesa 3 sin problemas.
 9. Claves de Stripe solo en el servidor
    -> STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET sin prefijo NEXT_PUBLIC_, solo en
       .env.local (ignorado por git) y en Vercel. stripe.ts importa "server-only".
@@ -83,4 +95,4 @@ Si la cuenta se paga en caja mientras el cliente está en la página de Stripe, 
 cobra pero AlToque no registra un pago de más. El log del servidor muestra
 "REQUIERE REEMBOLSO" con el pi_..., y el reembolso se hace desde el dashboard de Stripe.
 
-Resultado: [PENDIENTE: completar con el pago real]
+Resultado: CUMPLE los 10 criterios.
