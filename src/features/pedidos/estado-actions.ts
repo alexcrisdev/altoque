@@ -1,13 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { crearClienteServidor } from "@/lib/supabase/server";
-import { obtenerSesion } from "@/features/auth/sesion";
-import type { Rol } from "@/features/auth/permisos";
+import { guardarEstadoPedido } from "./estado-servidor";
+import { obtenerSesion } from "../auth/sesion";
+import type { Rol } from "../auth/permisos";
 import { mensajeErrorEstado, type EstadoPedido } from "./estados";
 
 const estados: EstadoPedido[] = ["PENDING", "ACCEPTED", "IN_PROGRESS", "READY", "DELIVERED", "CANCELLED"];
-const codigos = ["ORDER_NOT_FOUND", "INVALID_TRANSITION", "FORBIDDEN", "REASON_REQUIRED", "INVALID_REASON"];
+const codigos = ["ORDER_NOT_FOUND", "INVALID_TRANSITION", "FORBIDDEN", "REASON_REQUIRED", "INVALID_REASON", "UNDO_EXPIRED"];
 
 export async function cambiarEstadoPedido(
   pedidoId: string,
@@ -21,7 +21,7 @@ export async function cambiarEstadoPedido(
   }
   const rolesNecesarios: Record<EstadoPedido, Rol[]> = {
     PENDING: [],
-    ACCEPTED: ["KITCHEN", "OWNER", "ADMIN"],
+    ACCEPTED: [],
     IN_PROGRESS: ["KITCHEN", "OWNER", "ADMIN"],
     READY: ["KITCHEN", "OWNER", "ADMIN"],
     DELIVERED: ["WAITER", "OWNER", "ADMIN"],
@@ -32,12 +32,7 @@ export async function cambiarEstadoPedido(
     return { ok: false, mensaje: mensajeErrorEstado("FORBIDDEN") };
   }
 
-  const supabase = await crearClienteServidor();
-  const { error } = await supabase.rpc("cambiar_estado_pedido", {
-    p_pedido_id: pedidoId,
-    p_estado: nuevoEstado,
-    p_motivo: motivo?.trim() || null,
-  });
+  const { error } = await guardarEstadoPedido(pedidoId, nuevoEstado, motivo);
   if (error) {
     const codigo = codigos.find((c) => error.message.includes(c));
     return { ok: false, mensaje: mensajeErrorEstado(codigo ?? "") };

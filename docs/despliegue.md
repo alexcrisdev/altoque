@@ -67,7 +67,7 @@ Para ejecutarlo a mano:
 
 ```bash
 npm run smoke -- https://altoque-app-usil.vercel.app
-SMOKE_QR_TOKEN=demo-mesa-2 npm run smoke -- http://localhost:3000
+SMOKE_QR_TOKEN=<token-de-un-QR-vigente> npm run smoke -- http://localhost:3000
 ```
 
 ### Prueba manual de 5 minutos (después de cada cierre de sprint)

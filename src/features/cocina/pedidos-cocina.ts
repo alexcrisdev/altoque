@@ -10,6 +10,7 @@ type FilaPedido = {
   order_number: number;
   created_at: string;
   status: EstadoPedido;
+  ready_at?: string | null;
   modality: Modalidad;
   source: "QR" | "WAITER";
   customer_name: string | null;
@@ -22,10 +23,11 @@ export async function listarPedidosCocina(restauranteId: string): Promise<Pedido
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)")
+    .select("id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)")
     .eq("restaurant_id", restauranteId)
     .in("status", ESTADOS_ACTIVOS)
     .order("created_at", { ascending: true })
+    .order("order_number", { ascending: true })
     .overrideTypes<FilaPedido[], { merge: false }>();
 
   if (error) {
@@ -38,6 +40,7 @@ export async function listarPedidosCocina(restauranteId: string): Promise<Pedido
     numero: Number(fila.order_number),
     creadoEn: fila.created_at,
     estado: fila.status,
+    ...(fila.status === "READY" ? { listoEn: fila.ready_at ?? null } : {}),
     modalidad: fila.modality,
     asistido: fila.source === "WAITER",
     mesaNumero: fila.dining_tables?.number ?? null,
