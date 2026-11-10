@@ -13,6 +13,12 @@ export const ETIQUETA_METODO: Record<MetodoPago, string> = {
   CARD: "Tarjeta",
 };
 
+// US-076: un pago online de Stripe se distingue en caja del POS.
+export const ETIQUETA_STRIPE = "Stripe (online)";
+export function etiquetaMetodoPago(pago: Pick<PagoCuenta, "metodo" | "stripe">): string {
+  return pago.stripe ? ETIQUETA_STRIPE : ETIQUETA_METODO[pago.metodo];
+}
+
 export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {
   PENDING: "Por verificar",
   CONFIRMED: "Confirmado",
@@ -44,6 +50,7 @@ export type PagoCuenta = {
   vueltoCentimos?: number | null;
   referencia?: string | null; // Yape: n.º de operación (US-023); tarjeta: voucher del POS (US-024)
   registradoPor?: string | null; // quién anotó el pago (US-024)
+  stripe?: boolean; // pagado online con Stripe, sin cajero (US-076)
   verificadoPor?: string | null;
   verificadoEn?: string | null;
 };
