@@ -18,7 +18,7 @@ import { listarSolicitudesAbiertas } from "../../src/features/mesero/ayuda";
 
 const ahora = "2026-11-01T15:10:00Z";
 function pedido(id: string, estado: EstadoPedido = "PENDING", cambios: Partial<PedidoActivo> = {}): PedidoActivo {
-  return { id, numero: 42, creadoEn: "2026-11-01T15:04:00Z", estado, modalidad: "DINE_IN",
+  return { id, numero: 42, creadoEn: "2026-11-01T15:04:00Z", estado, listoEn: null, modalidad: "DINE_IN",
     mesaId: "mesa-1", mesaNumero: 1, nombreCliente: null, asistido: false, ...cambios };
 }
 
@@ -90,7 +90,7 @@ describe("resumenMesa y minutosDesde", () => {
   });
 });
 
-const fila = { id: "pedido-1", order_number: 42, created_at: ahora, status: "READY", modality: "DINE_IN",
+const fila = { id: "pedido-1", order_number: 42, created_at: ahora, status: "READY", ready_at: ahora, modality: "DINE_IN",
   dining_table_id: "mesa-1", dining_tables: { number: 1 }, customer_name: null, source: "WAITER" };
 function consulta(data: unknown[] = [fila], error: { code: string; message: string } | null = null) {
   const cliente = { from: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
@@ -106,11 +106,11 @@ beforeEach(() => {
 describe("consulta segura de pedidos activos", () => {
   it("filtra restaurante y estados activos, ordena por llegada y no solicita teléfonos", async () => {
     const cliente = consulta();
-    expect(await listarPedidosActivos("cevicheria")).toEqual([pedido("pedido-1", "READY", { creadoEn: ahora, asistido: true })]);
+    expect(await listarPedidosActivos("cevicheria")).toEqual([pedido("pedido-1", "READY", { creadoEn: ahora, listoEn: ahora, asistido: true })]);
     expect(cliente.eq).toHaveBeenCalledExactlyOnceWith("restaurant_id", "cevicheria");
     expect(cliente.in).toHaveBeenCalledExactlyOnceWith("status", ESTADOS_ACTIVOS);
     expect(cliente.order).toHaveBeenCalledExactlyOnceWith("created_at", { ascending: true });
-    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, modality, dining_table_id, dining_tables(number), customer_name, source");
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, source");
   });
   it("devuelve una lista vacía solo cuando la consulta fue correcta", async () => {
     consulta([]);

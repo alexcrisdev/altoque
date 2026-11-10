@@ -8,6 +8,7 @@ export type PedidoActivo = {
   numero: number;
   creadoEn: string;
   estado: EstadoPedido;
+  listoEn: string | null;
   modalidad: Modalidad;
   mesaId: string | null;
   mesaNumero: number | null;
@@ -20,6 +21,7 @@ type FilaPedido = {
   order_number: number;
   created_at: string;
   status: EstadoPedido;
+  ready_at: string | null;
   modality: Modalidad;
   dining_table_id: string | null;
   dining_tables: { number: number } | null;
@@ -30,7 +32,7 @@ type FilaPedido = {
 export async function listarPedidosActivos(restauranteId: string): Promise<PedidoActivo[]> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from("orders")
-    .select("id, order_number, created_at, status, modality, dining_table_id, dining_tables(number), customer_name, source")
+    .select("id, order_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, source")
     .eq("restaurant_id", restauranteId)
     .in("status", ESTADOS_ACTIVOS)
     .order("created_at", { ascending: true })
@@ -46,6 +48,7 @@ export async function listarPedidosActivos(restauranteId: string): Promise<Pedid
     numero: Number(fila.order_number),
     creadoEn: fila.created_at,
     estado: fila.status,
+    listoEn: fila.ready_at,
     modalidad: fila.modality,
     mesaId: fila.dining_table_id,
     mesaNumero: fila.dining_tables?.number ?? null,
