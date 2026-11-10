@@ -54,6 +54,18 @@ async function AdminPanel() {
           <li>
             <Tarjeta>
               <BotonEnlace
+                href="/admin/stock"
+                variante="secundario"
+                className="w-full"
+              >
+                Registrar stock del día
+              </BotonEnlace>
+            </Tarjeta>
+          </li>
+
+          <li>
+            <Tarjeta>
+              <BotonEnlace
                 href="/admin/para-llevar"
                 variante="secundario"
                 className="w-full"
