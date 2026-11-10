@@ -39,7 +39,7 @@ def generar() -> None:
         factor *= 1.55 if evento else 1.0
 
         inicial = {
-            codigo: azar.randint(18, 25) if codigo == "P01"
+            codigo: azar.randint(35, 50) if codigo == "P01"
             else azar.randint(24, 38)
             for codigo, _, _ in PLATOS
         }

@@ -4,9 +4,9 @@ Datos ficticios de un restaurante simulado, del 1 de mayo al 31 de octubre de 20
 
 | Archivo | Qué representa cada fila | Filas con la semilla 74 |
 |---|---|---:|
-| `pedidos.csv` | Un pedido atendido | 11 096 |
-| `lineas_pedido.csv` | Un plato dentro de un pedido | 14 426 |
-| `pagos.csv` | Un pago confirmado de un pedido | 11 096 |
+| `pedidos.csv` | Un pedido atendido | 12 305 |
+| `lineas_pedido.csv` | Un plato dentro de un pedido | 16 713 |
+| `pagos.csv` | Un pago confirmado de un pedido | 12 305 |
 | `demanda_diaria.csv` | Un plato en un día | 920 (184 días × 5 platos) |
 
 ## pedidos.csv
