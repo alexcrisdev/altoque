@@ -1,0 +1,268 @@
+{
+  "name": "US-071: webhook y correo de prueba (Gmail OAuth)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "us071-correo-prueba",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "us071-correo-prueba"
+    },
+    {
+      "id": "validar",
+      "name": "Validar entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst campos = { evento: 60, restaurante: 120, mesa: 20, mensaje: 1000 };\nconst errores = [];\nif (!body || typeof body !== 'object' || Array.isArray(body)) errores.push('Se requiere un objeto JSON');\nfor (const [campo, maximo] of Object.entries(campos)) {\n const valor = body?.[campo];\n if (typeof valor !== 'string' || !valor.trim() || valor.length > maximo) errores.push('Campo invalido: ' + campo);\n}\nif (body?.evento !== 'pedido_creado') errores.push('Evento de prueba no permitido');\nreturn [{ json: { valido: errores.length === 0, errores, texto: errores.length ? '' : ['PRUEBA US-071; no es un pedido real.', ...Object.keys(campos).map(campo => campo + ': ' + body[campo].trim())].join(String.fromCharCode(10)) } }];"
+      }
+    },
+    {
+      "id": "condicion",
+      "name": "Entrada valida",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "valido",
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "configurar",
+      "name": "Destinatario autorizado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        -120
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "destinatario",
+              "name": "destinatario",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "comprobar",
+      "name": "Comprobar destinatario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        -120
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first();\nif (typeof item.json.destinatario !== 'string' || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(item.json.destinatario)) throw new Error('Configura un ?nico destinatario de prueba autorizado antes de publicar');\nreturn [item];"
+      }
+    },
+    {
+      "id": "gmail",
+      "name": "Enviar correo de prueba",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        -120
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.destinatario }}",
+        "subject": "US-071: prueba de automatizacion AlToque",
+        "emailType": "text",
+        "message": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "ok",
+      "name": "Respuesta correcta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1440,
+        -240
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\":true,\"mensaje\":\"Gmail acepto el envio de prueba; verificar recepcion en el buzon\"}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "error-correo",
+      "name": "Error de correo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\":false,\"mensaje\":\"No se pudo enviar el correo de prueba\"}",
+        "options": {
+          "responseCode": 502
+        }
+      }
+    },
+    {
+      "id": "error",
+      "name": "Entrada incorrecta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        180
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, errores: $json.errores } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar entrada": {
+      "main": [
+        [
+          {
+            "node": "Entrada valida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Entrada valida": {
+      "main": [
+        [
+          {
+            "node": "Destinatario autorizado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Entrada incorrecta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Destinatario autorizado": {
+      "main": [
+        [
+          {
+            "node": "Comprobar destinatario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar destinatario": {
+      "main": [
+        [
+          {
+            "node": "Enviar correo de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar correo de prueba": {
+      "main": [
+        [
+          {
+            "node": "Respuesta correcta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

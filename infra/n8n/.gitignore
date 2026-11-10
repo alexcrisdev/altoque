@@ -1,0 +1,7 @@
+# Configuración real, credenciales, logs y exportaciones sin revisar.
+.env
+.env.*
+!.env.example
+*.log
+credenciales/
+exportaciones-locales/
