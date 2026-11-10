@@ -1,6 +1,9 @@
 -- US-067: disponibilidad diaria por plato. Una fila por restaurante/producto/día.
 -- El día se entrega desde el servidor en America/Lima. La unicidad permite que
 -- US-078 descuente vendidos mediante un UPDATE atómico sobre esta fila.
+alter table public.products
+  add constraint products_id_restaurant_id_key unique (id, restaurant_id);
+
 create table public.product_daily_stock (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references public.restaurants(id) on delete cascade,
