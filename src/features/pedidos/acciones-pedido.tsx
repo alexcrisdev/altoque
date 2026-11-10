@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { cambiarEstadoPedido } from "./estado-actions";
 import { modificarPedido } from "./modificar-actions";
 import { calcularNuevoTotalCentimos, puedeModificar, requiereMotivoModificacion, type CambioPedido, type ItemModificable } from "./modificacion";
-import type { EstadoPedido } from "./estados";
+import { puedeCambiarEstado, type EstadoPedido } from "./estados";
 import type { Rol } from "@/features/auth/permisos";
 
 const moneda = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
@@ -16,9 +16,11 @@ export function AccionesPedido({ pedidoId, estado, roles, items }: { pedidoId: s
   const [mensaje, setMensaje] = useState("");
   const [guardando, startTransition] = useTransition();
   const puedeEditar = puedeModificar(estado, roles);
-  const puedeCancelar = (estado === "PENDING" || estado === "ACCEPTED")
-    ? roles.some((r) => ["WAITER", "OWNER", "ADMIN"].includes(r))
-    : estado === "IN_PROGRESS" && roles.some((r) => r === "OWNER" || r === "ADMIN");
+  const puedeCancelar = puedeCambiarEstado(
+    estado,
+    "CANCELLED",
+    roles
+  );
   const totalCentimos = useMemo(() => calcularNuevoTotalCentimos(items, items.map((item) => ({ itemId: item.id, cantidad: cantidades[item.id] ?? item.cantidad }))), [items, cantidades]);
 
   function guardar() {

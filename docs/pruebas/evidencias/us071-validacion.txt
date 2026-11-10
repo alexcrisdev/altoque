@@ -1,0 +1,76 @@
+US-071 - Validación de seguridad y evidencia
+Fecha: 09/11/2026. Horas de los casos en America/Lima (UTC-05).
+
+Entorno: n8n 2.46.7 en Docker Desktop/WSL 2, nginx 1.30.6-alpine y
+cloudflared 2026.10.7. Workflow de prueba publicado. Datos ficticios.
+El túnel temporal, claves, cookies y credenciales se omiten de este registro.
+No se modifica Supabase ni se conectan eventos reales de AlToque.
+
+Metodología
+- POST reales por HTTPS al webhook publicado.
+- Comparación antes/después de identificadores de ejecución, con lectura local
+  de registros de n8n; se registran solo estado, fecha y nombres de nodos.
+- Capturas HTTP: informes visuales generados a partir de las respuestas reales,
+  no capturas del editor de n8n ni del navegador con su barra de direcciones.
+- Captura del login: página real en contexto Chromium nuevo sin cookies previas,
+  equivalente a una ventana privada; no se ingresa ninguna credencial.
+
+CASO: POST sin cabecera de autenticacion
+Estado: APROBADO
+Hora Lima: 9/11/26, 8:24:37 p. m.
+Método: POST. Ruta: /webhook/us071-correo-prueba. HTTP: 403.
+Respuesta: Authorization data is wrong!
+Ejecuciones nuevas: 0.
+Gmail ejecutado: no.
+Captura: us071-sin-cabecera.png
+
+CASO: POST con clave incorrecta
+Estado: APROBADO
+Hora Lima: 9/11/26, 8:24:38 p. m.
+Método: POST. Ruta: /webhook/us071-correo-prueba. HTTP: 403.
+Respuesta: Authorization data is wrong!
+Ejecuciones nuevas: 0.
+Gmail ejecutado: no.
+Captura: us071-clave-incorrecta.png
+
+CASO: JSON con campos requeridos ausentes
+Estado: APROBADO
+Hora Lima: 9/11/26, 8:31:36 p. m.
+Método: POST. Ruta: /webhook/us071-correo-prueba. HTTP: 400.
+Respuesta: {"ok":false,"errores":["Campo invalido: restaurante","Campo invalido: mesa","Campo invalido: mensaje"]}
+Ejecuciones nuevas: 1.
+Gmail ejecutado: no.
+Nodos de la nueva ejecución: Webhook -> Validar entrada -> Entrada valida -> Entrada incorrecta.
+Captura: us071-json-invalido.png
+
+CASO: Editor en contexto privado sin sesion
+Estado: APROBADO
+Hora Lima: 9/11/26, 8:20:20 p. m.
+Redirección: /signin. API /rest/workflows sin sesión: 401.
+Captura: us071-editor-sin-sesion.png
+
+CORREO RECIBIDO
+Las pruebas positivas local y HTTPS se completaron anteriormente. El usuario
+confirmó recepción del mensaje "Prueba HTTPS por Cloudflare - US-071" en el buzón.
+Esta sesión de revisión no envía nuevos correos ni accede a Gmail.
+Captura revisada visualmente: us071-correo-recibido.png.
+Se observa el correo HTTPS recibido, su asunto y los datos ficticios de la prueba;
+no se muestra la clave Header Auth ni la URL del túnel.
+
+El JSON inválido de esta revisión es un objeto sintácticamente válido que omite
+restaurante, mesa y mensaje. HTTP 400 es el resultado esperado. La ejecución n8n
+figura como success porque completó correctamente su rama de respuesta de error,
+sin alcanzar el nodo Enviar correo de prueba. Los casos negativos no enviaron
+correos nuevos.
+
+VERIFICACIONES DEL PROYECTO
+npm run lint: APROBADO.
+npm run typecheck: APROBADO.
+npm test: APROBADO, 615 pruebas / 31 archivos.
+npm run build: APROBADO.
+
+EXPLORACIÓN
+El primer intento público no pudo resolver el hostname temporal (ENOTFOUND).
+Se reinició el túnel y se actualizó su URL únicamente en la configuración privada.
+Hubo un 404 transitorio durante el arranque; las pruebas se registraron después
+de que el webhook estuviera disponible. Ninguno se cuenta como prueba aprobada.

@@ -10,12 +10,14 @@ import { buscarSesionAbierta } from "@/features/mesero/sesiones";
 import { obtenerConfigParaLlevar } from "@/features/pedidos/para-llevar";
 import { MisPedidos } from "@/features/pedidos/mis-pedidos";
 import { BotonLlamarMesero } from "@/features/mesero/boton-llamar-mesero";
+import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
 
 type Props = {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ [clave: string]: string | string[] | undefined }>;
 };
 
-export default function PaginaQr({ params }: Props) {
+export default function PaginaQr({ params, searchParams }: Props) {
   return (
     <main className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
       <Suspense
@@ -26,14 +28,15 @@ export default function PaginaQr({ params }: Props) {
           />
         }
       >
-        <Contenido params={params} />
+        <Contenido params={params} searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function Contenido({ params }: Props) {
+async function Contenido({ params, searchParams }: Props) {
   const { token } = await params;
+  const { pago, sesion } = await searchParams;
   const acceso = await resolverAccesoQr(token);
 
   if (acceso.estado === "INVALIDO") {
@@ -88,6 +91,9 @@ async function Contenido({ params }: Props) {
       />
 
       <MisPedidos token={token} />
+
+      {/* US-076: saldo de la mesa y pago con tarjeta online. */}
+      {sesionId !== null && <CuentaCliente token={token} clave={null} pago={pago} sesion={sesion} />}
 
       <Tarjeta>
         <p className="text-sm text-texto-suave">

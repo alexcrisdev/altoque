@@ -19,6 +19,7 @@ import {
   ETIQUETA_ESTADO,
   TONO_ESTADO,
 } from "@/features/pedidos/estados";
+import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
 
 export const metadata: Metadata = {
   title: "Estado de mi pedido | AlToque",
@@ -33,9 +34,10 @@ type Props = {
     token: string;
     clave: string;
   }>;
+  searchParams: Promise<{ [clave: string]: string | string[] | undefined }>;
 };
 
-export default function PaginaEstadoPedido({ params }: Props) {
+export default function PaginaEstadoPedido({ params, searchParams }: Props) {
   return (
     <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-6 sm:px-6">
       <h1 className="text-2xl font-bold text-texto">
@@ -50,14 +52,15 @@ export default function PaginaEstadoPedido({ params }: Props) {
           />
         }
       >
-        <ContenidoPedido params={params} />
+        <ContenidoPedido params={params} searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function ContenidoPedido({ params }: Props) {
+async function ContenidoPedido({ params, searchParams }: Props) {
   const { token, clave } = await params;
+  const { pago, sesion } = await searchParams;
 
   let pedido: PedidoCliente | null = null;
   let falloConsulta = false;
@@ -81,7 +84,11 @@ async function ContenidoPedido({ params }: Props) {
           descripcion="Conserva esta página abierta. Volveremos a consultar automáticamente."
         />
       ) : pedido ? (
-        <ResumenPedido pedido={pedido} />
+        <>
+          <ResumenPedido pedido={pedido} />
+          {/* US-076: pago con tarjeta online del pedido para llevar. */}
+          {pedido.modalidad === "TAKEAWAY" && <CuentaCliente token={token} clave={clave} pago={pago} sesion={sesion} />}
+        </>
       ) : (
         <MensajeEstado
           tipo="error"

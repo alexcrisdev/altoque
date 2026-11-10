@@ -2,7 +2,7 @@ import { formatearPrecio } from "@/features/carta/formato";
 import { ETIQUETA_ESTADO } from "@/features/pedidos/estados";
 import {
   ETIQUETA_ESTADO_PAGO,
-  ETIQUETA_METODO,
+  etiquetaMetodoPago,
   subtotalCentimos,
   type PagoCuenta,
   type ResumenCuenta,
@@ -27,7 +27,7 @@ function FilaPago({ pago, verificacion }: { pago: PagoCuenta; verificacion?: Ver
     <li className="py-2">
       <div className="flex justify-between gap-3">
         <span>
-          {ETIQUETA_METODO[pago.metodo]} · {hora(pago.creadoEn)} · {ETIQUETA_ESTADO_PAGO[pago.estado]}
+          {etiquetaMetodoPago(pago)} · {hora(pago.creadoEn)} · {ETIQUETA_ESTADO_PAGO[pago.estado]}
           {pago.recibidoCentimos != null && (
             <span className="block text-sm text-zinc-600">
               Recibido {soles(pago.recibidoCentimos)} · vuelto {soles(pago.vueltoCentimos ?? 0)}
@@ -35,7 +35,7 @@ function FilaPago({ pago, verificacion }: { pago: PagoCuenta; verificacion?: Ver
           )}
           {pago.referencia && (
             <span className="block text-sm text-zinc-600">
-              {pago.metodo === "CARD" ? "Voucher" : "Operación"} {pago.referencia}
+              {pago.stripe ? "Ref. Stripe" : pago.metodo === "CARD" ? "Voucher" : "Operación"} {pago.referencia}
             </span>
           )}
           {pago.registradoPor && (

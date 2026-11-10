@@ -7,6 +7,7 @@ export type PedidoCocina = {
   numero: number;
   creadoEn: string;
   estado: EstadoPedido;
+  listoEn?: string | null;
   modalidad: Modalidad;
   asistido: boolean;
   mesaNumero: number | null;

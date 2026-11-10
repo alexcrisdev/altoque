@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { expect, test as base, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { aceptarDialogoDeAccion } from "./dialogos";
 
 export const RESTAURANTE = "10000000-0000-0000-0000-000000000001";
 export const MESA_NUMERO = Number(process.env.E2E_MESA_NUMERO || 3);
@@ -64,8 +65,9 @@ export async function pedidosPropios(cliente: SupabaseClient, marca: string) {
 export async function cancelarPedido(page: Page, id: string, marca: string) {
   await page.goto(`/admin/pedidos/${id}`);
   await expect(page.getByText(marca, { exact: true })).toBeVisible();
-  page.once("dialog", (dialogo) => dialogo.accept(`PRUEBA E2E: limpieza ${marca}`));
-  await page.getByRole("button", { name: "Cancelar pedido", exact: true }).click();
+  await aceptarDialogoDeAccion(page,
+    () => page.getByRole("button", { name: "Cancelar pedido", exact: true }).click(),
+    "prompt", "Escribe el motivo de cancelación:", `PRUEBA E2E: limpieza ${marca}`);
   await expect(page.getByRole("status").filter({ hasText: "Pedido cancelado." })).toBeVisible();
 }
 
@@ -77,11 +79,15 @@ export async function abrirSesionMesa(page: Page) {
   await expect(mesa.getByRole("button", { name: "Cerrar sesión", exact: true })).toBeVisible();
 }
 
-export async function cerrarMesa(page: Page) {
+export async function cerrarMesa(page: Page, sesionId: string) {
   await page.goto("/mesero");
   const mesa = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: `Mesa ${MESA_NUMERO}`, exact: true }) });
-  page.once("dialog", (dialogo) => dialogo.accept());
-  await mesa.getByRole("button", { name: "Cerrar sesión", exact: true }).click();
+  // El formulario debe seguir apuntando a la sesión propia, no a una posterior.
+  const formulario = mesa.locator("form").filter({ has: page.locator(`input[name="sesionId"][value="${sesionId}"]`) });
+  await expect(formulario.locator('input[name="sesionId"]')).toHaveValue(sesionId);
+  await aceptarDialogoDeAccion(page,
+    () => formulario.getByRole("button", { name: "Cerrar sesión", exact: true }).click(),
+    "confirm", "¿Quieres cerrar la sesión de esta mesa?");
   await expect(mesa.getByText("Libre", { exact: true })).toBeVisible();
 }
 
@@ -110,7 +116,7 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
     const tareasLimpieza: (() => Promise<void>)[] = [];
     let sesionPropia: string | undefined;
     let intentoAbrir = false;
-    const inicio = new Date().toISOString();
+    let falloEscenario = false;
     async function staff(rol: RolDemo) {
       if (!paginas.has(rol)) {
         const nuevo = await paginaStaff(browser, baseURL!, rol);
@@ -136,6 +142,9 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
         expect(sesiones).toHaveLength(1);
         sesionPropia = sesiones[0].id;
       } });
+    } catch (error) {
+      falloEscenario = true;
+      throw error;
     } finally {
       // Se intenta toda la limpieza aunque falle una de sus partes.
       const errores: string[] = [];
@@ -167,26 +176,72 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
       if (intentoAbrir) {
         try {
           const sesiones = await sesionMesa();
-          // Recuperación si la acción abrió sesión pero falló la respuesta UI.
-          const propia = sesiones.find((s) => s.id === sesionPropia || (!sesionPropia && s.opened_at >= inicio));
+          // Una fecha reciente no demuestra propiedad. Si no se capturó el ID,
+          // exigir el vínculo de un pedido con la marca única de esta prueba.
+          const pedidos = await pedidosPropios(admin, marca);
+          const propia = sesiones.find((s) => s.id === sesionPropia ||
+            (!sesionPropia && pedidos.some((p) => p.table_session_id === s.id)));
           if (propia) {
-            await cerrarMesa(await staff("mesero"));
+            const { data: ajenos, error } = await admin.from("orders")
+              .select("id").eq("restaurant_id", RESTAURANTE).eq("table_session_id", propia.id);
+            if (error) throw new Error("No se pudieron verificar los pedidos de la sesión.");
+            const idsPropios = new Set(pedidos.map((p) => p.id));
+            if ((ajenos ?? []).some((p) => !idsPropios.has(p.id))) {
+              throw new Error("La sesión contiene pedidos ajenos; no se cierra automáticamente.");
+            }
+            await cerrarMesa(await staff("mesero"), propia.id);
             expect(await sesionMesa()).toHaveLength(0);
+          } else if (sesiones.length) {
+            errores.push(`Mesa ${MESA_NUMERO} tiene una sesión cuya propiedad no está demostrada; no se modificó.`);
           }
         } catch { errores.push(`No se pudo cerrar la sesión propia de Mesa ${MESA_NUMERO}; revisar antes de repetir.`); }
       }
-      if (errores.length) await testInfo.attach("limpieza-pendiente", { body: `${marca}\n${errores.join("\n")}`, contentType: "text/plain" });
+      const evidencias: string[] = [];
+      async function adjuntar(nombre: string, opciones: Parameters<typeof testInfo.attach>[1]) {
+        try { await testInfo.attach(nombre, opciones); }
+        catch { evidencias.push(`No se pudo adjuntar ${nombre}.`); }
+      }
+      if (errores.length) await adjuntar("limpieza-pendiente", { body: `${marca}\n${errores.join("\n")}`, contentType: "text/plain" });
+      if (falloEscenario || testInfo.status !== testInfo.expectedStatus || errores.length) {
+        await adjuntar("sesion-prueba", {
+          body: JSON.stringify({ marca, mesa: MESA_NUMERO, sesionId: sesionPropia ?? null, intentoAbrir }),
+          contentType: "application/json",
+        });
+      }
       for (const [rol, page] of paginas) {
-        const fallo = testInfo.status !== testInfo.expectedStatus || errores.length > 0;
+        const fallo = falloEscenario || testInfo.status !== testInfo.expectedStatus || errores.length > 0;
         const captura = testInfo.outputPath(`${rol}.png`);
         if (fallo) {
-          await page.screenshot({ path: captura, fullPage: true });
-          await testInfo.attach(`${rol}-captura`, { path: captura, contentType: "image/png" });
+          if (page.isClosed()) {
+            evidencias.push(`Sin captura de ${rol}: la página ya estaba cerrada.`);
+            continue;
+          }
+          try {
+            await page.screenshot({ path: captura, fullPage: true });
+            await adjuntar(`${rol}-captura`, { path: captura, contentType: "image/png" });
+          } catch {
+            evidencias.push(`No se pudo capturar ${rol}; la página o el navegador pudo cerrarse durante la captura.`);
+          }
         }
       }
-      await Promise.all(contextos.map((c) => c.close()));
-      await admin.auth.signOut({ scope: "local" });
-      expect(errores, "La limpieza forma parte de la aceptación E2E").toEqual([]);
+      const cierres = await Promise.allSettled(contextos.map((c) => c.close()));
+      if (cierres.some((c) => c.status === "rejected")) errores.push("No se pudieron cerrar todos los contextos E2E.");
+      try {
+        const { error } = await admin.auth.signOut({ scope: "local" });
+        if (error) errores.push("No se pudo cerrar la autenticación de limpieza E2E.");
+      } catch { errores.push("Falló el cierre de autenticación de limpieza E2E."); }
+      if (evidencias.length) {
+        console.warn(evidencias.join("\n"));
+        await adjuntar("evidencia-no-disponible", { body: evidencias.join("\n"), contentType: "text/plain" });
+      }
+      if (errores.length) {
+        // Si ya falló el escenario, conservar su error principal y añadir el
+        // detalle de limpieza como evidencia, sin reemplazarlo con otra excepción.
+        await adjuntar("resultado-limpieza", { body: `${marca}\n${errores.join("\n")}`, contentType: "text/plain" });
+        if (!falloEscenario && testInfo.status === testInfo.expectedStatus && testInfo.errors.length === 0) {
+          expect(errores, "La limpieza forma parte de la aceptación E2E").toEqual([]);
+        }
+      }
     }
   },
 });
@@ -234,11 +289,17 @@ export async function confirmarYVerificar(page: Page, pedido: EntornoPedido, dob
   await expect.poll(async () => (await pedidosPropios(pedido.admin, pedido.marca)).length).toBe(1);
   const registros = await pedidosPropios(pedido.admin, pedido.marca);
   expect(Number(registros[0].order_number)).toBe(numero);
+  expect(registros[0].status).toBe("IN_PROGRESS");
+  const inicial = await pedido.admin.from("order_status_history").select("to_status")
+    .eq("restaurant_id", RESTAURANTE).eq("order_id", registros[0].id).is("from_status", null).single();
+  expect(inicial.error).toBeNull();
+  expect(inicial.data?.to_status).toBe("IN_PROGRESS");
   expect(registros[0].order_items).toHaveLength(1);
   expect(registros[0].order_items[0].quantity).toBe(1);
   const cocina = await pedido.staff("cocina");
   await expect(cocina.getByRole("heading", { name: `N.º ${numero}`, exact: true })).toBeVisible();
   await expect(cocina.getByText(`Observación: ${pedido.marca}`, { exact: true })).toBeVisible();
+  await expect(cocina.getByRole("button", { name: `Marcar listo el pedido N.º ${numero}`, exact: true })).toBeVisible();
   const mesero = await pedido.staff("mesero");
   await mesero.goto("/mesero");
   await expect(mesero.getByRole("link", { name: `Ver pedido N.º ${numero}`, exact: true }).first()).toBeVisible();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ordenarPorLlegada, agruparPorEstado, filtrarPorEstado, minutosDesde, siguienteEstadoCocina, textoBotonCocina } from "../../src/features/cocina/cocina-logica";
+import { ordenarPorLlegada, agruparPorEstado, filtrarPorEstado, minutosDesde, siguienteEstadoCocina, textoBotonCocina, puedeDeshacerListo } from "../../src/features/cocina/cocina-logica";
 import type { PedidoCocina } from "../../src/features/cocina/tipos";
 
 
@@ -16,20 +16,29 @@ const pedidos = [pedido("nuevo", "PENDING", 20), pedido("preparacion", "IN_PROGR
 
 describe("avance de preparación US-016", () => {
   it.each([
-    ["PENDING", "ACCEPTED"], ["ACCEPTED", "IN_PROGRESS"], ["IN_PROGRESS", "READY"],
-    ["READY", null], ["DELIVERED", null], ["CANCELLED", null],
+    ["PENDING", null], ["ACCEPTED", null], ["IN_PROGRESS", "READY"],
+    ["READY", "IN_PROGRESS"], ["DELIVERED", null], ["CANCELLED", null],
   ] as const)("el siguiente estado de %s es %s", (estado, siguiente) => {
     expect(siguienteEstadoCocina(estado)).toBe(siguiente);
   });
   it.each([
-    ["PENDING", "Aceptar pedido"], ["ACCEPTED", "Empezar preparación"], ["IN_PROGRESS", "Marcar listo"],
-    ["READY", null], ["DELIVERED", null], ["CANCELLED", null],
+    ["PENDING", null], ["ACCEPTED", null], ["IN_PROGRESS", "Marcar listo"],
+    ["READY", "Deshacer"], ["DELIVERED", null], ["CANCELLED", null],
   ] as const)("el botón de %s muestra %s", (estado, texto) => {
     expect(textoBotonCocina(estado)).toBe(texto);
   });
 });
 
 describe("orden y agrupación", () => {
+  it("mantiene FIFO entre pedidos que entran directamente en preparación", () => {
+    const nuevos = [pedido("tercero", "IN_PROGRESS", 3), pedido("primero", "IN_PROGRESS", 1), pedido("segundo", "IN_PROGRESS", 2)];
+    expect(filtrarPorEstado(nuevos, "IN_PROGRESS").map((p) => p.id)).toEqual(["primero", "segundo", "tercero"]);
+  });
+  it("desempata fechas iguales por el número de llegada del pedido", () => {
+    const primero = pedido("primero", "IN_PROGRESS", 1);
+    const segundo = { ...primero, id: "segundo", numero: primero.numero + 1 };
+    expect(ordenarPorLlegada([segundo, primero]).map((p) => p.id)).toEqual(["primero", "segundo"]);
+  });
   it("ordena por llegada sin modificar la entrada", () => {
     const original = [...pedidos];
     expect(ordenarPorLlegada(pedidos).map((p) => p.id)).toEqual(["entregado", "antiguo", "cancelado", "aceptado", "listo", "preparacion", "nuevo"]);
@@ -49,6 +58,25 @@ describe("orden y agrupación", () => {
     const primero = { ...pedidos[0], id: "primero", creadoEn: "2026-10-31T10:00:00-05:00" };
     const segundo = { ...pedidos[0], id: "segundo", creadoEn: "2026-10-31T15:01:00Z" };
     expect(ordenarPorLlegada([segundo, primero]).map((p) => p.id)).toEqual(["primero", "segundo"]);
+  });
+});
+
+describe("plazo de Deshacer US-069", () => {
+  const listoEn = "2026-11-09T15:00:00Z";
+  it.each([
+    ["2026-11-09T15:00:00Z", true],
+    ["2026-11-09T15:04:59.999Z", true],
+    ["2026-11-09T15:05:00Z", true],
+    ["2026-11-09T15:05:00.001Z", false],
+    ["2026-11-09T14:59:59Z", false],
+    ["invalido", false],
+  ])("evalúa el instante %s", (ahora, esperado) => {
+    expect(puedeDeshacerListo(listoEn, ahora)).toBe(esperado);
+  });
+  it("no permite deshacer sin una fecha válida", () => {
+    expect(puedeDeshacerListo(null, Date.now())).toBe(false);
+    expect(puedeDeshacerListo(undefined, Date.now())).toBe(false);
+    expect(puedeDeshacerListo("invalida", Date.now())).toBe(false);
   });
 });
 
@@ -97,7 +125,7 @@ import { obtenerPanelCocina } from "../../src/features/cocina/actions";
 const restauranteId = "restaurante-cocina";
 const base = {
   id: "pedido-1", restaurant_id: restauranteId, order_number: 42,
-  created_at: "2026-10-31T15:00:00Z", status: "PENDING", modality: "DINE_IN", source: "QR",
+  created_at: "2026-10-31T15:00:00Z", status: "IN_PROGRESS", modality: "DINE_IN", source: "QR",
   customer_name: null, dining_tables: { number: 3 },
   order_items: [{ product_name: "Ceviche", quantity: 2, observation: "Sin ají" }],
   order_incidents: [],
@@ -139,7 +167,7 @@ describe("lectura de cocina", () => {
   it("usa sesión, filtra restaurante y estados compartidos y ordena por llegada", async () => {
     const cliente = consulta();
     expect(await listarPedidosCocina(restauranteId)).toEqual([{
-      id: "pedido-1", numero: 42, creadoEn: base.created_at, estado: "PENDING", modalidad: "DINE_IN",
+      id: "pedido-1", numero: 42, creadoEn: base.created_at, estado: "IN_PROGRESS", modalidad: "DINE_IN",
       asistido: false, mesaNumero: 3, nombreCliente: null,
       items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }],
       incidenciasAbiertas: [],
@@ -147,8 +175,9 @@ describe("lectura de cocina", () => {
     expect(cliente.from).toHaveBeenCalledWith("orders");
     expect(cliente.eq).toHaveBeenCalledExactlyOnceWith("restaurant_id", restauranteId);
     expect(cliente.in).toHaveBeenCalledExactlyOnceWith("status", ESTADOS_ACTIVOS);
-    expect(cliente.order).toHaveBeenCalledExactlyOnceWith("created_at", { ascending: true });
-    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)");
+    expect(cliente.order).toHaveBeenCalledWith("created_at", { ascending: true });
+    expect(cliente.order).toHaveBeenCalledWith("order_number", { ascending: true });
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)");
   });
 
   it("un error no se confunde con una lista vacía y registra únicamente el código", async () => {
