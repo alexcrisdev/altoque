@@ -12,6 +12,7 @@ import {
   consultarVentasAction,
   consultarTendenciasAction,
 } from "@/features/dashboard/actions";
+import { MapaCalorPanel } from "@/features/dashboard/mapa-calor-panel";
 import { ESTADOS_TENDENCIAS } from "@/features/dashboard/tendencias-logica";
 import {
   ETIQUETA_ESTADO,
@@ -396,6 +397,12 @@ async function ContenidoReportes({
           </div>
         </Tarjeta>
       </section>
+
+      <MapaCalorPanel
+        key={`${desde}:${hasta}`}
+        desde={desde}
+        hasta={hasta}
+      />
     </div>
   );
 }
