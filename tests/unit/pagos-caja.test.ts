@@ -17,6 +17,8 @@ vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() }));
 vi.mock("../../src/features/auth/sesion", () => ({ obtenerSesion: vi.fn() }));
+vi.mock("../../src/features/pago-cierre/aviso-n8n", () => ({ programarAvisoPago: vi.fn() }));
+import { programarAvisoPago } from "../../src/features/pago-cierre/aviso-n8n";
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { obtenerSesion } from "../../src/features/auth/sesion";
 import {
@@ -314,5 +316,43 @@ describe("acción de pago con tarjeta US-024", () => {
     expect(await registrarPagoTarjetaAction(mesa, "10", "004512", true, clave)).toEqual({
       ok: false, mensaje: mensajeErrorPago("AMOUNT_EXCEEDS_BALANCE"),
     });
+  });
+});
+
+describe("aviso a n8n solo con pagos confirmados US-086", () => {
+  it("efectivo confirmado avisa con el id del pago", async () => {
+    sesionCon("CASHIER");
+    clienteConRpc({ data: { pago_id: "p1", estado: "CONFIRMED", vuelto: 0 }, error: null });
+    await registrarPagoEfectivoAction(mesa, "10", "10", clave);
+    expect(programarAvisoPago).toHaveBeenCalledExactlyOnceWith("p1");
+  });
+
+  it("tarjeta aprobada avisa; tarjeta rechazada no", async () => {
+    sesionCon("CASHIER");
+    clienteConRpc({ data: { pago_id: "p1", estado: "CONFIRMED", vuelto: null }, error: null });
+    await registrarPagoTarjetaAction(mesa, "10", "004512", true, clave);
+    clienteConRpc({ data: { pago_id: "p2", estado: "FAILED", vuelto: null }, error: null });
+    await registrarPagoTarjetaAction(mesa, "10", "004512", false, clave);
+    expect(programarAvisoPago).toHaveBeenCalledExactlyOnceWith("p1");
+  });
+
+  it("Yape registrado (por verificar) no avisa; Yape confirmado por caja sí", async () => {
+    sesionCon("CASHIER");
+    clienteConRpc({ data: { pago_id: "p3", estado: "PENDING", vuelto: null }, error: null });
+    await registrarPagoYapeAction(mesa, "10", "123456", clave);
+    expect(programarAvisoPago).not.toHaveBeenCalled();
+
+    vi.mocked(crearClienteServidor).mockResolvedValue({ rpc: vi.fn().mockResolvedValue({ data: "CONFIRMED", error: null }) } as never);
+    await verificarPagoAction(mesa, clave, true);
+    expect(programarAvisoPago).toHaveBeenCalledExactlyOnceWith(clave);
+  });
+
+  it("Yape rechazado o error de la base no avisa", async () => {
+    sesionCon("CASHIER");
+    vi.mocked(crearClienteServidor).mockResolvedValue({ rpc: vi.fn().mockResolvedValue({ data: "FAILED", error: null }) } as never);
+    await verificarPagoAction(mesa, clave, false);
+    clienteConRpc({ data: null, error: { message: "AMOUNT_EXCEEDS_BALANCE" } });
+    await registrarPagoEfectivoAction(mesa, "10", "10", clave);
+    expect(programarAvisoPago).not.toHaveBeenCalled();
   });
 });
