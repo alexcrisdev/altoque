@@ -1,0 +1,62 @@
+US-086 — AlToque avisa a n8n por webhook al confirmar un pago
+Responsable: Alexander. Verificado el 11/11/2026 (America/Lima) junto con Erick (n8n de US-071).
+n8n 2.46.7 en Docker + filtro nginx + Cloudflare Quick Tunnel en la PC de Erick.
+AlToque local (npm run dev) contra Supabase altoque-dev. No se incluyen el secreto ni la URL del túnel.
+
+Cómo funciona
+1. Un pago queda CONFIRMED (efectivo, tarjeta aprobada, Yape confirmado por caja o Stripe).
+2. Después de responder (after() de Next.js), el servidor lee el pago con sus platos y arma el
+   aviso con datos mínimos.
+3. Lo firma con HMAC-SHA256 de "<timestamp>.<cuerpo>" y el secreto compartido
+   (N8N_WEBHOOK_SECRET) y hace POST a N8N_WEBHOOK_URL (5 s máximo, sin redirecciones).
+4. n8n (flujo infra/n8n/flujos/aviso-pago-confirmado.json) verifica hora, firma y contenido;
+   responde 200 o 401.
+
+Criterios de aceptación y resultado
+1. POST a N8N_WEBHOOK_URL al confirmar pagos en efectivo, tarjeta, Yape verificado y Stripe
+   -> Prueba real 11/11 15:49: cuenta completa de Mesa 3 (Cevichería Demo) desde la app local,
+      con la prueba E2E de pago y cierre (US-030) apuntando a Mesa 3. Pagos de S/ 1.50:
+        YAPE rechazado    -> sin aviso
+        YAPE confirmado   -> aviso
+        CARD rechazado    -> sin aviso
+        CARD aprobado     -> aviso
+        CASH parcial      -> aviso
+        CASH resto        -> aviso
+      Resultado: 4 ejecuciones en n8n por «Aviso aceptado» (confirmado por Erick en Executions);
+      ningún error [n8n] en el log del servidor. Cuenta cerrada ORDINARY con saldo 0.
+   -> Stripe: pruebas unitarias (tests/unit/webhook-stripe.test.ts): avisa solo cuando el pago
+      es nuevo; un reenvío de Stripe del mismo pago no avisa.
+2. Firmado con HMAC; n8n rechaza firmas inválidas
+   -> Prueba real contra el túnel con un aviso ficticio (restaurante «PRUEBA US-086», mesa 99,
+      S/ 1.00; no toca la base):
+        aviso válido              -> 200 {"ok":true,"duplicado":false}
+        el mismo aviso repetido   -> 200 {"ok":true,"duplicado":true}
+        firma falsa               -> 401 {"ok":false,"mensaje":"Aviso no autorizado"}
+        aviso de hace 10 minutos  -> 401 {"ok":false,"mensaje":"Aviso no autorizado"}
+   -> El túnel solo expone la ruta del aviso:
+        GET  /webhook/altoque-pago-confirmado       -> 403
+        GET  /  y  GET /rest/settings               -> 404
+        POST /webhook-test/altoque-pago-confirmado  -> 404
+3. Datos mínimos: restaurante, cuenta, monto, método, fecha y platos; sin teléfonos ni claves
+   -> construirAvisoPago (src/features/pago-cierre/aviso-n8n-logica.ts). Prueba unitaria:
+      el aviso no contiene teléfono, cliente, observaciones, referencias ni datos de Stripe.
+   -> En n8n, la ejecución real muestra restaurante, mesa 3, monto 1.50, método y platos.
+4. Si n8n falla, el pago se guarda igual y el error queda en el log
+   -> El aviso sale después de responder y nunca lanza error. Pruebas unitarias: n8n responde
+      401, no responde en 5 s o falla la red -> devuelve false y deja «[n8n] ...» en el log
+      sin el secreto. Sin N8N_WEBHOOK_URL/N8N_WEBHOOK_SECRET el aviso está apagado.
+5. Pruebas unitarias de firma y contenido
+   -> tests/unit/aviso-n8n.test.ts (17), más casos en pagos-caja.test.ts y
+      webhook-stripe.test.ts (qué pagos avisan). npm test: 43 archivos, 756 pruebas OK.
+      npm run lint, npm run typecheck y npm run build OK.
+
+Configuración usada (ver docs/automatizacion/aviso-pago.md)
+- n8n: docker-compose con NODE_FUNCTION_ALLOW_BUILTIN=crypto; nginx publica
+  /webhook/altoque-pago-confirmado (solo POST, 60 por minuto por IP).
+- Secreto de 64 caracteres hex generado sin mostrarse. El de esta prueba se descarta:
+  para staging/producción se genera uno nuevo y se guarda en Vercel como Secret.
+
+Pendiente fuera de esta HU
+- Configurar N8N_WEBHOOK_URL y N8N_WEBHOOK_SECRET en Vercel cuando se defina la PC que
+  tendrá n8n en la demo (la URL del Quick Tunnel cambia al reiniciarlo).
+- US-088 (boleta) y US-089 (resumen) se conectan después del nodo «Siguiente paso».
