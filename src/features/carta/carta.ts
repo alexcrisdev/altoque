@@ -1,5 +1,6 @@
 ﻿import "server-only";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
+import { fechaActualLima } from "./validar-stock";
 import type { Categoria, Producto } from "./tipos";
 
 export async function obtenerCarta(restauranteId: string): Promise<{
@@ -8,7 +9,7 @@ export async function obtenerCarta(restauranteId: string): Promise<{
 }> {
   try {
     const supabase = crearClienteAdmin();
-    const [categorias, productos] = await Promise.all([
+    const [categorias, productos, existencias] = await Promise.all([
       supabase
         .from("categories")
         .select("id, name")
@@ -24,17 +25,29 @@ export async function obtenerCarta(restauranteId: string): Promise<{
         .eq("active", true)
         .order("name")
         .returns<Producto[]>(),
+      supabase
+        .from("product_daily_stock")
+        .select("product_id, quantity, sold")
+        .eq("restaurant_id", restauranteId)
+        .eq("stock_date", fechaActualLima()),
     ]);
 
-    if (categorias.error || productos.error) {
-      throw categorias.error ?? productos.error;
+    if (categorias.error || productos.error || existencias.error) {
+      throw categorias.error ?? productos.error ?? existencias.error;
     }
 
+    const stockPorProducto = new Map(
+      (existencias.data ?? []).map((fila) => [fila.product_id, fila]),
+    );
     return {
       categorias: categorias.data ?? [],
       productos: (productos.data ?? []).map((producto) => ({
         ...producto,
         price: Number(producto.price),
+        available: producto.available && (() => {
+          const stock = stockPorProducto.get(producto.id);
+          return !stock || stock.sold < stock.quantity;
+        })(),
       })),
     };
   } catch (error) {

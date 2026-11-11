@@ -103,6 +103,6 @@ export async function registrarPedidoAsistidoAction(
   }
 
   const resultado = await guardarPedidoAsistido(restauranteId, clave, datos, validacion.lineas);
-  if (!resultado.ok) return { ok: false, mensaje: mensajeRechazo(resultado.motivo) };
+  if (!resultado.ok) return { ok: false, mensaje: resultado.mensaje ?? mensajeRechazo(resultado.motivo) };
   return { ok: true, numero: resultado.numero };
 }
