@@ -33,12 +33,13 @@ personal en otra ventana. Sin capturas, por acuerdo del equipo.
 |---|---|---|---|---|
 | En mesa (Cevichería Demo, Mesa 3) | N.º 626 | Pedido desde el QR de la mesa, «Activar sonido del aviso», cocina lo pasa a Listo | Sin recargar apareció «Tu pedido está listo, el mesero te lo lleva» en ~5 s; sonó un pitido una sola vez y no se repitió en los refrescos siguientes | APROBADO |
 | Para llevar (Pollería Demo, mostrador) | N.º 627 | Pedido desde el QR del mostrador, «Activar sonido del aviso», cocina lo pasa a Listo | Apareció el aviso grande «Recógelo en el mostrador» con el pedido en «Listo»; sonó un pitido una sola vez | APROBADO |
+| En mesa desde un celular (iPhone, Mesa 3) | N.º 640 | Mismo recorrido abriendo el QR en el iPhone | Apareció «Tu pedido está listo, el mesero te lo lleva» y sonó el pitido. No vibró: iOS no permite vibrar a las páginas web, y el criterio pide vibración solo «si el navegador lo permite» | APROBADO |
 
 Notas:
 - El QR de la Mesa 3 y el del mostrador de la Pollería se generaron para esta
   prueba. No se tocaron la Mesa 5 ni el mostrador de la Cevichería (los usa el E2E).
-- La vibración no se comprobó en un celular; está cubierta por las pruebas
-  unitarias y depende del navegador.
+- Vibración: en iPhone no está disponible para páginas web (limitación de iOS).
+  En Android con Chrome el código la llama; está cubierta por las pruebas unitarias.
 
 ## Cobertura de US-070
 
