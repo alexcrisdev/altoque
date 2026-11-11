@@ -1,5 +1,6 @@
 import { crearClienteStripe } from "../../../../features/pago-cierre/stripe";
 import { procesarEventoStripe } from "../../../../features/pago-cierre/webhook-stripe";
+import { programarAvisoPago } from "../../../../features/pago-cierre/aviso-n8n";
 
 // US-076: Stripe avisa aquí cuando un pago se completa. Solo se acepta si la
 // firma (cabecera stripe-signature) es válida con STRIPE_WEBHOOK_SECRET.
@@ -25,6 +26,8 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const respuesta = await procesarEventoStripe(evento);
+    // US-086: avisa a n8n después de responder a Stripe (no retrasa el 200).
+    if (respuesta.pagoNuevo) programarAvisoPago(respuesta.pagoNuevo);
     return Response.json({ recibido: true, detalle: respuesta.detalle }, { status: respuesta.estado });
   } catch {
     console.error(`[stripe] error procesando ${evento.id}`);

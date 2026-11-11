@@ -6,7 +6,8 @@ import { EVENTOS_PAGO_STRIPE, interpretarSesionPagada, type SesionCheckoutRecibi
 
 // US-076: qué hacer con un evento de Stripe YA VERIFICADO (firma correcta).
 // Respuestas: 200 = Stripe no reintenta; 500 = Stripe reintenta más tarde.
-export type RespuestaWebhook = { estado: 200 | 500; detalle: string };
+// pagoNuevo: id del pago recién registrado (US-086 avisa a n8n solo en ese caso).
+export type RespuestaWebhook = { estado: 200 | 500; detalle: string; pagoNuevo?: string };
 
 // Errores de negocio: reintentar no los arregla. Stripe ya cobró, así que se
 // deja en el log para devolver el dinero desde el dashboard de Stripe.
@@ -28,7 +29,9 @@ export async function procesarEventoStripe(evento: Pick<Stripe.Event, "id" | "ty
 
   const resultado = await registrarPagoStripe(datos);
   if (resultado.ok) {
-    return { estado: 200, detalle: resultado.duplicado ? "ya registrado" : "registrado" };
+    return resultado.duplicado
+      ? { estado: 200, detalle: "ya registrado" }
+      : { estado: 200, detalle: "registrado", pagoNuevo: resultado.pagoId };
   }
   if (REQUIEREN_REEMBOLSO.has(resultado.codigo)) {
     console.error(`[stripe] REQUIERE REEMBOLSO: ${datos.sesionStripe} (${datos.intentoPago}) -> ${resultado.codigo}`);
