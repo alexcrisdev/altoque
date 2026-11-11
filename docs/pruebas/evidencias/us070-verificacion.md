@@ -23,6 +23,23 @@ Los 5 segundos corresponden al temporizador de consulta; la respuesta también
 depende de la red y del servidor. El componente existente pausa la consulta con
 la pestaña oculta o sin conexión y evita superponer consultas pendientes.
 
+## Prueba real del recorrido (10/11/2026)
+
+Ejecutada por Alexander en el Preview de Vercel de la rama `dev/veronica`
+(conectado a `altoque-dev`), con el cliente en una ventana de incógnito y el
+personal en otra ventana. Sin capturas, por acuerdo del equipo.
+
+| Caso | Pedido | Pasos | Resultado | Estado |
+|---|---|---|---|---|
+| En mesa (Cevichería Demo, Mesa 3) | N.º 626 | Pedido desde el QR de la mesa, «Activar sonido del aviso», cocina lo pasa a Listo | Sin recargar apareció «Tu pedido está listo, el mesero te lo lleva» en ~5 s; sonó un pitido una sola vez y no se repitió en los refrescos siguientes | APROBADO |
+| Para llevar (Pollería Demo, mostrador) | N.º 627 | Pedido desde el QR del mostrador, «Activar sonido del aviso», cocina lo pasa a Listo | Apareció el aviso grande «Recógelo en el mostrador» con el pedido en «Listo»; sonó un pitido una sola vez | APROBADO |
+
+Notas:
+- El QR de la Mesa 3 y el del mostrador de la Pollería se generaron para esta
+  prueba. No se tocaron la Mesa 5 ni el mostrador de la Cevichería (los usa el E2E).
+- La vibración no se comprobó en un celular; está cubierta por las pruebas
+  unitarias y depende del navegador.
+
 ## Cobertura de US-070
 
 - `tests/unit/estado-cliente.test.ts`: mensajes exactos READY para DINE_IN y
@@ -49,14 +66,7 @@ migraciones ni políticas RLS; no se ejecutaron pruebas contra la base compartid
 
 ## Pendientes
 
-1. Autorizar y ejecutar el recorrido con dos pedidos demo propios: confirmar
-   desde QR, abrir seguimiento y cambiar a READY desde la cuenta demo de cocina.
-2. Capturar los dos avisos reales y guardar las imágenes en esta carpeta.
-3. Comprobar que no se repite la notificación en sucesivos refrescos y tras un
-   error temporal de consulta en navegador.
-4. Comprobar audio tras pulsar «Activar sonido del aviso» y vibración en un
-   dispositivo compatible; comprobar restricciones en Android/iOS.
-5. Aprobar los commits antes de crearlos. No se hizo push ni se creó un PR.
-
-No existe una fila US-070 en `docs/pruebas/matriz-trazabilidad.md`; la matriz se
-conservó intacta según el alcance acordado.
+- Vibración en un celular Android real (opcional; el código ya la llama si el
+  navegador lo permite).
+- No existe una fila US-070 en `docs/pruebas/matriz-trazabilidad.md`; la matriz
+  se conservó intacta.
