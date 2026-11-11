@@ -12,13 +12,14 @@ import {
   type PedidoCliente,
 } from "@/features/pedidos/estado-cliente-servidor";
 import {
-  MENSAJE_ESTADO_CLIENTE,
   pasoDelPedido,
 } from "@/features/pedidos/estado-cliente";
 import {
   ETIQUETA_ESTADO,
   TONO_ESTADO,
 } from "@/features/pedidos/estados";
+import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
+import { AvisoEstadoCliente } from "@/features/pedidos/aviso-estado-cliente";
 
 export const metadata: Metadata = {
   title: "Estado de mi pedido | AlToque",
@@ -33,9 +34,10 @@ type Props = {
     token: string;
     clave: string;
   }>;
+  searchParams: Promise<{ [clave: string]: string | string[] | undefined }>;
 };
 
-export default function PaginaEstadoPedido({ params }: Props) {
+export default function PaginaEstadoPedido({ params, searchParams }: Props) {
   return (
     <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-6 sm:px-6">
       <h1 className="text-2xl font-bold text-texto">
@@ -50,14 +52,15 @@ export default function PaginaEstadoPedido({ params }: Props) {
           />
         }
       >
-        <ContenidoPedido params={params} />
+        <ContenidoPedido params={params} searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function ContenidoPedido({ params }: Props) {
+async function ContenidoPedido({ params, searchParams }: Props) {
   const { token, clave } = await params;
+  const { pago, sesion } = await searchParams;
 
   let pedido: PedidoCliente | null = null;
   let falloConsulta = false;
@@ -72,7 +75,15 @@ async function ContenidoPedido({ params }: Props) {
   return (
     <section className="space-y-4">
       {/* También reintenta cuando falla la consulta al servidor. */}
-      <ActualizacionAutomatica segundos={10} />
+      <ActualizacionAutomatica segundos={5} />
+
+      {/* Permanece montado durante errores transitorios para conservar el audio
+          habilitado y recordar que este pedido ya fue notificado. */}
+      <AvisoEstadoCliente
+        key={`${token}/${clave}`}
+        estado={pedido?.estado ?? null}
+        modalidad={pedido?.modalidad ?? "DINE_IN"}
+      />
 
       {falloConsulta ? (
         <MensajeEstado
@@ -81,7 +92,11 @@ async function ContenidoPedido({ params }: Props) {
           descripcion="Conserva esta página abierta. Volveremos a consultar automáticamente."
         />
       ) : pedido ? (
-        <ResumenPedido pedido={pedido} />
+        <>
+          <ResumenPedido key={clave} pedido={pedido} />
+          {/* US-076: pago con tarjeta online del pedido para llevar. */}
+          {pedido.modalidad === "TAKEAWAY" && <CuentaCliente token={token} clave={clave} pago={pago} sesion={sesion} />}
+        </>
       ) : (
         <MensajeEstado
           tipo="error"
@@ -123,11 +138,6 @@ function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
         </Insignia>
       </div>
 
-      <div role="status" aria-atomic="true">
-        <p className="text-xl font-semibold text-texto">
-          {MENSAJE_ESTADO_CLIENTE[pedido.estado]}
-        </p>
-      </div>
 
       <p className="text-sm text-texto-suave">
         {pedido.modalidad === "TAKEAWAY"

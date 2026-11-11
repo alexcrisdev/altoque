@@ -24,13 +24,12 @@ export const TONO_ESTADO: Record<EstadoPedido, TonoEstado> = {
 export const ESTADOS_ACTIVOS: EstadoPedido[] = ["PENDING", "ACCEPTED", "IN_PROGRESS", "READY"];
 
 const rolesPorTransicion: Partial<Record<`${EstadoPedido}:${EstadoPedido}`, Rol[]>> = {
-  "PENDING:ACCEPTED": ["KITCHEN", "OWNER", "ADMIN"],
-  "ACCEPTED:IN_PROGRESS": ["KITCHEN", "OWNER", "ADMIN"],
+  "READY:IN_PROGRESS": ["KITCHEN", "OWNER", "ADMIN"],
   "IN_PROGRESS:READY": ["KITCHEN", "OWNER", "ADMIN"],
   "READY:DELIVERED": ["WAITER", "OWNER", "ADMIN"],
   "PENDING:CANCELLED": ["WAITER", "OWNER", "ADMIN"],
   "ACCEPTED:CANCELLED": ["WAITER", "OWNER", "ADMIN"],
-  "IN_PROGRESS:CANCELLED": ["OWNER", "ADMIN"],
+  "IN_PROGRESS:CANCELLED": ["WAITER", "OWNER", "ADMIN"],
 };
 
 export function puedeCambiarEstado(desde: EstadoPedido, hacia: EstadoPedido, roles: Rol[]): boolean {
@@ -44,6 +43,7 @@ export function requiereMotivo(hacia: EstadoPedido): boolean {
 
 export function mensajeErrorEstado(codigo: string): string {
   const mensajes: Record<string, string> = {
+    UNDO_EXPIRED: "Ya pasaron los cinco minutos para deshacer. El pedido sigue listo.",
     ORDER_NOT_FOUND: "No encontramos ese pedido.",
     INVALID_TRANSITION: "Ese cambio de estado no está permitido.",
     FORBIDDEN: "No tienes permiso para cambiar el estado de este pedido.",

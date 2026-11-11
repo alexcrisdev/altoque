@@ -55,14 +55,16 @@ async function MeseroPanel() {
       <BotonEnlace href="/mesero" variante="secundario">Actualizar panel</BotonEnlace>
     </div>
 
-    <AlertasMesero key={resultado.restauranteId}
-      pedidos={resultado.ok ? pedidos.filter((pedido) => pedido.estado === "PENDING") : null}
+    <AlertasMesero key={`alertas-${resultado.restauranteId}`}
+      restauranteId={resultado.restauranteId}
+      mesas={mesas.map(({ id, numero }) => ({ id, numero }))}
+      pedidos={resultado.ok ? pedidos : null}
       solicitudes={resultado.ok ? resultado.solicitudes : null}
       actualizadoEn={resultado.ok ? resultado.actualizadoEn : null}
       errorSolicitudes={!resultado.ok || resultado.errorSolicitudes}
       error={!resultado.ok} />
 
-    <ContenidoConservado key={resultado.restauranteId}
+    <ContenidoConservado key={`contenido-${resultado.restauranteId}`}
       actualizadoEn={resultado.ok ? resultado.actualizadoEn : null} error={!resultado.ok}>
     {!resultado.ok ? <div className="mt-6"><MensajeEstado tipo="error" titulo="No pudimos cargar las mesas y los pedidos"
       descripcion="Revisa tu conexión. Volveremos a intentarlo automáticamente cada 10 segundos o puedes actualizar el panel." /></div> : <>

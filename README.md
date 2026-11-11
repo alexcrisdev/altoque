@@ -84,6 +84,7 @@ Las claves de desarrollo van en `.env.local`. Las de staging y producción se co
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | Levanta el proyecto en desarrollo |
+| `npm run demo:abrir` | Abre cinco ventanas independientes: mesero, cocina, caja, admin y cliente con QR |
 | `npm run build` | Compila para producción |
 | `npm run lint` | Revisa errores de código |
 | `npm run typecheck` | Genera los tipos de Next.js y verifica TypeScript |
@@ -91,6 +92,39 @@ Las claves de desarrollo van en `.env.local`. Las de staging y producción se co
 | `npm run test:rls` | Ejecuta las pruebas de aislamiento en Supabase; requiere preparar los datos y usuarios demo |
 | `npm run test:cobertura` | Ejecuta las unitarias con cobertura V8 y muestra el reporte |
 | `npm run smoke -- <url>` | Comprueba una URL publicada: páginas, login, rutas protegidas y cabeceras de seguridad |
+
+### Abrir el entorno demo con todos los roles (US-072)
+
+Usar únicamente con usuarios y datos de prueba ya preparados. Requiere Node.js 22,
+las dependencias del proyecto y Chromium de Playwright (`npx playwright install chromium`
+si todavía no está instalado). No requiere librerías nuevas.
+
+1. Configurar en `.env.local` las variables `DEMO_PASSWORD`,
+   `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+2. Configurar `E2E_MESA_TOKEN` con el token vigente de una mesa demo, sin el prefijo
+   `/m/`. También se puede usar `E2E_MOSTRADOR_TOKEN` si no se configura el de mesa.
+   Si ambos están vacíos, se intenta el QR original del seed `demo-mesa-1`.
+3. Ejecutar `npm run dev` en una terminal y esperar a que la aplicación esté lista.
+4. En otra terminal, ejecutar `npm run demo:abrir`.
+
+El comando abre cinco ventanas de Chromium: mesero (`/mesero`), cocina (`/cocina`),
+caja (`/caja`), admin (`/admin`) y cliente (`/m/<token>`). Cada ventana tiene su
+propia sesión; cambiar o cerrar sesión en una no afecta las otras. Mantener la
+terminal abierta; `Ctrl+C` cierra las ventanas del comando. También se pueden cerrar
+individualmente. Para otra URL de pruebas, configurar `E2E_BASE_URL` en `.env.local`;
+el valor predeterminado es `http://localhost:3000`.
+
+La autenticación reutiliza la misma función que exporta `tests/e2e/ayuda.ts` mediante
+`tests/e2e/sesion-demo.mjs`. Las contraseñas y cookies permanecen en memoria; no se
+guardan archivos de sesión. El comando solo inicia sesión y abre pantallas: no crea
+usuarios, abre mesas, confirma pedidos ni registra pagos. El proveedor de Auth puede
+registrar el inicio de sesión habitual; no se escriben datos del restaurante.
+
+Si falta `DEMO_PASSWORD`, falla un login o la app no está disponible, se muestra un
+mensaje con la configuración que hay que revisar y se cierran las ventanas abiertas
+por el intento. Si el QR fue anulado, actualizar su token local; el comando no lo
+regenera ni habilita mesas. Los cambios que hagas manualmente después en las ventanas
+sí usan las funciones normales de la aplicación.
 
 ## Base de datos
 

@@ -4,8 +4,8 @@ import type { Rol } from "../../src/features/auth/permisos";
 
 describe("transiciones de estado de pedido", () => {
   const validas: [EstadoPedido, EstadoPedido, Rol[]][] = [
-    ["PENDING", "ACCEPTED", ["KITCHEN"]],
-    ["ACCEPTED", "IN_PROGRESS", ["ADMIN"]],
+    ["READY", "IN_PROGRESS", ["KITCHEN"]],
+    ["IN_PROGRESS", "CANCELLED", ["WAITER"]],
     ["IN_PROGRESS", "READY", ["OWNER"]],
     ["READY", "DELIVERED", ["WAITER"]],
     ["PENDING", "CANCELLED", ["WAITER"]],

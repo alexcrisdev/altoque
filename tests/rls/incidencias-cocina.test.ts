@@ -8,6 +8,7 @@ const restauranteId = "10000000-0000-0000-0000-000000000001";
 let mesero: SupabaseClient | undefined;
 let cocina: SupabaseClient | undefined;
 let polleria: SupabaseClient | undefined;
+let admin: SupabaseClient | undefined;
 let meseroId: string;
 let cocinaId: string;
 let sesionId: string | undefined;
@@ -30,6 +31,7 @@ beforeAll(async () => {
   cocina = personalCocina.cliente;
   cocinaId = personalCocina.usuarioId;
   polleria = (await iniciar("dueno@polleria.demo")).cliente;
+  admin = (await iniciar("admin@demo.altoque.pe")).cliente;
 
   const [mesas, sesiones, productos] = await Promise.all([
     mesero.from("dining_tables").select("id, branch_id").eq("restaurant_id", restauranteId).eq("active", true).order("number"),
@@ -51,16 +53,22 @@ beforeAll(async () => {
   }).single();
   if (registro.error || !registro.data) throw new Error("No se pudo registrar el pedido demo US-017.");
   pedidoId = (registro.data as { pedido_id: string }).pedido_id;
-  const aceptacion = await cocina.rpc("cambiar_estado_pedido", { p_pedido_id: pedidoId, p_estado: "ACCEPTED", p_motivo: null });
-  if (aceptacion.error) throw new Error("No se pudo aceptar el pedido demo US-017.");
 }, 45_000);
 
 afterAll(async () => {
   const errores: string[] = [];
   try {
     if (mesero && pedidoId) {
-      const cancelacion = await mesero.rpc("cambiar_estado_pedido", { p_pedido_id: pedidoId, p_estado: "CANCELLED", p_motivo: "Prueba US-017" });
-      if (cancelacion.error) errores.push(`Cancelación US-017: ${cancelacion.error.code}`);
+      const actual = await mesero.from("orders").select("status").eq("id", pedidoId).eq("restaurant_id", restauranteId).single();
+      if (actual.error) errores.push("No se pudo verificar el pedido US-017 para limpiarlo.");
+      else if (actual.data.status !== "CANCELLED") {
+        if (actual.data.status === "READY" && cocina) {
+          const deshacer = await cocina.rpc("cambiar_estado_pedido", { p_pedido_id: pedidoId, p_estado: "IN_PROGRESS", p_motivo: null });
+          if (deshacer.error) errores.push(`Deshacer para limpieza US-069: ${deshacer.error.code}`);
+        }
+        const cancelacion = await mesero.rpc("cambiar_estado_pedido", { p_pedido_id: pedidoId, p_estado: "CANCELLED", p_motivo: "Prueba US-017" });
+        if (cancelacion.error) errores.push(`Cancelación US-017: ${cancelacion.error.code}`);
+      }
     }
     if (mesero && sesionId) {
       const lectura = await mesero.from("table_sessions").select("opened_at").eq("id", sesionId).eq("restaurant_id", restauranteId).is("closed_at", null).maybeSingle();
@@ -73,11 +81,37 @@ afterAll(async () => {
       }
     }
   } catch { errores.push("Falló la limpieza de US-017; revisar el pedido y la sesión de prueba."); }
-  finally { await Promise.all([mesero?.auth.signOut(), cocina?.auth.signOut(), polleria?.auth.signOut()]); }
+  finally { await Promise.all([mesero?.auth.signOut(), cocina?.auth.signOut(), polleria?.auth.signOut(), admin?.auth.signOut()]); }
   if (errores.length) throw new Error(errores.join("; "));
 }, 30_000);
 
 describe("RLS de incidencias de cocina", () => {
+  it("US-069: empieza en preparación con historial; solo cocina propia marca listo y deshace", async () => {
+    const lectura = await mesero!.from("orders").select("status").eq("id", pedidoId!).eq("restaurant_id", restauranteId).single();
+    expect(lectura.error).toBeNull();
+    expect(lectura.data?.status).toBe("IN_PROGRESS");
+    const inicial = await admin!.from("order_status_history").select("from_status, to_status, changed_by")
+      .eq("restaurant_id", restauranteId).eq("order_id", pedidoId!).is("from_status", null).single();
+    expect(inicial.error).toBeNull();
+    expect(inicial.data).toMatchObject({ from_status: null, to_status: "IN_PROGRESS", changed_by: meseroId });
+    const cambiar = (cliente: SupabaseClient, estado: string, motivo: string | null = null) =>
+      cliente.rpc("cambiar_estado_pedido", { p_pedido_id: pedidoId, p_estado: estado, p_motivo: motivo });
+    expect((await cambiar(polleria!, "READY")).error?.message).toContain("FORBIDDEN");
+    expect((await cambiar(mesero!, "READY")).error?.message).toContain("FORBIDDEN");
+    expect((await cambiar(cocina!, "CANCELLED", "Sin permiso")).error?.message).toContain("FORBIDDEN");
+    expect((await cambiar(cocina!, "READY")).error).toBeNull();
+    expect((await cambiar(polleria!, "IN_PROGRESS")).error?.message).toContain("FORBIDDEN");
+    expect((await cambiar(mesero!, "IN_PROGRESS")).error?.message).toContain("FORBIDDEN");
+    expect((await cambiar(cocina!, "IN_PROGRESS")).error).toBeNull();
+    expect((await cambiar(mesero!, "CANCELLED", "   ")).error?.message).toContain("REASON_REQUIRED");
+    const historial = await admin!.from("order_status_history").select("from_status, to_status, changed_by")
+      .eq("restaurant_id", restauranteId).eq("order_id", pedidoId!).eq("from_status", "READY").single();
+    expect(historial.error).toBeNull();
+    expect(historial.data).toMatchObject({ from_status: "READY", to_status: "IN_PROGRESS", changed_by: cocinaId });
+    const ajeno = await polleria!.from("orders").select("id").eq("id", pedidoId!);
+    expect(ajeno.error).toBeNull();
+    expect(ajeno.data).toEqual([]);
+  }, 30_000);
   it("US-017: cocina registra y resuelve SIN_INGREDIENTES; otro restaurante no la ve ni la gestiona", async () => {
     const registro = await cocina!.rpc("registrar_incidencia", {
       p_pedido_id: pedidoId, p_tipo: "SIN_INGREDIENTES", p_descripcion: "No hay limón",
@@ -104,5 +138,15 @@ describe("RLS de incidencias de cocina", () => {
     expect(resuelta.error).toBeNull();
     expect(resuelta.data).toMatchObject({ status: "RESOLVED", resolved_by: cocinaId });
     expect(resuelta.data?.resolved_at).toBeTruthy();
+  }, 30_000);
+
+  it("US-069: mesero cancela en preparación y deja el motivo en el historial", async () => {
+    const motivo = "US-069: cancelación de prueba por mesero";
+    const resultado = await mesero!.rpc("cambiar_estado_pedido", { p_pedido_id: pedidoId, p_estado: "CANCELLED", p_motivo: motivo });
+    expect(resultado.error).toBeNull();
+    const historial = await admin!.from("order_status_history").select("from_status, to_status, reason, changed_by")
+      .eq("restaurant_id", restauranteId).eq("order_id", pedidoId!).eq("to_status", "CANCELLED").single();
+    expect(historial.error).toBeNull();
+    expect(historial.data).toMatchObject({ from_status: "IN_PROGRESS", to_status: "CANCELLED", reason: motivo, changed_by: meseroId });
   }, 30_000);
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MENSAJE_ESTADO_CLIENTE,
+  mensajeEstadoCliente,
   agregarPedidoGuardado,
   descartarAntiguos,
   pasoDelPedido,
@@ -60,6 +61,21 @@ const estados: Array<{
 ];
 
 describe("mensajes y progreso del pedido", () => {
+  it("avisa que el mesero lleva el pedido listo a la mesa", () => {
+    expect(mensajeEstadoCliente("READY", "DINE_IN")).toBe("Tu pedido está listo, el mesero te lo lleva");
+  });
+
+  it("avisa que el pedido para llevar se recoge en mostrador", () => {
+    expect(mensajeEstadoCliente("READY", "TAKEAWAY")).toBe("Recógelo en el mostrador");
+  });
+
+  it.each(estados.filter(({ estado }) => estado !== "READY"))(
+    "conserva el mensaje de $estado para ambas modalidades",
+    ({ estado, mensaje }) => {
+      expect(mensajeEstadoCliente(estado, "DINE_IN")).toBe(mensaje);
+      expect(mensajeEstadoCliente(estado, "TAKEAWAY")).toBe(mensaje);
+    },
+  );
   it.each(estados)(
     "muestra el mensaje de $estado",
     ({ estado, mensaje }) => {

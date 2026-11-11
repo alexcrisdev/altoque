@@ -25,8 +25,6 @@ export async function entregarPropio(pedido: EntornoPedido) {
   const cocina = await pedido.staff("cocina");
   await cocina.goto("/cocina");
   const transiciones = [
-    { estado: "PENDING", boton: `Aceptar pedido N.º ${p.order_number}` },
-    { estado: "ACCEPTED", boton: `Empezar preparación el pedido N.º ${p.order_number}` },
     { estado: "IN_PROGRESS", boton: `Marcar listo el pedido N.º ${p.order_number}` },
   ];
   for (const paso of transiciones) {

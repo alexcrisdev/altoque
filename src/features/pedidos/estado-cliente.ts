@@ -11,6 +11,18 @@ export const MENSAJE_ESTADO_CLIENTE: Record<EstadoPedido, string> = {
 
 type PasoPedido = 1 | 2 | 3 | 4;
 
+export function mensajeEstadoCliente(
+  estado: EstadoPedido,
+  modalidad: "DINE_IN" | "TAKEAWAY",
+): string {
+  if (estado === "READY") {
+    return modalidad === "TAKEAWAY"
+      ? "Recógelo en el mostrador"
+      : "Tu pedido está listo, el mesero te lo lleva";
+  }
+  return MENSAJE_ESTADO_CLIENTE[estado];
+}
+
 const PASO_ESTADO: Record<EstadoPedido, PasoPedido | null> = {
   PENDING: 1,
   ACCEPTED: 2,

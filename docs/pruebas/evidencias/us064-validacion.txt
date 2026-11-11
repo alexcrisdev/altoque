@@ -1,0 +1,40 @@
+US-064 — Cerrar el registro público de cuentas
+Responsable: Alexander. Cambio hecho el 06/11/2026; verificado el 09/11/2026, 09:11 (America/Lima).
+Proyecto Supabase altoque-dev. No hay cambios de código ni migraciones.
+No se incluyen claves ni tokens.
+
+Objetivo
+Que nadie pueda crearse una cuenta por su cuenta. El personal lo crea solo el restaurante
+(por ahora con scripts/usuarios-demo.mjs, que usa la clave de servidor).
+
+Criterios de aceptación y resultado
+1. En Supabase (Authentication -> Sign In / Providers) se desactiva
+   «Allow new users to sign up»
+   -> Hecho el 06/11/2026. Captura: captura-us064-supabase-signup.png
+2. /auth/v1/settings responde disable_signup = true
+   -> GET /auth/v1/settings -> 200 | disable_signup = true
+3. Un intento de registro con la clave pública es rechazado
+   -> POST /auth/v1/signup (clave pública, correo intruso-us064@example.com)
+      -> 422 | error_code = signup_disabled
+      | msg = "Signups not allowed for this instance"
+   -> Después del intento, la lista de usuarios (clave de servidor) sigue con 6
+      y el correo de prueba no aparece: el intento no creó nada.
+   Captura: captura-us064-registro-rechazado.png
+4. scripts/usuarios-demo.mjs sigue creando usuarios (usa la clave de servidor)
+   -> GET /auth/v1/admin/users con la clave de servidor -> 200 (6 usuarios)
+   -> node --env-file=.env.local scripts/usuarios-demo.mjs
+      -> "Los seis usuarios demo están listos." (código de salida 0)
+   El script crea usuarios con /auth/v1/admin/users. Ese endpoint no depende
+   del registro público, así que no se ve afectado por el cambio.
+5. Evidencia en docs/pruebas/evidencias -> este archivo y sus capturas.
+
+Cómo repetir la prueba
+- Ajustes:  curl -s "$SUPABASE_URL/auth/v1/settings" -H "apikey: $ANON_KEY"
+            (buscar "disable_signup":true)
+- Registro: curl -s -X POST "$SUPABASE_URL/auth/v1/signup" -H "apikey: $ANON_KEY"
+            -H "Content-Type: application/json"
+            -d '{"email":"intruso@example.com","password":"<cualquiera>"}'
+            (debe responder 422 signup_disabled)
+- Script:   node --env-file=.env.local scripts/usuarios-demo.mjs
+
+Resultado: CUMPLE los 5 criterios.
