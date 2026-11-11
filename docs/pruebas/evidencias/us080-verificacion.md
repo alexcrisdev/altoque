@@ -27,7 +27,7 @@ No se consulta Supabase directamente desde el componente del navegador.
 | Verificación | Resultado |
 |---|---|
 | `npm.cmd run lint` | Aprobado |
-| `npm.cmd test` | 767 pruebas aprobadas, 44 archivos |
+| `npm.cmd test` | 773 pruebas aprobadas, 44 archivos |
 | `npx.cmd tsc --noEmit` | Aprobado |
 | `npm.cmd run build` | Aprobado |
 | Playwright local, Edge, 1366×768 | 14 casos aprobados y 1 caso adicional aprobado en una segunda ejecución |
