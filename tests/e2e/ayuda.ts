@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { expect, test as base, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { aceptarDialogoDeAccion } from "./dialogos";
+import { correosDemo as correos, iniciarSesion } from "./sesion-demo.mjs";
+
+export { iniciarSesion } from "./sesion-demo.mjs";
 
 export const RESTAURANTE = "10000000-0000-0000-0000-000000000001";
 export const MESA_NUMERO = Number(process.env.E2E_MESA_NUMERO || 3);
@@ -11,36 +13,12 @@ if (!Number.isInteger(MESA_NUMERO) || MESA_NUMERO < 1 || MESA_NUMERO === 2) {
 }
 export const TOKEN_MESA = process.env.E2E_MESA_TOKEN || `demo-mesa-${MESA_NUMERO}`;
 export const TOKEN_MOSTRADOR = process.env.E2E_MOSTRADOR_TOKEN || "demo-mostrador";
-const correos = {
-  mesero: "mesero@demo.altoque.pe",
-  cocina: "cocina@demo.altoque.pe",
-  caja: "caja@demo.altoque.pe",
-  admin: "admin@demo.altoque.pe",
-  dueno: "dueno@polleria.demo",
-} as const;
 export type RolDemo = keyof typeof correos;
-const destinos: Record<RolDemo, string> = {
-  mesero: "/mesero", cocina: "/cocina", caja: "/caja", admin: "/admin", dueno: "/admin",
-};
 
 function variable(nombre: string) {
   const valor = process.env[nombre];
   if (!valor) throw new Error(`Configura ${nombre} para ejecutar E2E.`);
   return valor;
-}
-
-// Autenticación real de usuarios normales desde Node, fuera de la grabación
-// del navegador. No se guarda contraseña ni estado de autenticación en archivos.
-export async function iniciarSesion(page: Page, rol: RolDemo) {
-  const cookies: { name: string; value: string; options: CookieOptions }[] = [];
-  const cliente = createServerClient(variable("NEXT_PUBLIC_SUPABASE_URL"), variable("NEXT_PUBLIC_SUPABASE_ANON_KEY"), {
-    cookies: { getAll: () => [], setAll: (nuevas) => { cookies.push(...nuevas); } },
-  });
-  const { error } = await cliente.auth.signInWithPassword({ email: correos[rol], password: variable("DEMO_PASSWORD") });
-  if (error) throw new Error(`No se pudo iniciar la sesión demo de ${rol}.`);
-  const origen = new URL(page.url()).origin;
-  await page.context().addCookies(cookies.map(({ name, value }) => ({ name, value, url: origen, sameSite: "Lax" as const })));
-  await page.goto(destinos[rol]);
 }
 
 // Solo lecturas con RLS y un usuario normal: permite encontrar y limpiar
