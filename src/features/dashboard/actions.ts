@@ -22,9 +22,8 @@ export async function consultarVentasAction(
   // Fuera del try: conservamos las redirecciones de acceso.
   const sesion = await requerirRol(["OWNER", "ADMIN"]);
 
-  const membresia = sesion.membresias.find(
-    (m) => m.rol === "OWNER" || m.rol === "ADMIN",
-  );
+  const membresia = sesion.membresias.find((m) => m.rol === "OWNER")
+    ?? sesion.membresias.find((m) => m.rol === "ADMIN");
 
   if (!membresia) {
     return {
