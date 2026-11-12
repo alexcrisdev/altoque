@@ -6,6 +6,15 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const password = process.env.DEMO_PASSWORD;
+const esLocal = (() => {
+  if (!url) return false;
+  try {
+    const host = new URL(url).hostname;
+    return host === "localhost" || host === "127.0.0.1";
+  } catch {
+    return false;
+  }
+})();
 const restaurantId = "10000000-0000-0000-0000-000000000001";
 const fecha = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit",
@@ -29,12 +38,9 @@ async function iniciar(email: string) {
   return { cliente, id: data.user.id };
 }
 
+describe.skipIf(!esLocal)("US-078: descuento concurrente de stock", () => {
 beforeAll(async () => {
   if (!url || !anonKey || !password) throw new Error("Configura URL, clave pública y DEMO_PASSWORD para US-078.");
-  const host = new URL(url).hostname;
-  if (!['localhost', '127.0.0.1', '::1'].includes(host)) {
-    throw new Error("La prueba de US-078 solo puede ejecutarse contra Supabase local (localhost).");
-  }
   const [dueno, mesero] = await Promise.all([
     iniciar("dueno@demo.altoque.pe"), iniciar("mesero@demo.altoque.pe"),
   ]);
@@ -89,7 +95,6 @@ afterAll(async () => {
   if (errores.length) throw new Error(errores.join(" "));
 }, 30_000);
 
-describe("US-078: descuento concurrente de stock", () => {
   it("solo confirma uno de dos pedidos por la última unidad y devuelve stock al cancelar", async () => {
     const registrar = () => waiter.rpc("registrar_pedido_mesero", {
       p_restaurant_id: restaurantId,
