@@ -23,6 +23,7 @@ import {
   type TipoCierre,
 } from "./cierre-logica";
 import { cerrarCuenta } from "./cierres";
+import { programarAvisoPago } from "./aviso-n8n";
 
 export type RespuestaPago =
   | { ok: true; vueltoCentimos: number }
@@ -64,6 +65,8 @@ export async function registrarPagoEfectivoAction(
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
 
   refrescarCaja(cuenta);
+  // US-086: el efectivo queda confirmado al registrarlo.
+  if (resultado.estado === "CONFIRMED") programarAvisoPago(resultado.pagoId);
   return { ok: true, vueltoCentimos: resultado.vueltoCentimos };
 }
 
@@ -108,6 +111,8 @@ export async function registrarPagoTarjetaAction(
   const resultado = await registrarPagoTarjeta(cuenta, montoCentimos!, normalizarReferencia(referencia)!, resultadoPos!, clave);
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
   refrescarCaja(cuenta);
+  // US-086: solo el voucher aprobado es un pago confirmado; el rechazado no avisa.
+  if (resultado.estado === "CONFIRMED") programarAvisoPago(resultado.pagoId);
   // Si era un reintento, la base devuelve el pago ya guardado: su estado manda.
   return { ok: true, aprobado: resultado.estado === "CONFIRMED" };
 }
@@ -129,6 +134,8 @@ export async function verificarPagoAction(
   const resultado = await verificarPago(pagoId, confirmar);
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
   refrescarCaja(cuenta);
+  // US-086: el Yape cuenta como pago recién cuando caja confirma que llegó.
+  if (resultado.estado === "CONFIRMED") programarAvisoPago(pagoId);
   return { ok: true };
 }
 
