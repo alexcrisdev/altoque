@@ -275,7 +275,7 @@ export async function confirmarYVerificar(page: Page, pedido: EntornoPedido, dob
   expect(registros[0].order_items).toHaveLength(1);
   expect(registros[0].order_items[0].quantity).toBe(1);
   const cocina = await pedido.staff("cocina");
-  await expect(cocina.getByRole("heading", { name: `N.º ${numero}`, exact: true })).toBeVisible();
+  await expect(cocina.getByText(`Pedido N.º ${numero}`, { exact: true })).toBeVisible();
   await expect(cocina.getByText(`Observación: ${pedido.marca}`, { exact: true })).toBeVisible();
   await expect(cocina.getByRole("button", { name: `Marcar listo el pedido N.º ${numero}`, exact: true })).toBeVisible();
   const mesero = await pedido.staff("mesero");

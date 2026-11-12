@@ -211,7 +211,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
         setMensaje("Teclas reasignadas. Revisa los números de las tarjetas antes de continuar.");
       }} className="rounded-lg border border-borde px-4 py-2">Reasignar teclas 1–9</button>
       <p className="text-sm text-texto-suave">Las teclas conservan su pedido. Reasigna para dar teclas a otras tarjetas; todas se pueden tocar.</p>
-      {deshacer && <button type="button" disabled={guardando} onClick={() => void guardar(deshacer, true)} className="rounded-lg bg-marca px-4 py-3 font-bold text-white">
+      {deshacer && <button type="button" aria-label={`Deshacer el pedido N.º ${deshacer.numero}`} disabled={guardando} onClick={() => void guardar(deshacer, true)} className="rounded-lg bg-marca px-4 py-3 font-bold text-white">
         Deshacer pedido {deshacer.numero} (0) · {Math.ceil((Date.parse(ultimoListo!.confirmadoEn) + PLAZO_DESHACER_KDS - ahora) / 1000)} s
       </button>}
     </div> : <p className="text-texto-suave">Modo TV · {sonido ? "Sonido activado" : "Toca la pantalla para habilitar el sonido"}</p>}

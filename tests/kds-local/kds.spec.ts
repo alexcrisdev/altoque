@@ -81,8 +81,8 @@ test("teclado numérico, edición y vencimiento de Deshacer", async ({ page }) =
   expect(await page.evaluate(() => window.kds.llamadas)).toHaveLength(0);
   await page.getByRole("heading", { name: "Falta preparar" }).click();
   await page.keyboard.press("Numpad1");
-  await expect(page.getByRole("button", { name: /Deshacer pedido/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Deshacer pedido/ })).toHaveCount(0, { timeout: 7000 });
+  await expect(page.getByRole("button", { name: /Deshacer el pedido/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Deshacer el pedido/ })).toHaveCount(0, { timeout: 7000 });
   await page.keyboard.press("Numpad0");
   expect(await page.evaluate(() => window.kds.llamadas)).toHaveLength(1);
 });

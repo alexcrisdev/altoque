@@ -1,4 +1,4 @@
-﻿import { Suspense } from "react";
+import { Suspense } from "react";
 import { cerrarSesion } from "@/features/auth/actions";
 import { Boton, EncabezadoPantalla, MensajeEstado } from "@/components/ui";
 import { obtenerKds } from "@/features/cocina/kds-actions";
