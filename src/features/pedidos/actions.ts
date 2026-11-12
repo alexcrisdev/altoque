@@ -62,7 +62,12 @@ export async function registrarPedidoQrAction(
       telefono: modalidad.telefono,
     });
     return { ok: true, numero: pedido.numero };
-  } catch {
-    return { ok: false, mensaje: "No se pudo registrar el pedido. Revisa tu conexión e inténtalo otra vez." };
+  } catch (error) {
+    return {
+      ok: false,
+      mensaje: error instanceof Error && error.message.startsWith("Ya no hay")
+        ? error.message
+        : "No se pudo registrar el pedido. Revisa tu conexión e inténtalo otra vez.",
+    };
   }
 }

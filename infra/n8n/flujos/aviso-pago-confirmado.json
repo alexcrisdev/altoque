@@ -1,0 +1,208 @@
+{
+  "name": "US-086: aviso de pago confirmado (firma HMAC)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "altoque-pago-confirmado",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "altoque-pago-confirmado",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "secreto",
+      "name": "Secreto compartido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "secreto",
+              "name": "secreto",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "verificar",
+      "name": "Verificar firma",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// US-086: verifica que el aviso venga de AlToque (HMAC-SHA256 con el secreto\n// compartido), que no sea viejo (más de 5 minutos) y que no sea repetido.\nconst crypto = require('crypto');\nconst secreto = $input.first().json.secreto;\nif (typeof secreto !== 'string' || secreto.length < 32) {\n  throw new Error('Configura el secreto compartido (mínimo 32 caracteres) antes de publicar');\n}\nconst entrada = $('Webhook').first().json;\nconst cabeceras = entrada.headers || {};\nconst aviso = entrada.body;\nconst tiempo = Number(cabeceras['x-altoque-timestamp']);\nconst firma = String(cabeceras['x-altoque-firma'] || '');\nconst ahora = Math.floor(Date.now() / 1000);\n\nlet valido = false;\nlet motivo = '';\nif (!Number.isInteger(tiempo) || Math.abs(ahora - tiempo) > 300) {\n  motivo = 'hora ausente o fuera de los 5 minutos';\n} else if (!/^sha256=[0-9a-f]{64}$/.test(firma)) {\n  motivo = 'firma ausente o mal formada';\n} else if (!aviso || typeof aviso !== 'object' || aviso.evento !== 'pago_confirmado' || typeof aviso.id !== 'string') {\n  motivo = 'contenido no reconocido';\n} else {\n  // AlToque firma el JSON exacto que envía; leerlo y reescribirlo da el mismo texto.\n  const esperada = crypto.createHmac('sha256', secreto)\n    .update(`${tiempo}.${JSON.stringify(aviso)}`, 'utf8').digest();\n  const recibida = Buffer.from(firma.slice(7), 'hex');\n  valido = recibida.length === esperada.length && crypto.timingSafeEqual(recibida, esperada);\n  if (!valido) motivo = 'firma inválida';\n}\n\n// Un mismo pago puede avisarse dos veces (reintento de caja): se recuerda el id.\nlet duplicado = false;\nif (valido) {\n  const memoria = $getWorkflowStaticData('global');\n  memoria.pagosAvisados = memoria.pagosAvisados || [];\n  duplicado = memoria.pagosAvisados.includes(aviso.id);\n  if (!duplicado) memoria.pagosAvisados = [...memoria.pagosAvisados, aviso.id].slice(-500);\n}\n\n// Nunca se devuelve el secreto ni la firma.\nreturn [{ json: { valido, motivo, duplicado, aviso: valido ? aviso : null } }];\n"
+      }
+    },
+    {
+      "id": "condicion",
+      "name": "Firma valida",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "valido",
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "aceptado",
+      "name": "Aviso aceptado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        960,
+        -120
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, duplicado: $json.duplicado } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "siguiente",
+      "name": "Siguiente paso (US-088 boleta, US-089 resumen)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -120
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "rechazado",
+      "name": "Aviso rechazado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        960,
+        120
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\":false,\"mensaje\":\"Aviso no autorizado\"}",
+        "options": {
+          "responseCode": 401
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Secreto compartido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Secreto compartido": {
+      "main": [
+        [
+          {
+            "node": "Verificar firma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar firma": {
+      "main": [
+        [
+          {
+            "node": "Firma valida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firma valida": {
+      "main": [
+        [
+          {
+            "node": "Aviso aceptado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso rechazado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso aceptado": {
+      "main": [
+        [
+          {
+            "node": "Siguiente paso (US-088 boleta, US-089 resumen)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

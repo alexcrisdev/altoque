@@ -1,6 +1,6 @@
 import "server-only";
-import { crearClienteServidor } from "@/lib/supabase/server";
-import { aCentimos } from "@/features/pedidos/validacion";
+import { crearClienteServidor } from "../../lib/supabase/server";
+import { aCentimos } from "../pedidos/validacion";
 import type { EstadoPedido } from "@/features/pedidos/estados";
 import {
   calcularCuenta,
@@ -260,8 +260,8 @@ export async function listarCuentasAbiertas(restauranteId: string): Promise<Cuen
       );
       const fila: CuentaAbierta = {
         href: `/caja/pedido/${pedido.id}`,
-        titulo: `Para llevar N.º ${pedido.order_number}`,
-        detalle: pedido.customer_name ?? "Sin nombre",
+        titulo: `Para llevar #${pedido.order_number} – ${pedido.customer_name?.trim() || "Sin nombre"}`,
+        detalle: "1 pedido",
         consumoCentimos: cuenta.consumoCentimos,
         pagadoCentimos: cuenta.pagadoCentimos,
         saldoCentimos: cuenta.saldoCentimos,

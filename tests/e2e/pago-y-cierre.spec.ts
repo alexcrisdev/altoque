@@ -15,7 +15,11 @@ test("CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 
   await entregarPropio(pedido);
   const p = await cuentaPropia(pedido);
   const caja = await pedido.staff("caja");
-  await caja.getByRole("link", { name: /^Mesa 5\b/ }).click();
+  await expect(caja.getByRole("region", { name: "Mesas", exact: true })
+    .getByRole("listitem").filter({ has: caja.getByRole("heading", { name: "Mesa 5", exact: true }) })
+    .getByText("Ocupada", { exact: true })).toBeVisible();
+  await caja.getByRole("region", { name: "Cuentas por cobrar o cerrar", exact: true })
+    .getByRole("link", { name: /^Mesa 5\b/ }).click();
   await expect(caja).toHaveURL(new RegExp(`/caja/mesa/${p.table_session_id}$`));
   const total = await saldoVisible(caja);
   expect(total).toBeGreaterThanOrEqual(4);
@@ -108,7 +112,9 @@ test("CP-030-13: para llevar pagado y cerrado rechaza nuevos pagos", async ({ pa
   await entregarPropio(pedido);
   const p = await cuentaPropia(pedido);
   const caja = await pedido.staff("caja");
-  await caja.goto(p.ruta);
+  await caja.getByRole("region", { name: "Cuentas por cobrar o cerrar", exact: true })
+    .getByRole("link").filter({ hasText: `Para llevar #${p.order_number} – PRUEBA E2E` }).click();
+  await expect(caja).toHaveURL(new RegExp(`/caja/pedido/${p.id}$`));
   await pagarEfectivo(caja, await saldoVisible(caja));
   await cerrarOrdinaria(caja);
   await caja.reload();

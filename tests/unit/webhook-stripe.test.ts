@@ -3,6 +3,8 @@ import Stripe from "stripe";
 
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/features/pago-cierre/pago-online", () => ({ registrarPagoStripe: vi.fn() }));
+vi.mock("../../src/features/pago-cierre/aviso-n8n", () => ({ programarAvisoPago: vi.fn() }));
+import { programarAvisoPago } from "../../src/features/pago-cierre/aviso-n8n";
 
 import { registrarPagoStripe } from "../../src/features/pago-cierre/pago-online";
 import { POST } from "../../src/app/api/stripe/webhook/route";
@@ -140,5 +142,26 @@ describe("caja", () => {
     expect(etiquetaMetodoPago({ metodo: "CARD", stripe: true })).toBe("Stripe (online)");
     expect(etiquetaMetodoPago({ metodo: "CARD", stripe: false })).toBe("Tarjeta");
     expect(etiquetaMetodoPago({ metodo: "YAPE" })).toBe("Yape");
+  });
+});
+
+describe("POST /api/stripe/webhook: aviso a n8n US-086", () => {
+  it("avisa solo cuando registra un pago nuevo", async () => {
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: true, pagoId: "p1", duplicado: false });
+    await POST(peticion(evento("checkout.session.completed")));
+    expect(programarAvisoPago).toHaveBeenCalledExactlyOnceWith("p1");
+  });
+
+  it("si Stripe reenvía el evento no vuelve a avisar", async () => {
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: true, pagoId: "p1", duplicado: true });
+    await POST(peticion(evento("checkout.session.completed")));
+    expect(programarAvisoPago).not.toHaveBeenCalled();
+  });
+
+  it("sin firma válida o con error temporal no avisa", async () => {
+    await POST(peticion(evento("checkout.session.completed"), "t=1,v1=firmafalsa"));
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: false, codigo: "" });
+    await POST(peticion(evento("checkout.session.completed")));
+    expect(programarAvisoPago).not.toHaveBeenCalled();
   });
 });
