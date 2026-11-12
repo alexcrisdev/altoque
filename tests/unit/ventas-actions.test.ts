@@ -98,6 +98,21 @@ describe("autorización del reporte US-018", () => {
     );
   });
 
+  it("prioriza la membresía OWNER usada por la descarga CSV", async () => {
+    simularSesion([
+      { restaurantId: "restaurante-admin", branchId: null, rol: "ADMIN" },
+      { restaurantId: "restaurante-owner", branchId: null, rol: "OWNER" },
+    ]);
+
+    await consultarVentasAction(desde, hasta);
+
+    expect(obtenerResumenVentas).toHaveBeenCalledExactlyOnceWith(
+      "restaurante-owner",
+      desde,
+      hasta,
+    );
+  });
+
   it("no consulta si falta una membresía autorizada", async () => {
     simularSesion([]);
 

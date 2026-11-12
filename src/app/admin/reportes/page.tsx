@@ -62,7 +62,10 @@ export default function PaginaReportes({ searchParams }: Props) {
 async function ContenidoReportes({
   searchParams,
 }: Pick<Props, "searchParams">) {
-  await requerirRol(["OWNER", "ADMIN"]);
+  const sesion = await requerirRol(["OWNER", "ADMIN"]);
+  const membresiaReporte = sesion.membresias.find((m) => m.rol === "OWNER")
+    ?? sesion.membresias.find((m) => m.rol === "ADMIN");
+  const esOwner = membresiaReporte?.rol === "OWNER";
 
   const parametros = await searchParams;
   const hoy = fechaActualLima();
@@ -132,9 +135,17 @@ async function ContenidoReportes({
             />
           </label>
 
-          <Boton type="submit">
-            Consultar
-          </Boton>
+          <div className="flex flex-wrap gap-2">
+            <Boton type="submit">Consultar</Boton>
+            {esOwner && (
+              <BotonEnlace
+                href={`/api/admin/reportes/ventas?desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}`}
+                variante="secundario"
+              >
+                Descargar CSV
+              </BotonEnlace>
+            )}
+          </div>
         </form>
 
         <p className="mt-3 text-sm text-texto-suave">
