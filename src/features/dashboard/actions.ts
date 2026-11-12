@@ -2,6 +2,8 @@
 
 import { requerirRol } from "../auth/sesion";
 import { obtenerResumenVentas } from "./ventas";
+import { obtenerTiemposCocina } from "./tiempos-cocina";
+import type { ResumenTiempos } from "./tiempos-cocina-logica";
 import {
   obtenerTendencias,
   type ResumenTendencias,
@@ -14,6 +16,23 @@ import {
 export type ResultadoVentas =
   | { ok: true; resumen: ResumenVentas }
   | { ok: false; mensaje: string };
+
+export async function consultarTiemposCocinaAction(
+  desde: string,
+  hasta: string,
+): Promise<{ ok: true; resumen: ResumenTiempos } | { ok: false; mensaje: string }> {
+  const sesion = await requerirRol(["OWNER", "ADMIN"]);
+  const membresia = sesion.membresias.find((m) => m.rol === "OWNER")
+    ?? sesion.membresias.find((m) => m.rol === "ADMIN");
+  if (!membresia) return { ok: false, mensaje: "No se pudo identificar el restaurante autorizado." };
+  const error = validarRango(desde, hasta);
+  if (error) return { ok: false, mensaje: error };
+  try {
+    return { ok: true, resumen: await obtenerTiemposCocina(membresia.restaurantId, desde, hasta) };
+  } catch {
+    return { ok: false, mensaje: "No se pudieron consultar los tiempos de cocina. Intenta de nuevo." };
+  }
+}
 
 export async function consultarVentasAction(
   desde: string,
