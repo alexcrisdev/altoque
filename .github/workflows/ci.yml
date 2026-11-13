@@ -1,11 +1,9 @@
 name: CI
 
-# US-095: en main no corre solo; lo llama pipeline-main.yml (CI -> Seguridad -> Smoke).
+# US-095: en los PR corre solo. En develop y main lo llama pipeline-main.yml (etapa 1).
 on:
   pull_request:
     branches: [develop, main]
-  push:
-    branches: [develop]
   workflow_call:
 
 permissions:

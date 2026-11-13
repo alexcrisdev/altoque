@@ -1,9 +1,11 @@
 name: Pruebas funcionales E2E
 
+# US-095: en los PR corre solo. En develop y main lo llama pipeline-main.yml (etapa 3).
 on:
   pull_request:
     branches: [develop]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
