@@ -248,6 +248,8 @@ y `npm test`. Estas comprobaciones de AlToque no validan por sí solas Docker/Gm
 El log de n8n advierte que el modo interno de task runners está obsoleto. Migrar a un
 runner externo antes de actualizar a una versión que retire ese modo.
 
+La integración real con pagos está en [aviso-pago.md](aviso-pago.md) (US-086).
+
 Para la futura integración, comunicar al equipo la URL pública vigente, ruta,
 método POST y esquema del JSON. Compartir Header Auth por un medio privado. La
 disponibilidad depende de esta PC. La historia de integración debe definir los

@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   MENSAJE_ESTADO_CLIENTE,
   mensajeEstadoCliente,
+  etiquetaEstadoCliente,
   agregarPedidoGuardado,
   descartarAntiguos,
   pasoDelPedido,
   type PedidoGuardado,
 } from "../../src/features/pedidos/estado-cliente";
-import type { EstadoPedido } from "../../src/features/pedidos/estados";
+import { ETIQUETA_ESTADO, type EstadoPedido } from "../../src/features/pedidos/estados";
 
 const AHORA = Date.parse("2026-11-01T18:00:00.000Z");
 const HORA = 60 * 60 * 1000;
@@ -61,6 +62,23 @@ const estados: Array<{
 ];
 
 describe("mensajes y progreso del pedido", () => {
+  it("US-085: explica que el pedido para llevar espera pago antes de prepararse", () => {
+    expect(etiquetaEstadoCliente("PENDING", "TAKEAWAY")).toBe("Esperando pago");
+    expect(mensajeEstadoCliente("PENDING", "TAKEAWAY")).toBe(
+      "Esperando pago. Paga en caja o con tarjeta para que comencemos a preparar tu pedido.",
+    );
+  });
+
+  it("US-085: conserva las etiquetas y el mensaje pendiente de mesa", () => {
+    for (const { estado } of estados) {
+      expect(etiquetaEstadoCliente(estado, "DINE_IN")).toBe(ETIQUETA_ESTADO[estado]);
+      if (estado !== "PENDING") {
+        expect(etiquetaEstadoCliente(estado, "TAKEAWAY")).toBe(ETIQUETA_ESTADO[estado]);
+      }
+    }
+    expect(mensajeEstadoCliente("PENDING", "DINE_IN")).toBe(MENSAJE_ESTADO_CLIENTE.PENDING);
+  });
+
   it("avisa que el mesero lleva el pedido listo a la mesa", () => {
     expect(mensajeEstadoCliente("READY", "DINE_IN")).toBe("Tu pedido está listo, el mesero te lo lleva");
   });
@@ -69,7 +87,7 @@ describe("mensajes y progreso del pedido", () => {
     expect(mensajeEstadoCliente("READY", "TAKEAWAY")).toBe("Recógelo en el mostrador");
   });
 
-  it.each(estados.filter(({ estado }) => estado !== "READY"))(
+  it.each(estados.filter(({ estado }) => estado !== "READY" && estado !== "PENDING"))(
     "conserva el mensaje de $estado para ambas modalidades",
     ({ estado, mensaje }) => {
       expect(mensajeEstadoCliente(estado, "DINE_IN")).toBe(mensaje);

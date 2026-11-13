@@ -2,6 +2,7 @@ import "server-only";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import type { OpcionesPedido } from "./modalidad";
 import type { LineaValidada } from "./validacion";
+import { mensajeStockInsuficiente } from "./stock-mensaje";
 
 export type PedidoRegistrado = { id: string; numero: number; repetido: boolean };
 
@@ -44,12 +45,17 @@ export async function guardarPedidoQr(
 
     if (error || !data) {
       if (error?.code) console.error("guardarPedidoQr", error.code);
+      const mensajeStock = mensajeStockInsuficiente(
+        error?.message,
+        lineas.map((linea) => ({ productoId: linea.productoId, nombre: linea.nombre })),
+      );
+      if (mensajeStock) throw new Error(mensajeStock);
       throw new Error("No se pudo registrar el pedido. Verifica la carta y vuelve a intentar.");
     }
     const resultado = data as { pedido_id: string; numero_pedido: number; repetido: boolean };
     return { id: resultado.pedido_id, numero: resultado.numero_pedido, repetido: resultado.repetido };
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith("No se pudo registrar")) throw error;
+    if (error instanceof Error && (error.message.startsWith("No se pudo registrar") || error.message.startsWith("Ya no hay"))) throw error;
     if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
       console.error("guardarPedidoQr", error.code);
     }

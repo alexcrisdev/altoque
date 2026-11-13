@@ -11,7 +11,9 @@ import { requerirRol } from "@/features/auth/sesion";
 import {
   consultarVentasAction,
   consultarTendenciasAction,
+  consultarTiemposCocinaAction,
 } from "@/features/dashboard/actions";
+import { MapaCalorPanel } from "@/features/dashboard/mapa-calor-panel";
 import { ESTADOS_TENDENCIAS } from "@/features/dashboard/tendencias-logica";
 import {
   ETIQUETA_ESTADO,
@@ -61,7 +63,10 @@ export default function PaginaReportes({ searchParams }: Props) {
 async function ContenidoReportes({
   searchParams,
 }: Pick<Props, "searchParams">) {
-  await requerirRol(["OWNER", "ADMIN"]);
+  const sesion = await requerirRol(["OWNER", "ADMIN"]);
+  const membresiaReporte = sesion.membresias.find((m) => m.rol === "OWNER")
+    ?? sesion.membresias.find((m) => m.rol === "ADMIN");
+  const esOwner = membresiaReporte?.rol === "OWNER";
 
   const parametros = await searchParams;
   const hoy = fechaActualLima();
@@ -80,10 +85,11 @@ async function ContenidoReportes({
       ? parametros.hasta
       : "";
 
-  // Ambas consultas usan las mismas fechas y resultados independientes.
-  const [resultado, resultadoTendencias] = await Promise.all([
+  // Las consultas usan las mismas fechas y resultados independientes.
+  const [resultado, resultadoTendencias, resultadoTiempos] = await Promise.all([
     consultarVentasAction(desde, hasta),
     consultarTendenciasAction(desde, hasta),
+    consultarTiemposCocinaAction(desde, hasta),
   ]);
 
   const claseCampo =
@@ -131,9 +137,17 @@ async function ContenidoReportes({
             />
           </label>
 
-          <Boton type="submit">
-            Consultar
-          </Boton>
+          <div className="flex flex-wrap gap-2">
+            <Boton type="submit">Consultar</Boton>
+            {esOwner && (
+              <BotonEnlace
+                href={`/api/admin/reportes/ventas?desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}`}
+                variante="secundario"
+              >
+                Descargar CSV
+              </BotonEnlace>
+            )}
+          </div>
         </form>
 
         <p className="mt-3 text-sm text-texto-suave">
@@ -396,8 +410,78 @@ async function ContenidoReportes({
           </div>
         </Tarjeta>
       </section>
+
+      <MapaCalorPanel
+        key={`${desde}:${hasta}`}
+        desde={desde}
+        hasta={hasta}
+      />
+
+      <section aria-labelledby="tiempos-cocina-titulo" className="space-y-4">
+        <h2 id="tiempos-cocina-titulo" className="text-xl font-bold">
+          Tiempos de preparación en cocina
+        </h2>
+        <p className="text-sm text-texto-suave">
+          Desde la primera entrada a preparación hasta el último Listo definitivo.
+          El periodo, los días y las franjas de una hora usan la entrada a preparación
+          en hora de Lima. Se excluyen cancelados y pedidos sin finalizar.
+        </p>
+        {!resultadoTiempos.ok ? (
+          <MensajeEstado tipo="error" titulo="No pudimos mostrar los tiempos de cocina"
+            descripcion={resultadoTiempos.mensaje} />
+        ) : !resultadoTiempos.resumen.total ? (
+          <MensajeEstado tipo="vacio" titulo="No hay pedidos con tiempos válidos en este rango"
+            descripcion="Selecciona un periodo con pedidos finalizados y un historial completo." />
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Indicador titulo="Pedidos medidos" valor={String(resultadoTiempos.resumen.total.pedidos)} />
+              <Indicador titulo="Tiempo promedio" valor={minutosCocina(resultadoTiempos.resumen.total.promedioMs)} />
+              <Indicador titulo="Tiempo máximo" valor={minutosCocina(resultadoTiempos.resumen.total.maximoMs)} />
+            </div>
+            <p className="text-sm text-texto-suave">
+              Por plato se muestra el tiempo completo de los pedidos que contienen ese producto,
+              no una medición individual de su elaboración. Cada nombre de plato cuenta una sola
+              vez por pedido, independientemente de sus unidades.
+            </p>
+            {([
+              ["Por día", resultadoTiempos.resumen.porDia],
+              ["Por franja horaria", resultadoTiempos.resumen.porFranja],
+              ["Por plato", resultadoTiempos.resumen.porPlato],
+            ] as const).map(([titulo, filas]) => (
+              <Tarjeta key={titulo}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <caption className="pb-3 text-left text-lg font-bold">{titulo}</caption>
+                    <thead><tr>
+                      <th scope="col" className="p-2">Grupo</th>
+                      <th scope="col" className="p-2">Pedidos</th>
+                      <th scope="col" className="p-2">Promedio</th>
+                      <th scope="col" className="p-2">Máximo</th>
+                    </tr></thead>
+                    <tbody>{filas.map((fila) => (
+                      <tr key={fila.nombre} className="border-t border-borde">
+                        <th scope="row" className="p-2 font-medium">{fila.nombre}</th>
+                        <td className="p-2">{fila.pedidos}</td>
+                        <td className="p-2">{minutosCocina(fila.promedioMs)}</td>
+                        <td className="p-2">{minutosCocina(fila.maximoMs)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </Tarjeta>
+            ))}
+          </>
+        )}
+      </section>
     </div>
   );
+}
+
+function minutosCocina(ms: number): string {
+  return `${(ms / 60000).toLocaleString("es-PE", {
+    minimumFractionDigits: 1, maximumFractionDigits: 1,
+  })} min`;
 }
 
 function Indicador({

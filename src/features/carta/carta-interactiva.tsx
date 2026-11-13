@@ -260,7 +260,7 @@ export function CartaInteractiva({
         ok: false,
         mensaje:
           error instanceof Error &&
-          error.message.includes("ya no está en la carta")
+          (error.message.includes("ya no está en la carta") || error.message.startsWith("Ya no hay"))
             ? error.message
             : "No se pudo confirmar el pedido. Revisa tu conexión e inténtalo otra vez.",
       });

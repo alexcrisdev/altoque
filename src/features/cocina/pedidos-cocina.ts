@@ -1,9 +1,10 @@
 import "server-only";
 import { crearClienteServidor } from "../../lib/supabase/server";
-import { ESTADOS_ACTIVOS, type EstadoPedido } from "../pedidos/estados";
+import type { EstadoPedido } from "../pedidos/estados";
 import type { Modalidad } from "@/features/pedidos/modalidad";
 import type { PedidoCocina } from "./tipos";
 import type { TipoIncidencia } from "../pedidos/incidencias";
+import { diaLima } from "./kds-logica";
 
 type FilaPedido = {
   id: string;
@@ -15,17 +16,25 @@ type FilaPedido = {
   source: "QR" | "WAITER";
   customer_name: string | null;
   dining_tables: { number: number } | null;
-  order_items: { product_name: string; quantity: number; observation: string | null }[];
+  order_items: { product_name: string; quantity: number; observation: string | null; products?: { allergens: string[] } | null }[];
   order_incidents: { id: string; type: TipoIncidencia; description: string; status: "OPEN" | "RESOLVED"; created_at: string }[];
 };
 
-export async function listarPedidosCocina(restauranteId: string): Promise<PedidoCocina[]> {
+export async function listarPedidosCocina(restauranteId: string, diaKds?: number): Promise<PedidoCocina[]> {
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase
+  let consulta = supabase
     .from("orders")
-    .select("id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)")
+    .select(diaKds === undefined
+      ? "id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)"
+      : "id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation, products(allergens)), order_incidents(id, type, description, status, created_at)")
     .eq("restaurant_id", restauranteId)
-    .in("status", ESTADOS_ACTIVOS)
+    // US-085: un pedido que espera pago no entra en ninguna vista de cocina.
+    .in("status", diaKds === undefined ? ["IN_PROGRESS", "READY"] : ["IN_PROGRESS", "READY", "CANCELLED"]);
+  if (diaKds !== undefined) {
+    const { inicio, fin } = diaLima(diaKds);
+    consulta = consulta.gte("created_at", inicio).lt("created_at", fin);
+  }
+  const { data, error } = await consulta
     .order("created_at", { ascending: true })
     .order("order_number", { ascending: true })
     .overrideTypes<FilaPedido[], { merge: false }>();
@@ -49,6 +58,7 @@ export async function listarPedidosCocina(restauranteId: string): Promise<Pedido
       nombre: item.product_name,
       cantidad: item.quantity,
       observacion: item.observation,
+      ...(diaKds === undefined ? {} : { alergenos: item.products?.allergens ?? [] }),
     })),
     incidenciasAbiertas: fila.order_incidents.filter((incidencia) => incidencia.status === "OPEN").map((incidencia) => ({
       id: incidencia.id,

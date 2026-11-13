@@ -12,10 +12,10 @@ import {
   type PedidoCliente,
 } from "@/features/pedidos/estado-cliente-servidor";
 import {
+  etiquetaEstadoCliente,
   pasoDelPedido,
 } from "@/features/pedidos/estado-cliente";
 import {
-  ETIQUETA_ESTADO,
   TONO_ESTADO,
 } from "@/features/pedidos/estados";
 import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
@@ -134,7 +134,7 @@ function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
         </h2>
 
         <Insignia tono={TONO_ESTADO[pedido.estado]}>
-          {ETIQUETA_ESTADO[pedido.estado]}
+          {etiquetaEstadoCliente(pedido.estado, pedido.modalidad)}
         </Insignia>
       </div>
 

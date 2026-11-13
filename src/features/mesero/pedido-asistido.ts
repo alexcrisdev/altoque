@@ -2,13 +2,14 @@ import "server-only";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { LineaValidada } from "@/features/pedidos/validacion";
 import { motivoDeError, type MotivoRechazo, type SolicitudAsistida } from "./solicitud-asistida";
+import { mensajeStockInsuficiente } from "@/features/pedidos/stock-mensaje";
 
 // Capa de datos del pedido asistido. Usa la sesión del mesero (no la clave
 // secreta): la base sabe quién registra el pedido y RLS sigue aplicando.
 
 export type ResultadoGuardado =
   | { ok: true; numero: number; repetido: boolean }
-  | { ok: false; motivo: MotivoRechazo };
+  | { ok: false; motivo: MotivoRechazo; mensaje?: string };
 
 type FilaRegistro = { pedido_id: string; numero_pedido: number; repetido: boolean };
 
@@ -57,7 +58,14 @@ export async function guardarPedidoAsistido(
 
   if (error || !data) {
     if (error?.code) console.error("guardarPedidoAsistido", error.code);
-    return { ok: false, motivo: motivoDeError(error?.message) };
+    return {
+      ok: false,
+      motivo: motivoDeError(error?.message),
+      mensaje: mensajeStockInsuficiente(
+        error?.message,
+        lineas.map((linea) => ({ productoId: linea.productoId, nombre: linea.nombre })),
+      ) ?? undefined,
+    };
   }
   return { ok: true, numero: Number(data.numero_pedido), repetido: data.repetido };
 }
