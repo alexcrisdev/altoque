@@ -1,4 +1,4 @@
-import type { EstadoPedido } from "./estados";
+import { ETIQUETA_ESTADO, type EstadoPedido } from "./estados";
 
 export const MENSAJE_ESTADO_CLIENTE: Record<EstadoPedido, string> = {
   PENDING: "Recibimos tu pedido, en breve lo confirmamos",
@@ -11,10 +11,22 @@ export const MENSAJE_ESTADO_CLIENTE: Record<EstadoPedido, string> = {
 
 type PasoPedido = 1 | 2 | 3 | 4;
 
+export function etiquetaEstadoCliente(
+  estado: EstadoPedido,
+  modalidad: "DINE_IN" | "TAKEAWAY",
+): string {
+  return estado === "PENDING" && modalidad === "TAKEAWAY"
+    ? "Esperando pago"
+    : ETIQUETA_ESTADO[estado];
+}
+
 export function mensajeEstadoCliente(
   estado: EstadoPedido,
   modalidad: "DINE_IN" | "TAKEAWAY",
 ): string {
+  if (estado === "PENDING" && modalidad === "TAKEAWAY") {
+    return "Esperando pago. Paga en caja o con tarjeta para que comencemos a preparar tu pedido.";
+  }
   if (estado === "READY") {
     return modalidad === "TAKEAWAY"
       ? "Recógelo en el mostrador"

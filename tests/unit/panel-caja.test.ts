@@ -12,10 +12,10 @@ import { listarCuentasAbiertas } from "../../src/features/pago-cierre/cuentas";
 import { obtenerPanelCaja } from "../../src/features/pago-cierre/panel-actions";
 
 // Solo simula SELECT: cualquier intento de escritura carece de implementación.
-function lecturas(nombre: string | null = "Cliente Demo", ocupada = false) {
+function lecturas(nombre: string | null = "Cliente Demo", ocupada = false, estado = "IN_PROGRESS") {
   const filtros: { tabla: string; columna: string; valor: unknown }[] = [];
   const from = vi.fn((tabla: string) => {
-    const pedidos = [{ id: "pedido-demo", order_number: 82, status: "IN_PROGRESS", created_at: "2026-11-11T15:00:00Z",
+    const pedidos = [{ id: "pedido-demo", order_number: 82, status: estado, created_at: "2026-11-11T15:00:00Z",
       table_session_id: null, customer_name: nombre,
       order_items: [{ product_name: "Producto demo", quantity: 1, unit_price: "12.50", observation: null }] }];
     const data = tabla === "table_sessions" && ocupada
@@ -24,7 +24,9 @@ function lecturas(nombre: string | null = "Cliente Demo", ocupada = false) {
     const query = {
       select: vi.fn(() => query),
       eq: vi.fn((columna: string, valor: unknown) => { filtros.push({ tabla, columna, valor }); return query; }),
-      neq: vi.fn(() => query), is: vi.fn(() => query), in: vi.fn(() => query),
+      neq: vi.fn((columna: string, valor: unknown) => { filtros.push({ tabla, columna, valor }); return query; }),
+      is: vi.fn(() => query),
+      in: vi.fn((columna: string, valor: unknown) => { filtros.push({ tabla, columna, valor }); return query; }),
       order: vi.fn(() => query), limit: vi.fn(() => query),
       overrideTypes: vi.fn().mockResolvedValue({ data, error: null }),
     };
@@ -37,6 +39,19 @@ function lecturas(nombre: string | null = "Cliente Demo", ocupada = false) {
 beforeEach(() => { vi.resetAllMocks(); });
 
 describe("US-082: lectura del panel de caja", () => {
+  it("US-085: conserva el pedido para llevar PENDING con saldo para poder cobrarlo", async () => {
+    vi.mocked(requerirCaja).mockResolvedValue("restaurante-autorizado");
+    const { filtros } = lecturas("Cliente espera pago", false, "PENDING");
+    vi.mocked(listarMesasConSesion).mockResolvedValue([]);
+    const resultado = await obtenerPanelCaja();
+    expect(resultado.cuentas).toEqual([expect.objectContaining({
+      href: "/caja/pedido/pedido-demo", titulo: "Para llevar #82 – Cliente espera pago",
+      consumoCentimos: 1250, pagadoCentimos: 0, saldoCentimos: 1250,
+    })]);
+    expect(filtros.filter(filtro => filtro.tabla === "orders" && filtro.columna === "status"))
+      .toEqual([{ tabla: "orders", columna: "status", valor: "CANCELLED" }]);
+  });
+
   it("comprueba el acceso antes de consultar cuentas o mesas", async () => {
     vi.mocked(requerirCaja).mockRejectedValue(new Error("Sin permiso"));
     await expect(obtenerPanelCaja()).rejects.toThrow("Sin permiso");
