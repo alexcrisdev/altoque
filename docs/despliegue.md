@@ -39,7 +39,7 @@ Reglas:
 dev/<nombre> ──PR──► develop ──(cierre de sprint) PR──► main
      │                  │                                  │
   CI "verificar"     staging                          producción
-  + vista previa     + smoke                          + smoke
+  + vista previa     + Pipeline (6 etapas)            + Pipeline (6 etapas)
 ```
 
 1. **Pull Request a `develop`.** GitHub Actions ejecuta el job `verificar` (lint, tipos, pruebas unitarias y build) y Vercel publica una vista previa. Si `verificar` falla, el PR no se puede unir porque la rama está protegida.
@@ -51,22 +51,31 @@ dev/<nombre> ──PR──► develop ──(cierre de sprint) PR──► main
 3. **Unir a `develop`.** Vercel publica staging. Se prueba ahí el flujo de la historia.
 4. **Cierre de sprint.** Se abre un PR `develop → main` y se une con *merge commit*. Vercel publica producción.
 
+## Pipeline de develop y main (US-095)
+
+Cada vez que algo entra a `develop` (staging) o a `main` (producción), **Pipeline** (`.github/workflows/pipeline-main.yml`) corre seis etapas en orden y GitHub las muestra en **un solo gráfico conectado**, con la rama en la etiqueta de arriba:
+
+```
+1. CI ──► 2. Integración ──► 3. E2E ──► 4. Seguridad ──► 5. Despliegue (Vercel) ──► 6. Smoke
+```
+
+| Etapa | Pregunta que responde |
+|---|---|
+| 1. CI | ¿Compila y pasan lint, tipos y pruebas unitarias? |
+| 2. Integración | ¿La base responde bien con sus permisos (RLS) y reglas? |
+| 3. E2E | ¿Un robot puede pedir, cocinar, cobrar y cerrar como una persona? |
+| 4. Seguridad | ¿Hay claves filtradas, código peligroso o librerías vulnerables? |
+| 5. Despliegue | ¿Vercel ya publicó este commit? Queda registrado como entorno `staging` o `produccion`, con su enlace. |
+| 6. Smoke | ¿La página publicada responde bien? |
+
+- Reutiliza los workflows de siempre (`ci`, `integracion`, `e2e`, `seguridad`, `smoke`) con `workflow_call`, encadenados con `needs`: **si una etapa falla, las siguientes no corren** (aparecen omitidas).
+- En `develop` y `main` esos workflows ya no corren sueltos: los corre el pipeline, así no se duplican. En los **PR siguen corriendo solos**, como antes (el check obligatorio `verificar` no cambia).
+- Vercel publica por su cuenta al recibir el push; la etapa 5 espera a que termine y lo deja en la sección **Deployments** del repositorio. Lo que impide que llegue código roto es que a `develop` y `main` solo se entra por PR con `verificar` en verde.
+- Se puede lanzar a mano: **Actions → Pipeline → Run workflow**.
+
 ## Comprobación después de publicar (smoke test)
 
-## Pipeline de producción (US-095)
-
-Al subir a `main`, **Pipeline main** (`.github/workflows/pipeline-main.yml`) corre las tres etapas en orden y GitHub las muestra en **un solo gráfico conectado**:
-
-```
-1. CI (verificar) ──► 2. Seguridad (Gitleaks, CodeQL, npm audit, revisión de dependencias → Resultado) ──► 3. Smoke (URL de producción)
-```
-
-- Reutiliza los mismos workflows (`ci.yml`, `seguridad.yml`, `smoke.yml`) con `workflow_call`, encadenados con `needs`: **si una etapa falla, las siguientes no corren** (aparecen como omitidas).
-- En `main` esos tres workflows ya no corren por separado: los corre el pipeline, así no se duplican.
-- En los PR y en `develop` siguen corriendo solos, como antes (el check obligatorio `verificar` no cambia).
-- Se puede lanzar a mano: **Actions → Pipeline main → Run workflow** (en `develop` prueba staging; útil para la demo).
-
-Después de cada push a `develop` (o dentro del pipeline en `main`), el workflow **Smoke despliegue** (`.github/workflows/smoke.yml`) espera a que Vercel termine de publicar y prueba staging o producción con `scripts/smoke.mjs`. Solo hace lecturas y no crea datos. El resultado aparece en la pestaña **Actions**. También se puede lanzar a mano con cualquier URL, por ejemplo la vista previa de un PR: **Actions → Smoke despliegue → Run workflow**.
+Como última etapa del pipeline, el workflow **Smoke despliegue** (`.github/workflows/smoke.yml`) espera a que Vercel termine de publicar y prueba staging o producción con `scripts/smoke.mjs`. Solo hace lecturas y no crea datos. El resultado aparece en la pestaña **Actions**. También se puede lanzar a mano con cualquier URL, por ejemplo la vista previa de un PR: **Actions → Smoke despliegue → Run workflow**.
 
 | Prueba | Qué comprueba |
 |---|---|
