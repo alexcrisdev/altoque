@@ -112,7 +112,7 @@ export function PanelCarrito(props: Props) {
         aria-labelledby="carrito-titulo"
         className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85dvh] w-full max-w-none overflow-hidden rounded-t-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60 md:inset-y-0 md:left-auto md:right-0 md:h-dvh md:max-h-none md:w-[440px] md:rounded-none md:rounded-l-3xl"
       >
-        <div className="flex max-h-[85dvh] flex-col md:h-full md:max-h-none">
+        <div className="flex max-h-[calc(85dvh-2px)] flex-col md:h-full md:max-h-none">
           <div className="flex shrink-0 justify-end border-b border-borde px-5 py-3">
             <Boton
               type="button"
@@ -123,18 +123,20 @@ export function PanelCarrito(props: Props) {
             </Boton>
           </div>
 
-          <fieldset
-            disabled={props.enviando}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 disabled:opacity-60"
-          >
-            <legend className="sr-only">
-              Productos del carrito
-            </legend>
+          <div className="min-h-[25dvh] flex-1 overflow-y-auto overscroll-contain md:min-h-0">
+            <fieldset
+              disabled={props.enviando}
+              className="p-5 disabled:opacity-60"
+            >
+              <legend className="sr-only">
+                Productos del carrito
+              </legend>
 
-            <Carrito {...props} enPanel />
-          </fieldset>
+              <Carrito {...props} enPanel />
+            </fieldset>
+          </div>
 
-          <footer className="shrink-0 space-y-4 border-t border-borde bg-superficie px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <footer className="max-h-[min(50dvh,calc(60dvh-5rem))] shrink-0 space-y-4 overflow-y-auto overscroll-contain border-t border-borde bg-superficie px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:max-h-none md:overflow-visible">
             <p className="text-sm text-texto-suave">
               {unidades} {unidades === 1 ? "unidad" : "unidades"}
               {" · "}
