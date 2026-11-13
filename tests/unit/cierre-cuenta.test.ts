@@ -78,11 +78,56 @@ describe("US-020: qué cierre se permite", () => {
     expect(cuenta.puedeCerrar).toBe(false);
   });
 
-  it("el cierre no depende del estado de preparación del pedido", () => {
+  it("para llevar, el cierre no depende del estado de preparación del pedido", () => {
     for (const estado of ["PENDING", "IN_PROGRESS", "READY", "DELIVERED"] as const) {
       const cuenta = calcularCuenta([{ ...pedido, estado }], [pago({ id: "p1" })]);
       expect(evaluarCierre(cuenta, false).ordinario).toBe(true);
     }
+  });
+});
+
+describe("US-063: una mesa no se cierra con pedidos sin entregar", () => {
+  it("pagada pero con un pedido en cocina o listo: no se cierra en mesa", () => {
+    for (const estado of ["PENDING", "ACCEPTED", "IN_PROGRESS", "READY"] as const) {
+      const cuenta = calcularCuenta([{ ...pedido, estado }], [pago({ id: "p1" })]);
+      expect(cuenta.pedidosSinEntregar).toBe(1);
+      const cierre = evaluarCierre(cuenta, false, true);
+      expect(cierre).toMatchObject({ ordinario: false, excepcion: false });
+      expect(cierre.aviso).toContain("Hay pedidos sin entregar");
+    }
+  });
+
+  it("tampoco con excepción: el dueño primero entrega o cancela", () => {
+    const cuenta = calcularCuenta([{ ...pedido, estado: "IN_PROGRESS" }], []);
+    expect(evaluarCierre(cuenta, true, true)).toMatchObject({ ordinario: false, excepcion: false });
+  });
+
+  it("entregado o cancelado ya no cuenta como pendiente", () => {
+    const cuenta = calcularCuenta(
+      [{ ...pedido, estado: "DELIVERED" }, { ...pedido, id: "b", numero: 2, estado: "CANCELLED" }],
+      [pago({ id: "p1" })],
+    );
+    expect(cuenta.pedidosSinEntregar).toBe(0);
+    expect(evaluarCierre(cuenta, false, true).ordinario).toBe(true);
+  });
+
+  it("cuenta cuántos faltan en el aviso", () => {
+    const cuenta = calcularCuenta(
+      [{ ...pedido, estado: "READY" }, { ...pedido, id: "b", numero: 2, estado: "IN_PROGRESS" }],
+      [pago({ id: "p1", montoCentimos: 7000 })],
+    );
+    expect(evaluarCierre(cuenta, false, true).aviso).toContain("faltan 2");
+  });
+
+  it("un Yape por verificar se avisa primero", () => {
+    const cuenta = calcularCuenta([{ ...pedido, estado: "IN_PROGRESS" }], [pago({ id: "p1", metodo: "YAPE", estado: "PENDING" })]);
+    expect(evaluarCierre(cuenta, false, true).aviso).toContain("por verificar");
+  });
+
+  it("traduce el rechazo de la base", () => {
+    const codigo = CODIGOS_ERROR_CIERRE.find((c) => "ERROR: PEDIDOS_SIN_ENTREGAR".includes(c));
+    expect(codigo).toBe("PEDIDOS_SIN_ENTREGAR");
+    expect(mensajeErrorCierre("PEDIDOS_SIN_ENTREGAR")).toContain("Hay pedidos sin entregar");
   });
 });
 
@@ -179,5 +224,7 @@ describe("US-020: acción cerrarCuentaAction", () => {
     expect(await cerrarCuentaAction(mesa, null)).toEqual({ ok: false, mensaje: mensajeErrorCierre("SALDO_PENDIENTE") });
     clienteConRpc({ data: null, error: { message: "PENDING_PAYMENTS", code: "22023" } });
     expect(await cerrarCuentaAction(mesa, null)).toEqual({ ok: false, mensaje: mensajeErrorCierre("PENDING_PAYMENTS") });
+    clienteConRpc({ data: null, error: { message: "PEDIDOS_SIN_ENTREGAR", code: "23514" } });
+    expect(await cerrarCuentaAction(mesa, null)).toEqual({ ok: false, mensaje: mensajeErrorCierre("PEDIDOS_SIN_ENTREGAR") });
   });
 });

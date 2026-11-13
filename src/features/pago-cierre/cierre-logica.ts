@@ -52,8 +52,16 @@ export type EstadoCierre = {
   aviso: string;
 };
 
+export function avisoPedidosSinEntregar(cantidad: number): string {
+  return cantidad === 1
+    ? "Hay pedidos sin entregar: falta 1. Entrégalo o cancélalo antes de cerrar la cuenta."
+    : `Hay pedidos sin entregar: faltan ${cantidad}. Entrégalos o cancélalos antes de cerrar la cuenta.`;
+}
+
 // Qué cierre se permite según la cuenta y quién la mira.
-export function evaluarCierre(cuenta: ResumenCuenta, autorizaExcepcion: boolean): EstadoCierre {
+// US-063: una mesa no se cierra con pedidos sin entregar (ni con excepción). Un pedido para
+// llevar sí, porque se paga antes y la cocina lo sigue preparando.
+export function evaluarCierre(cuenta: ResumenCuenta, autorizaExcepcion: boolean, esMesa = false): EstadoCierre {
   const porVerificar = cuenta.pagosNoVerificados.filter((pago) => pago.estado === "PENDING").length;
   if (porVerificar > 0) {
     return {
@@ -61,6 +69,9 @@ export function evaluarCierre(cuenta: ResumenCuenta, autorizaExcepcion: boolean)
       excepcion: false,
       aviso: `Hay ${porVerificar} pago(s) Yape por verificar. Confírmalos o recházalos antes de cerrar la cuenta.`,
     };
+  }
+  if (esMesa && cuenta.pedidosSinEntregar > 0) {
+    return { ordinario: false, excepcion: false, aviso: avisoPedidosSinEntregar(cuenta.pedidosSinEntregar) };
   }
   if (cuenta.saldoCentimos <= 0) {
     return { ordinario: true, excepcion: false, aviso: "La cuenta está pagada: ya puedes cerrarla." };
@@ -89,6 +100,7 @@ const MENSAJES_ERROR: Record<string, string> = {
   ACCOUNT_CLOSED: "Esta cuenta ya fue cerrada.",
   PENDING_PAYMENTS: "Hay pagos Yape por verificar. Confírmalos o recházalos antes de cerrar.",
   SALDO_PENDIENTE: "La cuenta todavía tiene saldo pendiente. Actualiza la página y revisa los pagos.",
+  PEDIDOS_SIN_ENTREGAR: "Hay pedidos sin entregar. Entrégalos o cancélalos antes de cerrar la cuenta.",
   EXCEPTION_NOT_NEEDED: "La cuenta ya no tiene saldo pendiente: ciérrala de forma normal.",
   REASON_REQUIRED: `Escribe el motivo de la excepción (de ${MOTIVO_MINIMO} a ${MOTIVO_MAXIMO} caracteres).`,
   INVALID_CLOSURE: "Los datos de la cuenta no son válidos. Actualiza la página.",
