@@ -65,6 +65,9 @@ export async function cerrarSesionAction(
   if (resultado.motivo === "PAGOS_POR_VERIFICAR") {
     return { tipo: "error", mensaje: "La mesa tiene un pago Yape por verificar. Pide a caja que lo confirme antes de cerrarla." };
   }
+  if (resultado.motivo === "PEDIDOS_SIN_ENTREGAR") {
+    return { tipo: "error", mensaje: "Hay pedidos sin entregar. Entrégalos o cancélalos antes de cerrar la mesa." };
+  }
   return { tipo: "error", mensaje: "No se pudo cerrar la sesión. Inténtalo de nuevo." };
 }
 

@@ -150,7 +150,9 @@ export function DetalleCuenta({
         <p className="mt-3 text-sm text-zinc-700">
           {cerrada
             ? "Esta cuenta ya está cerrada."
-            : cuenta.puedeCerrar
+            : verificacion?.cuenta.tipo === "MESA" && cuenta.pedidosSinEntregar > 0
+              ? "Hay pedidos sin entregar: no se puede cerrar la mesa hasta entregarlos o cancelarlos."
+              : cuenta.puedeCerrar
               ? "La cuenta no tiene saldo pendiente: se puede cerrar."
               : saldo > 0
                 ? "No se puede cerrar la cuenta mientras haya saldo pendiente."

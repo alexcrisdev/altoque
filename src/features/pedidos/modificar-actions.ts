@@ -7,7 +7,7 @@ import { mensajeErrorModificacion, puedeModificar, requiereMotivoModificacion, v
 import { obtenerDetallePedido } from "./pedidos-admin";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const codigos = ["ORDER_NOT_FOUND", "INVALID_STATE", "FORBIDDEN", "REASON_REQUIRED", "INVALID_CHANGES", "ORDER_EMPTY"];
+const codigos = ["ORDER_NOT_FOUND", "INVALID_STATE", "FORBIDDEN", "REASON_REQUIRED", "INVALID_CHANGES", "ORDER_EMPTY", "ACCOUNT_CLOSED"];
 
 export async function modificarPedido(pedidoId: string, cambios: CambioPedido[], motivo?: string): Promise<{ ok: true; mensaje: string; totalCentimos: number } | { ok: false; mensaje: string }> {
   const rolesPermitidos = ["WAITER", "OWNER", "ADMIN"] as const;

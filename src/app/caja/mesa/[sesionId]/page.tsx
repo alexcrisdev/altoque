@@ -43,7 +43,7 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
           )}
           <CerrarCuenta
             cuenta={{ tipo: "MESA", id: cuenta.sesionId }}
-            estado={evaluarCierre(cuenta, autorizaExcepcion)}
+            estado={evaluarCierre(cuenta, autorizaExcepcion, true)}
           />
         </>
       )}

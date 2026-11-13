@@ -49,6 +49,7 @@ export function mensajeErrorEstado(codigo: string): string {
     FORBIDDEN: "No tienes permiso para cambiar el estado de este pedido.",
     REASON_REQUIRED: "Escribe el motivo de la cancelación.",
     INVALID_REASON: "El motivo no puede superar los 200 caracteres.",
+    ACCOUNT_CLOSED: "La cuenta de esta mesa ya se cerró: el pedido no se puede cambiar.",
   };
   return mensajes[codigo] ?? "No se pudo actualizar el estado del pedido. Intenta de nuevo.";
 }
