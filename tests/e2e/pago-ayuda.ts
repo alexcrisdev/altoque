@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { pedidosPropios, RESTAURANTE, type EntornoPedido } from "./ayuda";
+import { cancelarPedido, pedidosPropios, verificarEnCocina, RESTAURANTE, type EntornoPedido } from "./ayuda";
 
 export const textoSoles = (centimos: number) => (centimos / 100).toFixed(2);
 
@@ -49,6 +49,32 @@ export async function pagarEfectivo(page: Page, monto: number, recibido = monto)
   await expect.poll(() => saldoVisible(page)).toBe(Math.max(0, anterior - monto));
 }
 
+// US-085: se comprueba la cuenta visible antes de pagar; no se salta la UI.
+export async function pagarParaLlevarEnCaja(pedido: EntornoPedido) {
+  const p = await cuentaPropia(pedido);
+  expect(p).toMatchObject({ status: "PENDING", modality: "TAKEAWAY", source: "QR" });
+  const caja = await pedido.staff("caja");
+  await caja.goto("/caja");
+  const cuenta = caja.getByRole("region", { name: "Cuentas por cobrar o cerrar", exact: true })
+    .getByRole("link").filter({ hasText: `Para llevar #${p.order_number} – PRUEBA E2E` });
+  await expect(cuenta).toHaveAttribute("href", `/caja/pedido/${p.id}`);
+  await cuenta.click();
+  await expect(caja).toHaveURL(new RegExp(`/caja/pedido/${p.id}$`));
+  const saldo = await saldoVisible(caja);
+  expect(saldo).toBeGreaterThan(0);
+  await pagarEfectivo(caja, saldo);
+  await expect.poll(async () => (await cuentaPropia(pedido)).status).toBe("IN_PROGRESS");
+  const historial = await pedido.admin.from("order_status_history")
+    .select("from_status,to_status,reason").eq("restaurant_id", RESTAURANTE)
+    .eq("order_id", p.id).eq("reason", "US-085: pago confirmado");
+  expect(historial.error).toBeNull();
+  expect(historial.data).toEqual([{
+    from_status: "PENDING", to_status: "IN_PROGRESS", reason: "US-085: pago confirmado",
+  }]);
+  await verificarEnCocina(pedido, Number(p.order_number));
+  return caja;
+}
+
 export async function cerrarOrdinaria(page: Page) {
   await page.getByRole("button", { name: "Cerrar cuenta", exact: true }).click();
   await page.getByRole("button", { name: "Sí, cerrar cuenta", exact: true }).click();
@@ -62,17 +88,38 @@ export function prepararRecuperacion(pedido: EntornoPedido) {
     if (!propios.length) return;
     expect(propios).toHaveLength(1);
     const p = await cuentaPropia(pedido);
+    if (p.status === "CANCELLED") return;
     const filtro = p.table_session_id ? "table_session_id" : "order_id";
     const idCuenta = p.table_session_id || p.id;
+    const cierre = await pedido.admin.from("account_closures").select("id")
+      .eq("restaurant_id", RESTAURANTE).eq(filtro, idCuenta).maybeSingle();
+    if (cierre.error) throw new Error("No se pudo comprobar el cierre de la cuenta propia.");
+    if (cierre.data) {
+      // La recuperación es idempotente: no volver a operar una cuenta finalizada.
+      expect(p.status, "Una cuenta conservada por la prueba debe tener el pedido entregado").toBe("DELIVERED");
+      return;
+    }
     const { data: pagos, error } = await pedido.admin.from("payments").select("id,status")
       .eq("restaurant_id", RESTAURANTE).eq(filtro, idCuenta);
     if (error) throw new Error("No se pudieron verificar los pagos propios para limpiar.");
     // Sin pagos y todavía cancelable: la fixture original cancela y libera la mesa.
     if (!pagos.length && ["PENDING", "ACCEPTED", "IN_PROGRESS", "CANCELLED"].includes(p.status)) return;
+    if (p.status === "PENDING") {
+      // No inventar un cobro para poder preparar un pedido cuyo pago falló.
+      const caja = await pedido.staff("caja");
+      await caja.goto(p.ruta);
+      let pendientes = pagos.filter((pago) => pago.status === "PENDING").length;
+      while (pendientes > 0) {
+        await caja.getByRole("button", { name: "Rechazar", exact: true }).first().click();
+        pendientes -= 1;
+        await expect(caja.getByRole("button", { name: "Rechazar", exact: true })).toHaveCount(pendientes);
+      }
+      await cancelarPedido(await pedido.staff("admin"), p.id, pedido.marca);
+      return;
+    }
     await entregarPropio(pedido);
     const caja = await pedido.staff("caja");
     await caja.goto(p.ruta);
-    if (await caja.getByRole("heading", { name: "Cuenta cerrada", exact: true }).count()) return;
     // Rechazar pendientes propios antes de cerrar, nunca dejarlos bloqueando la mesa.
     for (let i = 0; i < pagos.filter((pago) => pago.status === "PENDING").length; i++) {
       await caja.getByRole("button", { name: "Rechazar", exact: true }).first().click();

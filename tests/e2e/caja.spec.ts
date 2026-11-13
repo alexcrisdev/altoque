@@ -4,7 +4,7 @@ import {
   test, MESA_NUMERO, TOKEN_MOSTRADOR, RESTAURANTE,
   prepararCarrito, confirmarYVerificar, cerrarMesa,
 } from "./ayuda";
-import { cuentaPropia } from "./pago-ayuda";
+import { cuentaPropia, pagarParaLlevarEnCaja, prepararRecuperacion } from "./pago-ayuda";
 
 test.setTimeout(90_000);
 
@@ -58,7 +58,8 @@ test("US-082: caja distingue mesa libre y ocupada e impide ofrecer una segunda a
   await expect(mesa.getByRole("link")).toHaveCount(0);
 });
 
-test("US-082: caja identifica el pedido para llevar por número y cliente", async ({ page, pedido }) => {
+test("US-082 / US-085: caja identifica y cobra el pedido para llevar antes de cocina", async ({ page, pedido }) => {
+  prepararRecuperacion(pedido);
   await prepararCarrito(page, TOKEN_MOSTRADOR, pedido.marca);
   await confirmarYVerificar(page, pedido);
   const p = await cuentaPropia(pedido);
@@ -68,5 +69,5 @@ test("US-082: caja identifica el pedido para llevar por número y cliente", asyn
   await expect(cuenta).toHaveAttribute("href", `/caja/pedido/${p.id}`);
   await cuenta.click();
   await expect(caja).toHaveURL(new RegExp(`/caja/pedido/${p.id}$`));
-  // La fixture cancela solo este pedido demo. No se registran pagos ni cierres.
+  await pagarParaLlevarEnCaja(pedido);
 });
