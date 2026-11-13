@@ -33,6 +33,13 @@ describe("acciones de estado US-069", () => {
     vi.mocked(guardarEstadoPedido).mockResolvedValue({ data: null, error: { message: "UNDO_EXPIRED" } } as Awaited<ReturnType<typeof guardarEstadoPedido>>);
     expect(await cambiarEstadoPedido(pedidoId, "IN_PROGRESS")).toEqual({ ok: false, mensaje: mensajeErrorEstado("UNDO_EXPIRED") });
   });
+  it("US-063: avisa que la mesa ya cerró su cuenta", async () => {
+    sesion("WAITER");
+    vi.mocked(guardarEstadoPedido).mockResolvedValue({ data: null, error: { message: "ACCOUNT_CLOSED" } } as Awaited<ReturnType<typeof guardarEstadoPedido>>);
+    const resultado = await cambiarEstadoPedido(pedidoId, "CANCELLED", "Cliente se retiró");
+    expect(resultado).toEqual({ ok: false, mensaje: mensajeErrorEstado("ACCOUNT_CLOSED") });
+    expect(mensajeErrorEstado("ACCOUNT_CLOSED")).toContain("ya se cerró");
+  });
   it("mesero puede solicitar cancelación con motivo", async () => {
     sesion("WAITER");
     expect(await cambiarEstadoPedido(pedidoId, "CANCELLED", "Cliente se retiró")).toEqual({ ok: true });
