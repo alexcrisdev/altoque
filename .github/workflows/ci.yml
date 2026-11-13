@@ -1,16 +1,19 @@
 name: CI
 
+# US-095: en main no corre solo; lo llama pipeline-main.yml (CI -> Seguridad -> Smoke).
 on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main]
+    branches: [develop]
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Si lo llama el pipeline, github.workflow es "Pipeline main": el grupo queda separado.
+  group: ${{ github.workflow }}-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

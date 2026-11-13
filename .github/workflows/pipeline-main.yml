@@ -1,0 +1,44 @@
+name: Pipeline main
+
+# US-095: al subir a main (producción) GitHub muestra UN solo gráfico conectado:
+#   1. CI (verificar) -> 2. Seguridad (4 revisiones + resultado) -> 3. Smoke (URL publicada)
+# Reutiliza los mismos workflows con workflow_call y los encadena con needs:
+# si una etapa falla, las siguientes no corren.
+# En los PR y en develop, ci/seguridad/smoke siguen corriendo solos, como antes.
+# También se puede lanzar a mano desde Actions (por ejemplo, para la demo).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Un pase a producción no se cancela a medias; el siguiente espera su turno.
+  group: pipeline-main-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: 1. CI
+    uses: ./.github/workflows/ci.yml
+
+  seguridad:
+    name: 2. Seguridad
+    needs: ci
+    uses: ./.github/workflows/seguridad.yml
+    # Los workflows llamados solo pueden usar los permisos que se les dan aquí.
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      security-events: write # CodeQL publica sus alertas en Security
+
+  smoke:
+    name: 3. Smoke
+    needs: seguridad
+    uses: ./.github/workflows/smoke.yml
+    permissions:
+      contents: read
+      statuses: read # para esperar a que Vercel termine de publicar

@@ -3,11 +3,13 @@ name: Seguridad (DevSecOps)
 # US-043: cuatro revisiones de seguridad en paralelo y un job final que
 # junta los resultados. En la pestaña Actions se ve como un gráfico:
 # cuatro cajas a la izquierda -> "Resultado de seguridad" a la derecha.
+# US-095: en main no corre solo; lo llama pipeline-main.yml después de CI.
 on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main]
+    branches: [develop]
+  workflow_call:
   schedule:
     # Lunes 08:00 en Lima (13:00 UTC): salen vulnerabilidades nuevas
     # aunque nadie toque el código.
@@ -18,7 +20,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Si lo llama el pipeline, github.workflow es "Pipeline main": el grupo queda separado.
+  group: ${{ github.workflow }}-seguridad-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
