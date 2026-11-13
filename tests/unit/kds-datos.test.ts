@@ -26,3 +26,30 @@ describe("US-080: consulta del día y alérgenos", () => {
     expect(pedidos[0].items).toEqual([{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají", alergenos: ["Pescado"] }]);
   });
 });
+
+describe("US-085: pedidos pendientes fuera de cocina", () => {
+  it.each([undefined, Date.parse("2026-11-11T16:00:00Z")])(
+    "excluye PENDING al consultar cocina con día %s", async (dia) => {
+      const base = {
+        order_number: 85, created_at: "2026-11-11T16:00:00Z", modality: "TAKEAWAY", source: "QR",
+        customer_name: "Prueba", dining_tables: null, order_incidents: [], order_items: [],
+      };
+      const filas = [
+        { ...base, id: "espera-pago", status: "PENDING" },
+        { ...base, id: "pagado", status: "IN_PROGRESS" },
+      ];
+      let estados: string[] = [];
+      const cliente = {
+        from: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+        in: vi.fn((_columna: string, valores: string[]) => { estados = valores; return cliente; }),
+        gte: vi.fn().mockReturnThis(), lt: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
+        overrideTypes: vi.fn(async () => ({ error: null, data: filas.filter(fila => estados.includes(fila.status)) })),
+      };
+      vi.mocked(crearClienteServidor).mockResolvedValue(cliente as unknown as Awaited<ReturnType<typeof crearClienteServidor>>);
+      const pedidos = await listarPedidosCocina("restaurante", dia);
+      expect(estados).not.toContain("PENDING");
+      expect(pedidos.map(pedido => pedido.id)).toEqual(["pagado"]);
+      expect(cliente.eq).toHaveBeenCalledWith("restaurant_id", "restaurante");
+    },
+  );
+});

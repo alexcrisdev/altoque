@@ -1,6 +1,6 @@
 import "server-only";
 import { crearClienteServidor } from "../../lib/supabase/server";
-import { ESTADOS_ACTIVOS, type EstadoPedido } from "../pedidos/estados";
+import type { EstadoPedido } from "../pedidos/estados";
 import type { Modalidad } from "@/features/pedidos/modalidad";
 import type { PedidoCocina } from "./tipos";
 import type { TipoIncidencia } from "../pedidos/incidencias";
@@ -28,7 +28,8 @@ export async function listarPedidosCocina(restauranteId: string, diaKds?: number
       ? "id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)"
       : "id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation, products(allergens)), order_incidents(id, type, description, status, created_at)")
     .eq("restaurant_id", restauranteId)
-    .in("status", diaKds === undefined ? ESTADOS_ACTIVOS : ["IN_PROGRESS", "READY", "CANCELLED"]);
+    // US-085: un pedido que espera pago no entra en ninguna vista de cocina.
+    .in("status", diaKds === undefined ? ["IN_PROGRESS", "READY"] : ["IN_PROGRESS", "READY", "CANCELLED"]);
   if (diaKds !== undefined) {
     const { inicio, fin } = diaLima(diaKds);
     consulta = consulta.gte("created_at", inicio).lt("created_at", fin);

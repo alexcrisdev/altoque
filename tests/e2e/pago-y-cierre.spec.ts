@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { test, MESA_NUMERO, TOKEN_MESA, TOKEN_MOSTRADOR, prepararCarrito, confirmarYVerificar, RESTAURANTE } from "./ayuda";
-import { saldoVisible, cuentaPropia, entregarPropio, pagarEfectivo, cerrarOrdinaria, prepararRecuperacion, textoSoles } from "./pago-ayuda";
+import { saldoVisible, cuentaPropia, entregarPropio, pagarEfectivo, pagarParaLlevarEnCaja, cerrarOrdinaria, prepararRecuperacion, textoSoles } from "./pago-ayuda";
 
 test.setTimeout(180_000);
 test.use({ actionTimeout: 20_000 });
@@ -109,13 +109,12 @@ test("CP-030-13: para llevar pagado y cerrado rechaza nuevos pagos", async ({ pa
   prepararRecuperacion(pedido);
   await prepararCarrito(page, TOKEN_MOSTRADOR, pedido.marca);
   await confirmarYVerificar(page, pedido);
+  const caja = await pagarParaLlevarEnCaja(pedido);
   await entregarPropio(pedido);
   const p = await cuentaPropia(pedido);
-  const caja = await pedido.staff("caja");
-  await caja.getByRole("region", { name: "Cuentas por cobrar o cerrar", exact: true })
-    .getByRole("link").filter({ hasText: `Para llevar #${p.order_number} – PRUEBA E2E` }).click();
+  await caja.goto(p.ruta);
   await expect(caja).toHaveURL(new RegExp(`/caja/pedido/${p.id}$`));
-  await pagarEfectivo(caja, await saldoVisible(caja));
+  expect(await saldoVisible(caja)).toBe(0);
   await cerrarOrdinaria(caja);
   await caja.reload();
   await expect(caja.getByRole("heading", { name: "Registrar pago", exact: true })).toHaveCount(0);

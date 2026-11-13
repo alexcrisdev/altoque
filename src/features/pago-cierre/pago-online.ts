@@ -24,16 +24,18 @@ export async function resolverCuentaOnline(token: string, clave: string | null):
   if (acceso.estado !== "VALIDO") return null;
 
   let cuenta: CuentaACobrar;
-  if (acceso.modalidad === "DINE_IN") {
-    if (!acceso.mesa) return null;
-    const sesion = await buscarSesionAbierta(acceso.mesa.id);
-    if (!sesion) return null;
-    cuenta = { tipo: "MESA", id: sesion.id };
-  } else {
-    if (!clave || !UUID.test(clave)) return null;
+  // US-085: desde el QR de una mesa también se puede pedir para llevar.
+  // Una clave identifica ese pedido; nunca debe sustituirse por la cuenta de mesa.
+  if (clave !== null) {
+    if (!UUID.test(clave)) return null;
     const pedidoId = await buscarPedidoParaLlevar(acceso.restauranteId, acceso.qrId, clave);
     if (!pedidoId) return null;
     cuenta = { tipo: "PARA_LLEVAR", id: pedidoId };
+  } else {
+    if (acceso.modalidad !== "DINE_IN" || !acceso.mesa) return null;
+    const sesion = await buscarSesionAbierta(acceso.mesa.id);
+    if (!sesion) return null;
+    cuenta = { tipo: "MESA", id: sesion.id };
   }
 
   const saldo = await saldoCuentaOnline(cuenta);
@@ -43,7 +45,7 @@ export async function resolverCuentaOnline(token: string, clave: string | null):
     cuenta,
     restauranteId: acceso.restauranteId,
     restauranteNombre: acceso.restauranteNombre,
-    mesaNumero: acceso.mesa?.numero ?? null,
+    mesaNumero: cuenta.tipo === "MESA" ? acceso.mesa?.numero ?? null : null,
     saldoCentimos: saldo,
   };
 }
