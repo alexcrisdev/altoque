@@ -53,7 +53,20 @@ dev/<nombre> ──PR──► develop ──(cierre de sprint) PR──► main
 
 ## Comprobación después de publicar (smoke test)
 
-Después de cada push a `develop` o a `main`, el workflow **Smoke despliegue** (`.github/workflows/smoke.yml`) espera a que Vercel termine de publicar y prueba staging o producción con `scripts/smoke.mjs`. Solo hace lecturas y no crea datos. El resultado aparece en la pestaña **Actions**. También se puede lanzar a mano con cualquier URL, por ejemplo la vista previa de un PR: **Actions → Smoke despliegue → Run workflow**.
+## Pipeline de producción (US-095)
+
+Al subir a `main`, **Pipeline main** (`.github/workflows/pipeline-main.yml`) corre las tres etapas en orden y GitHub las muestra en **un solo gráfico conectado**:
+
+```
+1. CI (verificar) ──► 2. Seguridad (Gitleaks, CodeQL, npm audit, revisión de dependencias → Resultado) ──► 3. Smoke (URL de producción)
+```
+
+- Reutiliza los mismos workflows (`ci.yml`, `seguridad.yml`, `smoke.yml`) con `workflow_call`, encadenados con `needs`: **si una etapa falla, las siguientes no corren** (aparecen como omitidas).
+- En `main` esos tres workflows ya no corren por separado: los corre el pipeline, así no se duplican.
+- En los PR y en `develop` siguen corriendo solos, como antes (el check obligatorio `verificar` no cambia).
+- Se puede lanzar a mano: **Actions → Pipeline main → Run workflow** (en `develop` prueba staging; útil para la demo).
+
+Después de cada push a `develop` (o dentro del pipeline en `main`), el workflow **Smoke despliegue** (`.github/workflows/smoke.yml`) espera a que Vercel termine de publicar y prueba staging o producción con `scripts/smoke.mjs`. Solo hace lecturas y no crea datos. El resultado aparece en la pestaña **Actions**. También se puede lanzar a mano con cualquier URL, por ejemplo la vista previa de un PR: **Actions → Smoke despliegue → Run workflow**.
 
 | Prueba | Qué comprueba |
 |---|---|
