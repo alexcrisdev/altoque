@@ -1,0 +1,88 @@
+name: Pipeline
+
+# US-095: cada vez que algo entra a develop (staging) o a main (producción), GitHub
+# muestra UN solo gráfico conectado, de izquierda a derecha:
+#   1. CI -> 2. Integración -> 3. E2E -> 4. Seguridad -> 5. Despliegue -> 6. Smoke
+# Reutiliza los workflows de siempre con workflow_call y los encadena con needs:
+# si una etapa falla, las siguientes no corren (quedan omitidas).
+# En los PR, ci/integracion/e2e/seguridad siguen corriendo solos, como antes.
+# También se puede lanzar a mano desde Actions -> Pipeline -> Run workflow.
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Un pase no se cancela a medias; el siguiente de la misma rama espera su turno.
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: 1. CI
+    uses: ./.github/workflows/ci.yml
+
+  integracion:
+    name: 2. Integración
+    needs: ci
+    uses: ./.github/workflows/integracion.yml
+    secrets: inherit # credenciales de la base demo (las mismas de los PR)
+
+  e2e:
+    name: 3. E2E
+    needs: integracion
+    uses: ./.github/workflows/e2e.yml
+    secrets: inherit # usuarios demo y QR reservados de Mesa 5 y mostrador
+
+  seguridad:
+    name: 4. Seguridad
+    needs: e2e
+    uses: ./.github/workflows/seguridad.yml
+    # Los workflows llamados solo pueden usar los permisos que se les dan aquí.
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      security-events: write # CodeQL publica sus alertas en Security
+
+  despliegue:
+    name: 5. Despliegue (Vercel)
+    needs: seguridad
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      statuses: read # para leer el estado del despliegue de Vercel
+    # Vercel publica solo al recibir el push (integración con GitHub). Esta etapa espera
+    # a que termine y lo registra como entorno: staging (develop) o produccion (main).
+    environment:
+      name: ${{ github.ref_name == 'main' && 'produccion' || 'staging' }}
+      url: ${{ github.ref_name == 'main' && 'https://altoque-app-usil.vercel.app' || 'https://altoque-app-usil-git-develop-alexandercris-projects.vercel.app' }}
+    steps:
+      - name: Esperar a que Vercel publique este commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for intento in $(seq 1 40); do
+            estado=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/status" \
+              --jq '[.statuses[] | select(.context == "Vercel")][0].state // "pending"')
+            echo "Vercel: $estado"
+            if [ "$estado" = "success" ]; then
+              echo "### Publicado en $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            if [ "$estado" = "failure" ] || [ "$estado" = "error" ]; then exit 1; fi
+            sleep 15
+          done
+          echo "Vercel no terminó en 10 minutos"; exit 1
+
+  smoke:
+    name: 6. Smoke
+    needs: despliegue
+    uses: ./.github/workflows/smoke.yml
+    permissions:
+      contents: read
+      statuses: read

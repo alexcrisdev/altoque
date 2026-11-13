@@ -3,14 +3,20 @@ name: Smoke despliegue
 # US-029: después de cada push a develop (staging) o main (producción)
 # espera a que Vercel termine de publicar y prueba la URL. Solo hace lecturas.
 # También se puede lanzar a mano desde Actions con cualquier URL.
+# US-095: en develop y main lo llama pipeline-main.yml como última etapa.
 on:
-  push:
-    branches: [develop, main]
   workflow_dispatch:
     inputs:
       url:
         description: URL a probar
         required: true
+  workflow_call:
+    inputs:
+      url:
+        description: URL a probar (vacío = según la rama)
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read

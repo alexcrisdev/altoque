@@ -1,11 +1,11 @@
 name: Pruebas de integración
 
+# US-095: en los PR corre solo. En develop y main lo llama pipeline-main.yml (etapa 2).
 on:
   pull_request:
     branches: [develop, main]
-  push:
-    branches: [develop]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
