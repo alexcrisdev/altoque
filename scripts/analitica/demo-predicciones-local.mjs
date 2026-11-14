@@ -1,8 +1,8 @@
 // US-090: fixtures manuales para capturas. Nunca se conecta a la base compartida.
 // No carga el CSV del modelo ni sustituye al cargador reservado al revisor.
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, unlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
@@ -21,7 +21,9 @@ async function ejecutar() {
   if (!clave) throw new Error("Falta SUPABASE_SERVICE_ROLE_KEY de Supabase local.");
   const cliente = createClient(url.origin, clave, { auth: { persistSession: false, autoRefreshToken: false } });
   const identificador = createHash("sha256").update(`${url.origin}|${process.cwd()}`).digest("hex").slice(0, 16);
-  const archivo = join(tmpdir(), `altoque-us090-${identificador}.json`);
+  // El registro de limpieza vive en la carpeta del usuario, fuera del temp compartido.
+  const directorio = join(homedir(), ".altoque", "us090");
+  const archivo = join(directorio, `fixtures-${identificador}.json`);
 
   async function limpiar(datos) {
     if (datos.destino !== url.origin || datos.restaurante !== restaurante
@@ -76,8 +78,9 @@ async function ejecutar() {
     destino: url.origin, restaurante, fecha,
     predicciones: ids.map(() => randomUUID()), stock: [randomUUID(), randomUUID()],
   };
-  // wx impide sobrescribir un registro de una ejecución anterior pendiente de limpieza.
-  await writeFile(archivo, JSON.stringify(datos), { flag: "wx" });
+  // Directorio privado y archivo exclusivo: no sobrescribir una limpieza pendiente.
+  await mkdir(directorio, { recursive: true, mode: 0o700 });
+  await writeFile(archivo, JSON.stringify(datos), { flag: "wx", mode: 0o600 });
   try {
     const modelo = `us090-captura-${randomUUID()}-demo`;
     const cantidades = [46, 36, 28];

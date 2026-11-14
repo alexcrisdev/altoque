@@ -60,8 +60,10 @@ node scripts/analitica/demo-predicciones-local.mjs preparar
 Se crean tres ejemplos manuales para mañana: alerta (46 frente a 30), suficiente
 (36 frente a 50) y sin stock registrado (28). Son fixtures de interfaz, no resultados
 del CSV US-087. El script no reemplaza predicciones ni stock que ya existan para
-los productos y fecha consultados. Guarda en el directorio temporal del sistema
-los UUID necesarios para eliminar únicamente sus filas.
+los productos y fecha consultados. Guarda en `.altoque/us090`, dentro de la carpeta
+personal del usuario y fuera del repositorio, los UUID necesarios para eliminar
+únicamente sus filas. Crea el directorio con modo `0700` y el archivo con modo
+`0600` en sistemas que admiten esos permisos; mantiene la creación exclusiva `wx`.
 
 Después de revisar `/admin/reportes` y guardar las capturas:
 
@@ -69,5 +71,5 @@ Después de revisar `/admin/reportes` y guardar las capturas:
 node scripts/analitica/demo-predicciones-local.mjs limpiar
 ```
 
-Si falla una preparación o limpieza, conservar el registro temporal y repetir
+Si falla una preparación o limpieza, conservar el registro de limpieza y repetir
 `limpiar` desde la misma carpeta y con el mismo destino local.
