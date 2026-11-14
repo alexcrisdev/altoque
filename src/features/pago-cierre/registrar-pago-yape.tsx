@@ -11,7 +11,7 @@ import { centimosATexto, normalizarReferencia, parsearSoles, validarPagoYape, ty
 
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
-export function RegistrarPagoYape({ cuenta, saldoCentimos }: { cuenta: CuentaACobrar; saldoCentimos: number }) {
+export function RegistrarPagoYape({ cuenta, saldoCentimos, correo = "" }: { cuenta: CuentaACobrar; saldoCentimos: number; correo?: string }) {
   const [monto, setMonto] = useState(saldoCentimos > 0 ? centimosATexto(saldoCentimos) : "");
   const [referencia, setReferencia] = useState("");
   const [clave, setClave] = useState(() => crypto.randomUUID());
@@ -30,7 +30,7 @@ export function RegistrarPagoYape({ cuenta, saldoCentimos }: { cuenta: CuentaACo
     }
     startTransition(async () => {
       try {
-        const resultado = await registrarPagoYapeAction(cuenta, monto, referencia, clave);
+        const resultado = await registrarPagoYapeAction(cuenta, monto, referencia, clave, correo);
         if (!resultado.ok) {
           setError(resultado.mensaje);
           return;

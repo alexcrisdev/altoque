@@ -85,6 +85,7 @@ export async function registrarPagoStripe(datos: {
   intentoPago: string;
   cuenta: CuentaACobrar;
   montoCentimos: number;
+  correoBoleta?: string | null;
 }): Promise<ResultadoRegistroStripe> {
   const { data, error } = await crearClienteAdmin().rpc("registrar_pago_stripe", {
     p_stripe_session_id: datos.sesionStripe,
@@ -92,6 +93,7 @@ export async function registrarPagoStripe(datos: {
     p_sesion_id: datos.cuenta.tipo === "MESA" ? datos.cuenta.id : null,
     p_pedido_id: datos.cuenta.tipo === "PARA_LLEVAR" ? datos.cuenta.id : null,
     p_monto: (datos.montoCentimos / 100).toFixed(2),
+    p_receipt_email: datos.correoBoleta ?? null,
   });
   if (error) {
     const codigo = /^[A-Z_]+$/.test(error.message) ? error.message : "ERROR";

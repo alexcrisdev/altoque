@@ -17,7 +17,7 @@ const RESULTADOS = [
   { valor: false, etiqueta: "Rechazado" },
 ] as const;
 
-export function RegistrarPagoTarjeta({ cuenta, saldoCentimos }: { cuenta: CuentaACobrar; saldoCentimos: number }) {
+export function RegistrarPagoTarjeta({ cuenta, saldoCentimos, correo = "" }: { cuenta: CuentaACobrar; saldoCentimos: number; correo?: string }) {
   const [monto, setMonto] = useState(saldoCentimos > 0 ? centimosATexto(saldoCentimos) : "");
   const [referencia, setReferencia] = useState("");
   const [aprobado, setAprobado] = useState<boolean | null>(null);
@@ -37,7 +37,7 @@ export function RegistrarPagoTarjeta({ cuenta, saldoCentimos }: { cuenta: Cuenta
     }
     startTransition(async () => {
       try {
-        const resultado = await registrarPagoTarjetaAction(cuenta, monto, referencia, aprobado, clave);
+        const resultado = await registrarPagoTarjetaAction(cuenta, monto, referencia, aprobado, clave, correo);
         if (!resultado.ok) {
           setError(resultado.mensaje);
           return;

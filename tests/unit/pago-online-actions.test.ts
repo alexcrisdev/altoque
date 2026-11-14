@@ -32,6 +32,19 @@ beforeEach(() => {
 });
 
 describe("iniciarPagoTarjetaAction", () => {
+  it("guarda el correo voluntario solo en metadata de la sesión, sin pedirlo ni copiarlo al PaymentIntent", async () => {
+    vi.mocked(resolverCuentaOnline).mockResolvedValue(cuentaMesa(6200));
+    crearSesion.mockResolvedValue({ url: "https://checkout.stripe.com/x" });
+    await iniciarPagoTarjetaAction("tok_mesa", null, " cliente@example.test ");
+    const parametros = crearSesion.mock.calls[0][0];
+    expect(parametros.metadata.receipt_email).toBe("cliente@example.test");
+    expect(parametros.payment_intent_data.metadata).not.toHaveProperty("receipt_email");
+    expect(parametros).not.toHaveProperty("customer_email");
+  });
+  it("un correo inválido no crea un Checkout", async () => {
+    expect((await iniciarPagoTarjetaAction("tok", null, "invalido")).ok).toBe(false);
+    expect(crearSesion).not.toHaveBeenCalled();
+  });
   it("crea la sesión de Stripe con el saldo de la base, en soles", async () => {
     vi.mocked(resolverCuentaOnline).mockResolvedValue(cuentaMesa(6200));
     crearSesion.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_x" });
@@ -54,7 +67,7 @@ describe("iniciarPagoTarjetaAction", () => {
     crearSesion.mockResolvedValue({ url: "https://checkout.stripe.com/x" });
 
     // Aunque alguien intente mandar algo más, la acción solo usa token y clave.
-    await (iniciarPagoTarjetaAction as (...args: unknown[]) => Promise<unknown>)("tok_mesa", null, 100);
+    await (iniciarPagoTarjetaAction as (...args: unknown[]) => Promise<unknown>)("tok_mesa", null, null, 100);
 
     expect(crearSesion.mock.calls[0][0].line_items[0].price_data.unit_amount).toBe(6200);
   });

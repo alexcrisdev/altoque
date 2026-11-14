@@ -3,6 +3,7 @@
 // US-076: acciones del pago con tarjeta online. Las usa el cliente desde su
 // celular, sin iniciar sesión: todo se valida con el token del QR.
 
+import { leerCorreoBoleta } from "./comprobante-logica";
 import { pagoStripeRegistrado, resolverCuentaOnline } from "./pago-online";
 import { crearClienteStripe, stripeConfigurado } from "./stripe";
 import {
@@ -22,10 +23,12 @@ const IDENTIFICADOR_INTEGRACION = "altoque_pago_qr_hfkwqzpe";
 // Stripe pide que la sesión dure al menos 30 minutos.
 const DURACION_SESION_SEGUNDOS = 31 * 60;
 
-export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown): Promise<ResultadoInicioPago> {
+export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown, correo: unknown = null): Promise<ResultadoInicioPago> {
   if (typeof token !== "string" || (clave !== null && typeof clave !== "string")) {
     return { ok: false, mensaje: mensajeErrorStripe("ACCOUNT_NOT_FOUND") };
   }
+  const email = leerCorreoBoleta(correo);
+  if (!email.ok) return email;
   if (!stripeConfigurado()) return { ok: false, mensaje: mensajeErrorStripe("STRIPE_NOT_CONFIGURED") };
 
   let cuenta;
@@ -43,6 +46,7 @@ export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown): 
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const retorno = urlsRetornoCheckout(base, token, clave);
   const metadatos = metadatosCheckout(cuenta.cuenta, cuenta.restauranteId);
+  const metadatosSesion = { ...metadatos, ...(email.correo ? { receipt_email: email.correo } : {}) };
 
   try {
     const sesion = await crearClienteStripe().checkout.sessions.create({
@@ -59,7 +63,7 @@ export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown): 
           },
         },
       }],
-      metadata: metadatos,
+      metadata: metadatosSesion,
       payment_intent_data: { metadata: metadatos },
       success_url: retorno.exito,
       cancel_url: retorno.cancelado,

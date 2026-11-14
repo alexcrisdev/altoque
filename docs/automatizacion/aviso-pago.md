@@ -41,10 +41,11 @@ Cuerpo (ejemplo con datos ficticios):
 ```json
 {
   "evento": "pago_confirmado",
-  "version": 1,
+  "version": 2,
   "id": "id-del-pago",
   "restaurante": { "id": "uuid", "nombre": "Cevichería Demo" },
-  "cuenta": { "tipo": "MESA", "id": "uuid-de-la-sesion", "mesa": 3, "pedido": null },
+  "cuenta": { "tipo": "MESA", "id": "uuid-de-la-sesion", "mesa": 3, "pedido": null, "saldo_restante": "0.00" },
+  "comprobante": { "id": "uuid-de-la-reserva", "serie": "BBB1", "numero": 7, "is_test": true, "estado": "PENDIENTE" },
   "pago": { "metodo": "CASH", "canal": "CAJA", "monto": "62.50", "moneda": "PEN", "confirmado_en": "2026-11-11T15:30:00.000Z" },
   "platos": [
     { "nombre": "Ceviche clásico", "cantidad": 2, "precio_unitario": "31.25", "subtotal": "62.50" }
@@ -57,11 +58,20 @@ Cuerpo (ejemplo con datos ficticios):
 - `platos`: todos los pedidos no cancelados de la cuenta, con platos iguales sumados.
   Es el detalle de la cuenta, no del pago: en un pago parcial, `monto` es lo pagado.
 - Montos como texto con 2 decimales, en soles.
+- US-088: `cuenta.saldo_restante` considera todos los pagos confirmados.
+  `comprobante` es la reserva hecha por AlToque al completar el pago, o `null`
+  cuando no corresponde. n8n no inventa ni incrementa su número.
+- `cliente: { "correo": "cliente@example.test" }` aparece únicamente si se
+  escribió voluntariamente el correo al pagar; si se omitió, no existe `cliente`.
+  En Stripe se toma de metadata de la sesión, no del correo solicitado por Stripe.
 - **No** incluye teléfono ni nombre del cliente, observaciones de los platos,
   referencias de voucher/Yape, datos de Stripe ni claves.
 
-`id` es el id del pago: un reintento de caja puede generar el mismo aviso dos
-veces y n8n lo marca como `duplicado`.
+`id` es el id del pago. Un reintento conserva la misma reserva de boleta. El
+flujo base de US-086 marca los últimos 500 pagos como repetidos; esa memoria
+no decide la emisión de US-088. Para boletas importar el
+[flujo v2 y seguir su guía](boleta.md): usa la reserva persistente y consulta
+Nubefact antes de emitir. No publicar ambos flujos en el mismo path.
 
 ## Verificación en n8n
 
