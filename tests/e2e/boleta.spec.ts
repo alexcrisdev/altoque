@@ -19,10 +19,11 @@ test("US-088: correo opcional, reserva y callback firmado visibles en caja (loca
       .eq("restaurant_id", "10000000-0000-0000-0000-000000000001").eq("id", p.id).single();
     expect(propio.error).toBeNull();
     await page.goto(`/m/${TOKEN_MOSTRADOR}/pedido/${propio.data!.idempotency_key}`);
+    const origenAntesDelPago = new URL(page.url()).origin;
     await page.getByLabel("Correo para tu boleta (opcional)").fill("correo-invalido");
     await page.getByRole("button", { name: "Pagar con tarjeta", exact: true }).click();
     await expect(page.getByRole("alert").filter({ hasText: "Escribe un correo válido" })).toBeVisible();
-    await expect(page).not.toHaveURL(/checkout\.stripe\.com/);
+    expect(new URL(page.url()).origin).toBe(origenAntesDelPago);
   }
   const caja = await pedido.staff("caja");
   await caja.goto(`/caja/pedido/${p.id}`);
