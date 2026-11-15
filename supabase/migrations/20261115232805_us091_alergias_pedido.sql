@@ -1,5 +1,8 @@
 -- US-091: declaración de alergias atómica con el pedido.
 -- Conserva stock US-078, triggers US-085 y registro asistido del mesero.
+-- Va después de US-097: si el trigger orders_us097_limitar_pendientes_qr omite
+-- la fila (RETURN NULL), la rama "if v_order.id is null" devuelve pedido_id null
+-- igual que antes, y registro.ts lo traduce al mensaje de límite de 2 pedidos.
 begin;
 alter table public.orders
   add column allergy_answer text null check (allergy_answer in ('NONE','YES')),
