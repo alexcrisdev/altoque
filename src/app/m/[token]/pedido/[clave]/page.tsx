@@ -94,8 +94,13 @@ async function ContenidoPedido({ params, searchParams }: Props) {
       ) : pedido ? (
         <>
           <ResumenPedido key={clave} pedido={pedido} />
-          {/* US-076: pago con tarjeta online del pedido para llevar. */}
-          {pedido.modalidad === "TAKEAWAY" && <CuentaCliente token={token} clave={clave} pago={pago} sesion={sesion} />}
+          {/* US-094: una mesa usa su sesión; para llevar, su clave de pedido. */}
+          <CuentaCliente
+            token={token}
+            clave={pedido.modalidad === "TAKEAWAY" ? clave : null}
+            pago={pago}
+            sesion={sesion}
+          />
         </>
       ) : (
         <MensajeEstado
@@ -134,7 +139,7 @@ function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
         </h2>
 
         <Insignia tono={TONO_ESTADO[pedido.estado]}>
-          {etiquetaEstadoCliente(pedido.estado, pedido.modalidad)}
+          {etiquetaEstadoCliente(pedido.estado)}
         </Insignia>
       </div>
 

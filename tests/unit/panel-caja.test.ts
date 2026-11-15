@@ -10,6 +10,7 @@ import { listarMesasConSesion } from "../../src/features/mesero/sesiones";
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { listarCuentasAbiertas } from "../../src/features/pago-cierre/cuentas";
 import { obtenerPanelCaja } from "../../src/features/pago-cierre/panel-actions";
+import { ordenarCuentasCaja } from "../../src/features/pago-cierre/cuenta-logica";
 
 // Solo simula SELECT: cualquier intento de escritura carece de implementación.
 function lecturas(nombre: string | null = "Cliente Demo", ocupada = false, estado = "IN_PROGRESS") {
@@ -37,6 +38,21 @@ function lecturas(nombre: string | null = "Cliente Demo", ocupada = false, estad
 }
 
 beforeEach(() => { vi.resetAllMocks(); });
+
+describe("US-094: prioridad de cuentas que esperan pago", () => {
+  it("pone primero la espera más antigua y conserva el orden de las demás", () => {
+    const cuentas = [
+      { titulo: "Pagada", esperaPagoDesde: null },
+      { titulo: "Espera reciente", esperaPagoDesde: "2026-11-14T12:10:00.000Z" },
+      { titulo: "Espera antigua", esperaPagoDesde: "2026-11-14T12:00:00.000Z" },
+    ];
+
+    expect(ordenarCuentasCaja(cuentas).map((cuenta) => cuenta.titulo)).toEqual([
+      "Espera antigua", "Espera reciente", "Pagada",
+    ]);
+    expect(cuentas[0].titulo).toBe("Pagada");
+  });
+});
 
 describe("US-082: lectura del panel de caja", () => {
   it("US-085: conserva el pedido para llevar PENDING con saldo para poder cobrarlo", async () => {
