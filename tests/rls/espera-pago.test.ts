@@ -61,6 +61,7 @@ async function crearPedido(tipo: "CLIENTE" | "QR_ANTIGUO" | "MESA" | "MESERO" | 
     }).single<{ pedido_id: string }>();
   } else {
     respuesta = await servicio.rpc("registrar_pedido_cliente", {
+      p_alergia_respuesta: "NONE", p_alergenos: [], p_alergia_detalle: null,
       p_qr_code_id: tipo === "MESA" || tipo === "PARA_LLEVAR_DESDE_MESA" ? qrMesaId : qrMostradorId,
       p_idempotency_key: crypto.randomUUID(), p_items: items,
       p_modality: tipo === "MESA" ? "DINE_IN" : "TAKEAWAY",

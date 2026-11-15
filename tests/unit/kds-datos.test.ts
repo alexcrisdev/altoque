@@ -12,7 +12,7 @@ describe("US-080: consulta del día y alérgenos", () => {
       in: vi.fn().mockReturnThis(), gte: vi.fn().mockReturnThis(), lt: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
       overrideTypes: vi.fn().mockResolvedValue({ error: null, data: [{
         id: "pedido", order_number: 3, created_at: "2026-11-11T16:00:00Z", status: "IN_PROGRESS", modality: "DINE_IN", source: "QR",
-        customer_name: null, dining_tables: { number: 3 }, order_incidents: [],
+        allergy_answer: "YES", allergens: ["MANI"], allergy_note: "Sin contacto", customer_name: null, dining_tables: { number: 3 }, order_incidents: [],
         order_items: [{ product_name: "Ceviche", quantity: 2, observation: "Sin ají", products: { allergens: ["Pescado"] } }],
       }] }),
     };
@@ -24,6 +24,7 @@ describe("US-080: consulta del día y alérgenos", () => {
     expect(cliente.in).toHaveBeenCalledWith("status", ["IN_PROGRESS", "READY", "CANCELLED"]);
     expect(cliente.select.mock.calls[0][0]).toContain("products(allergens)");
     expect(pedidos[0].items).toEqual([{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají", alergenos: ["Pescado"] }]);
+    expect(pedidos[0].alergia).toEqual({ respuesta: "YES", alergenos: ["MANI"], detalle: "Sin contacto" });
   });
 });
 

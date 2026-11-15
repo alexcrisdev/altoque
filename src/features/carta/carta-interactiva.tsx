@@ -12,6 +12,7 @@ import {
 import { formatearPrecio } from "./formato";
 import { DetalleProducto } from "./detalle-producto";
 import { PanelCarrito } from "../pedidos/panel-carrito";
+import { ALERGIA_INICIAL, validarAlergia, type AlergiaFormulario } from "../pedidos/alergias";
 import {
   registrarPedidoQrAction,
   type ResultadoRegistroPedido,
@@ -82,6 +83,7 @@ export function CartaInteractiva({
   );
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [alergia, setAlergia] = useState<AlergiaFormulario>(ALERGIA_INICIAL);
 
   const faltaDato = datosFaltantes(
     modalidad,
@@ -180,7 +182,7 @@ export function CartaInteractiva({
       envioEnCurso.current ||
       !pedidosHabilitados ||
       items.length === 0 ||
-      faltaDato
+      faltaDato || !validarAlergia(alergia).ok
     ) {
       return;
     }
@@ -205,6 +207,7 @@ export function CartaInteractiva({
           nombre,
           telefono,
         },
+        alergia,
       );
 
       setResultado(respuesta);
@@ -252,6 +255,7 @@ export function CartaInteractiva({
         }
 
         setItems([]);
+        setAlergia(ALERGIA_INICIAL);
         setAviso("");
         clavePedido.current = null;
       }
@@ -403,6 +407,8 @@ export function CartaInteractiva({
         enviando={enviando}
         resultado={resultado}
         onConfirmar={confirmar}
+        alergia={alergia}
+        onAlergia={(valor) => cambiarOpciones(() => setAlergia(valor))}
         faltaDato={faltaDato}
         opciones={
           <SelectorModalidad

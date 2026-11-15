@@ -1,4 +1,5 @@
 import "server-only";
+import { leerAlergia, type FilaAlergia } from "../pedidos/alergias";
 import { crearClienteServidor } from "../../lib/supabase/server";
 import type { EstadoPedido } from "../pedidos/estados";
 import type { Modalidad } from "@/features/pedidos/modalidad";
@@ -6,7 +7,7 @@ import type { PedidoCocina } from "./tipos";
 import type { TipoIncidencia } from "../pedidos/incidencias";
 import { diaLima } from "./kds-logica";
 
-type FilaPedido = {
+type FilaPedido = FilaAlergia & {
   id: string;
   order_number: number;
   created_at: string;
@@ -25,8 +26,8 @@ export async function listarPedidosCocina(restauranteId: string, diaKds?: number
   let consulta = supabase
     .from("orders")
     .select(diaKds === undefined
-      ? "id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)"
-      : "id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation, products(allergens)), order_incidents(id, type, description, status, created_at)")
+      ? "id, order_number, created_at, status, ready_at, modality, source, customer_name, allergy_answer, allergens, allergy_note, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)"
+      : "id, order_number, created_at, status, ready_at, modality, source, customer_name, allergy_answer, allergens, allergy_note, dining_tables(number), order_items(product_name, quantity, observation, products(allergens)), order_incidents(id, type, description, status, created_at)")
     .eq("restaurant_id", restauranteId)
     // US-085: un pedido que espera pago no entra en ninguna vista de cocina.
     .in("status", diaKds === undefined ? ["IN_PROGRESS", "READY"] : ["IN_PROGRESS", "READY", "CANCELLED"]);
@@ -46,6 +47,7 @@ export async function listarPedidosCocina(restauranteId: string, diaKds?: number
 
   return (data ?? []).map((fila) => ({
     id: fila.id,
+    alergia: leerAlergia(fila),
     numero: Number(fila.order_number),
     creadoEn: fila.created_at,
     estado: fila.status,

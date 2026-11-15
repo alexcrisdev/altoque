@@ -1,4 +1,5 @@
 import "server-only";
+import { leerAlergia, type FilaAlergia } from "../pedidos/alergias";
 import { crearClienteServidor } from "../../lib/supabase/server";
 import { aCentimos } from "../pedidos/validacion";
 import type { EstadoPedido } from "@/features/pedidos/estados";
@@ -47,7 +48,7 @@ export type CuentaAbierta = {
 // cuenta. Los de hace más de 12 horas se dejan de mostrar para no llenar la lista.
 const HORAS_PARA_LLEVAR_PAGADO = 12;
 
-type FilaPedido = {
+type FilaPedido = FilaAlergia & {
   id: string;
   order_number: number;
   status: EstadoPedido;
@@ -82,13 +83,14 @@ type FilaSesion = {
 };
 
 const COLUMNAS_PEDIDO =
-  "id, order_number, status, created_at, table_session_id, customer_name, order_items(product_name, quantity, unit_price, observation)";
+  "id, order_number, status, created_at, table_session_id, customer_name, allergy_answer, allergens, allergy_note, order_items(product_name, quantity, unit_price, observation)";
 const COLUMNAS_PAGO =
   "id, method, status, amount, received_amount, change_amount, reference, stripe_session_id, verified_at, created_at, table_session_id, order_id, verificador:users!payments_verified_by_fkey(full_name), registrador:users!payments_created_by_fkey(full_name)";
 
 function aPedidoCuenta(fila: FilaPedido): PedidoCuenta {
   return {
     id: fila.id,
+    alergia: leerAlergia(fila),
     numero: Number(fila.order_number),
     estado: fila.status,
     creadoEn: fila.created_at,

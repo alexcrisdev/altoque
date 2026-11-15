@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { crearCsvVentas, fechaNombreCsv, type FilaVentaCsv } from "../../src/features/dashboard/ventas-csv-logica";
 
 describe("CSV de pagos confirmados", () => {
+  it("US-091: no exporta alergias aunque lleguen como campos adicionales", () => {
+    const fila = { fechaHora: "15/11/2026", pagoId: "p1", cuentaId: "c1", modalidad: "En mesa", importeCentimos: 1000,
+      allergy_answer: "YES", allergens: ["MANI"], allergy_note: "DETALLE_SALUD_PRIVADO" };
+    expect(crearCsvVentas([fila])).not.toMatch(/allerg|MANI|DETALLE_SALUD_PRIVADO/);
+  });
   it("incluye BOM UTF-8, identificadores de pago/cuenta y escape CSV", () => {
     const csv = crearCsvVentas([{
       fechaHora: "12/11/2026, 10:00:00",

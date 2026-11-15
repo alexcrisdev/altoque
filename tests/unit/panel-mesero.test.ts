@@ -106,11 +106,11 @@ beforeEach(() => {
 describe("consulta segura de pedidos activos", () => {
   it("filtra restaurante y estados activos, ordena por llegada y no solicita teléfonos", async () => {
     const cliente = consulta();
-    expect(await listarPedidosActivos("cevicheria")).toEqual([pedido("pedido-1", "READY", { creadoEn: ahora, listoEn: ahora, asistido: true })]);
+    expect(await listarPedidosActivos("cevicheria")).toEqual([pedido("pedido-1", "READY", { creadoEn: ahora, listoEn: ahora, asistido: true, alergia: null })]);
     expect(cliente.eq).toHaveBeenCalledExactlyOnceWith("restaurant_id", "cevicheria");
     expect(cliente.in).toHaveBeenCalledExactlyOnceWith("status", ESTADOS_ACTIVOS);
     expect(cliente.order).toHaveBeenCalledExactlyOnceWith("created_at", { ascending: true });
-    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, source");
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, allergy_answer, allergens, allergy_note, source");
   });
   it("devuelve una lista vacía solo cuando la consulta fue correcta", async () => {
     consulta([]);
