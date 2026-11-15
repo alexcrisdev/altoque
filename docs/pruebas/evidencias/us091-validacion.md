@@ -1,68 +1,85 @@
 # US-091: declaración de alergias antes del pedido
 
+Fecha de validación: **15/11/2026 (America/Lima)** · Rama `dev/veronica` con develop
+unido (incluye US-063, US-090, US-094 y US-097).
+
 ## Implementación
 
-El carrito pregunta No/Sí sin respuesta inicial. Sí exige un alérgeno de la lista
-o un detalle de hasta 120 caracteres, además de la aceptación de esta declaración:
+El carrito pregunta «¿Alguien tiene alergias?» sin respuesta inicial. La respuesta
+elegida se resalta (tono info + ✓). «Sí» exige un alérgeno de la lista (maní,
+mariscos, pescado, gluten, lácteos, huevo) o un detalle de hasta 120 caracteres,
+además de aceptar esta declaración informativa:
 
 > Entiendo que la cocina hará lo posible por evitar el alérgeno, pero puede haber trazas.
 
-La validación se repite en el servidor. No se almacena la aceptación como un dato
-adicional ni se redacta una renuncia. Se solicita no escribir datos personales en
-el detalle. La declaración no se guarda en localStorage ni se exporta a CSV o n8n.
+No es una renuncia de responsabilidad (Ley 29571, art. 50). La validación se repite
+en el servidor (`src/features/pedidos/alergias.ts`) y en la base (`INVALID_ALLERGY`).
+Se pide no escribir datos personales en el detalle. La declaración no se guarda en
+localStorage ni se exporta a CSV ni al aviso de n8n.
 
-La nueva migración agrega allergy_answer, allergens y allergy_note. Reemplaza
-explícitamente las firmas del RPC cliente y de su función interna. Los campos se
-insertan junto con el pedido; los reintentos no actualizan el pedido ya registrado.
-Se conservan los bloqueos de stock, permisos, triggers de pago e historial y el
-registro del mesero. Los pedidos históricos y asistidos mantienen respuesta null.
+Migración `20261115232805_us091_alergias_pedido.sql` (fecha posterior a las de
+US-097): agrega `allergy_answer`, `allergens` y `allergy_note` a `orders` con sus
+checks, y reemplaza (DROP + CREATE) `registrar_pedido_cliente` y
+`registrar_pedido_cliente_sin_bloqueo_stock` con tres parámetros nuevos. El cuerpo
+se comparó con `diff` contra la definición original: bloqueo de stock, idempotencia
+y la rama `if v_order.id is null` (que devuelve `pedido_id` null cuando el trigger
+de US-097 omite la fila) quedan idénticos; se conservan `security definer`,
+`search_path`, grants y revokes. `registrar_pedido_mesero` no cambia (respuesta null).
 
-## Verificación automatizada
+El aviso se ve en rojo (Insignia tono peligro + ⚠ + texto «Alergia: Maní — detalle»)
+en el KDS (normal y TV), en el panel del mesero y en el detalle de la cuenta en caja,
+separado de los alérgenos de cada producto.
 
-- `npm.cmd run lint`: aprobado.
-- `npm.cmd run typecheck` (incluye `tsc --noEmit`): aprobado.
-- `npm.cmd test`: **973/973 pruebas en 61/61 archivos**, sin fallos.
-- `npm.cmd run build`: aprobado, 25 páginas. El primer intento falló al descargar
-  Google Fonts; el reintento con acceso de red completó la compilación.
-- `git diff --check`: sin errores.
-- Comparación del SQL con sus fuentes: bloqueo advisory idéntico; cuerpo de registro
-  original conservado salvo la validación y las columnas nuevas. Esto no sustituye
-  ejecutar la migración en PostgreSQL.
+## Verificación automatizada (15/11/2026)
 
-- Unitarias: validación, etiquetas, aviso, bloqueo de confirmación, reintentos,
-  envío conjunto de parámetros RPC, lectura de cocina, renderizado KDS normal/TV
-  y caja, y exclusión de los campos de CSV y n8n.
-- Integración preparada: `tests/rls/alergias.test.ts`, seis casos solo para Supabase
-  local. La ejecución omitió los seis por falta de configuración local. No es una
-  aprobación de la migración ni de RLS.
-- E2E: el ayudante compartido comprueba que el botón esté bloqueado antes de
-  responder No. El caso nuevo de `pedido-en-mesa.spec.ts` usa Sí y comprueba cocina
-  y mesero. `playwright test --list` reconoce 20 casos en ocho archivos; no los ejecuta.
-- No se ejecutaron E2E ni escrituras sobre la base compartida.
+| Comando | Resultado |
+| --- | --- |
+| `npm run lint` | Aprobado |
+| `npx eslint src tests scripts` | Aprobado, sin errores |
+| `npm run typecheck` | Aprobado |
+| `npm test` | **1120/1120 pruebas en 69/69 archivos** |
+| `npm run build` | Aprobado |
+| `npm run test:integracion` | **No ejecutado**: no hay Docker para Supabase local |
+| E2E (Playwright) | **No ejecutado**: escribiría en la base compartida |
 
-## Capturas y prueba visual
+- Unitarias: validación y etiquetas, botón bloqueado sin respuesta, envío conjunto
+  de parámetros al RPC, reintentos, lectura de cocina, KDS normal/TV, caja, y
+  exclusión de los campos en CSV y n8n.
+- Integración preparada `tests/rls/alergias.test.ts` (6 casos, solo Supabase local,
+  con sucursal y QR propios que se borran en `afterAll`): pedido con alergia → el
+  rol KITCHEN la lee; repetir la clave no cambia la declaración; RPC sin respuesta o
+  con datos inválidos → `INVALID_ALLERGY`; la firma antigua de 6 parámetros ya no existe.
+- `tests/rls/vencimiento-pedidos.test.ts` (US-097) y `tests/rls/espera-pago.test.ts`
+  se ajustaron para enviar `p_alergia_respuesta: "NONE"`. Los casos de US-097 que
+  esperan `pedido_id: null` al superar el límite sirven también para comprobar que la
+  migración conserva esa rama.
+- E2E: el ayudante `prepararCarrito` comprueba que «Confirmar pedido» está desactivado
+  antes de responder y responde «No» (lo usan todos los casos que envían pedidos).
+  El caso nuevo de `pedido-en-mesa.spec.ts` responde «Sí» (Maní + detalle + aceptar)
+  y comprueba el aviso en cocina y en el mesero.
 
-Capturas reales del navegador en localhost con componentes reales y **datos
-ficticios**, mediante una página temporal eliminada al terminar. No son evidencia
-de un pedido persistido ni de la aplicación de la migración.
+## Capturas
 
-- [Carrito: selección](us091-carrito-alergenos.png).
-- [Carrito: aceptación y confirmar](us091-carrito-aceptacion.png).
-- [KDS: declaración separada de los alérgenos del plato](us091-kds.png).
-- [Caja: aviso en el pedido](us091-caja.png).
+Capturas de navegador en localhost con componentes reales y **datos ficticios**
+(sin pedido guardado en la base):
 
-Playwright/Edge comprobó en 390×844: botón bloqueado sin respuesta; No habilita;
-Sí bloquea hasta seleccionar y aceptar; Confirmar alcanzable mediante clic de
-prueba, sin ejecutar la acción. KDS y caja se comprobaron en 1280×900. Se bloquearon
-peticiones POST durante la prueba. El selector exacto del texto del aviso se corrigió
-para contemplar el icono que forma parte de la insignia.
+- [Carrito: selección de alérgenos](us091-carrito-alergenos.png)
+- [Carrito: aceptación y confirmar](us091-carrito-aceptacion.png)
+- [KDS: declaración separada de los alérgenos del plato](us091-kds.png)
+- [Caja: aviso en el pedido](us091-caja.png)
 
-## Pendientes antes de dar la historia por validada de extremo a extremo
+Carrito comprobado a 390×844; KDS y caja a 1280×900.
 
-1. Aplicar la migración en un Supabase local o entorno expresamente autorizado.
-2. Ejecutar los seis casos RLS/integración y regresiones de stock/US-085.
-3. Ejecutar E2E con pedidos demo propios y limpieza: No, Sí, cocina, mesero y caja.
-4. Comprobar móvil físico/teclado y obtener capturas con pedidos persistidos.
+## Pendiente antes de aplicar la migración (Alexander)
 
-No se han modificado .env.local, políticas RLS ni QR. No se han creado commits,
-push ni PR de US-091.
+La migración **no se probó en Supabase local** porque Verónica no tiene Docker
+funcionando. Antes de aplicarla a la base compartida:
+
+1. `npx supabase start` y `npx supabase db reset` (local) para aplicar todas las migraciones.
+2. `npm run test:integracion` contra `http://127.0.0.1:54321`: deben pasar
+   `alergias.test.ts`, `vencimiento-pedidos.test.ts` y `espera-pago.test.ts`.
+3. E2E en local: `pedido-en-mesa.spec.ts`, `pedido-para-llevar.spec.ts` y `conexion.spec.ts`.
+4. Como el RPC cambia de firma, aplicar la migración y desplegar el código **juntos**:
+   el código anterior llama a la firma de 6 parámetros, que deja de existir.
+
+No se modificaron `.env.local`, políticas RLS ni QR existentes.
