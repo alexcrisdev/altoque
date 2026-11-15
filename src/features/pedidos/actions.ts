@@ -56,7 +56,7 @@ export async function registrarPedidoQrAction(
   }
 
   try {
-    const pedido = await guardarPedidoQr(acceso.qrId, clave, validacion.lineas, {
+    const pedido = await guardarPedidoQr(acceso.qrId, acceso.restauranteId, clave, validacion.lineas, {
       modalidad: modalidad.modalidad,
       nombre: modalidad.nombre,
       telefono: modalidad.telefono,
@@ -65,7 +65,7 @@ export async function registrarPedidoQrAction(
   } catch (error) {
     return {
       ok: false,
-      mensaje: error instanceof Error && error.message.startsWith("Ya no hay")
+      mensaje: error instanceof Error && (error.message.startsWith("Ya no hay") || error.message === "Tienes 2 pedidos sin pagar. Págalos o espera a que venzan para pedir otro.")
         ? error.message
         : "No se pudo registrar el pedido. Revisa tu conexión e inténtalo otra vez.",
     };

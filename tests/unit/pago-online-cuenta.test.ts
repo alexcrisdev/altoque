@@ -4,10 +4,12 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/admin", () => ({ crearClienteAdmin: vi.fn() }));
 vi.mock("@/features/acceso-qr/acceso", () => ({ resolverAccesoQr: vi.fn() }));
 vi.mock("@/features/mesero/sesiones", () => ({ buscarSesionAbierta: vi.fn() }));
+vi.mock("@/features/pedidos/vencimiento-datos", () => ({ vencerPedidosSinPago: vi.fn().mockResolvedValue(undefined) }));
 
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { buscarSesionAbierta } from "@/features/mesero/sesiones";
+import { vencerPedidosSinPago } from "@/features/pedidos/vencimiento-datos";
 import { resolverCuentaOnline } from "../../src/features/pago-cierre/pago-online";
 
 const clave = "11111111-2222-4333-8444-555555555555";
@@ -59,6 +61,7 @@ describe("US-085: resolver la cuenta correcta antes de Stripe", () => {
       expect(cliente.rpc).toHaveBeenCalledExactlyOnceWith("saldo_cuenta_online", {
         p_sesion_id: null, p_pedido_id: "pedido-propio",
       });
+      expect(vencerPedidosSinPago).toHaveBeenCalledExactlyOnceWith("restaurante-autorizado");
     },
   );
 
@@ -72,6 +75,7 @@ describe("US-085: resolver la cuenta correcta antes de Stripe", () => {
     expect(cliente.rpc).toHaveBeenCalledExactlyOnceWith("saldo_cuenta_online", {
       p_sesion_id: "sesion-mesa", p_pedido_id: null,
     });
+    expect(vencerPedidosSinPago).toHaveBeenCalledExactlyOnceWith("restaurante-autorizado");
   });
 
   it.each(["", "clave-invalida"])("una clave inválida (%j) no cobra la mesa", async valor => {

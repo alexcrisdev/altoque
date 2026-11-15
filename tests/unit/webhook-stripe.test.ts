@@ -2,18 +2,28 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Stripe from "stripe";
 
 vi.mock("server-only", () => ({}));
-vi.mock("../../src/features/pago-cierre/pago-online", () => ({ registrarPagoStripe: vi.fn() }));
+vi.mock("../../src/features/pago-cierre/pago-online", () => ({
+  actualizarEstadoReembolsoCheckout: vi.fn(), registrarPagoStripe: vi.fn(), obtenerCheckoutStripe: vi.fn(), prepararReembolsoCheckout: vi.fn(),
+  finalizarReembolsoCheckout: vi.fn(),
+}));
 vi.mock("../../src/features/pago-cierre/aviso-n8n", () => ({ programarAvisoPago: vi.fn() }));
 import { programarAvisoPago } from "../../src/features/pago-cierre/aviso-n8n";
 
-import { registrarPagoStripe } from "../../src/features/pago-cierre/pago-online";
+import {
+  actualizarEstadoReembolsoCheckout, finalizarReembolsoCheckout, obtenerCheckoutStripe,
+  prepararReembolsoCheckout, registrarPagoStripe,
+} from "../../src/features/pago-cierre/pago-online";
+import { crearClienteStripe } from "../../src/features/pago-cierre/stripe";
 import { POST } from "../../src/app/api/stripe/webhook/route";
 import { etiquetaMetodoPago } from "../../src/features/pago-cierre/cuenta-logica";
 
 const SECRETO = "whsec_prueba_unitaria";
 const CUENTA = "11111111-2222-4333-8444-555555555555";
 const RESTAURANTE = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+const CHECKOUT = "cccccccc-dddd-4eee-8fff-000000000001";
 const stripe = new Stripe("sk_test_prueba_unitaria");
+process.env.STRIPE_SECRET_KEY = "sk_test_prueba_unitaria";
+const refundCreate = vi.spyOn(crearClienteStripe().refunds, "create");
 
 function evento(tipo: string, cambios: Record<string, unknown> = {}) {
   return JSON.stringify({
@@ -28,10 +38,20 @@ function evento(tipo: string, cambios: Record<string, unknown> = {}) {
         currency: "pen",
         amount_total: 6200,
         payment_intent: "pi_3AbCdEfGhIjK",
-        metadata: { tipo: "MESA", cuenta_id: CUENTA, restaurante_id: RESTAURANTE },
+        metadata: { tipo: "MESA", cuenta_id: CUENTA, restaurante_id: RESTAURANTE, checkout_id: CHECKOUT },
         ...cambios,
       },
     },
+  });
+}
+
+function eventoReembolso(status: string) {
+  return JSON.stringify({
+    id: "evt_refund_test", object: "event", type: "refund.updated",
+    data: { object: {
+      id: "re_test_123", object: "refund", status, failure_reason: status === "failed" ? "declined" : null,
+      metadata: { checkout_id: CHECKOUT, refund_attempt: "1" },
+    } },
   });
 }
 
@@ -46,6 +66,16 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   process.env.STRIPE_SECRET_KEY = "sk_test_prueba_unitaria";
   process.env.STRIPE_WEBHOOK_SECRET = SECRETO;
+  vi.mocked(obtenerCheckoutStripe).mockResolvedValue({
+    id: CHECKOUT, sessionId: "cs_test_a1B2c3D4e5", restaurantId: RESTAURANTE,
+    tableSessionId: CUENTA, orderId: null, orderIds: ["order-original"], amountCentimos: 6200,
+    status: "OPEN", expiresAt: new Date(Date.now() + 60_000).toISOString(),
+  });
+  vi.mocked(prepararReembolsoCheckout).mockResolvedValue({ id: CHECKOUT, attempt: 1, alreadyRefunded: false });
+  vi.mocked(finalizarReembolsoCheckout).mockResolvedValue(undefined);
+  vi.mocked(actualizarEstadoReembolsoCheckout).mockResolvedValue(undefined);
+  refundCreate.mockReset();
+  refundCreate.mockResolvedValue({ id: "re_test_123", status: "succeeded" } as Awaited<ReturnType<typeof refundCreate>>);
 });
 
 describe("POST /api/stripe/webhook: firma", () => {
@@ -93,6 +123,7 @@ describe("POST /api/stripe/webhook: registro del pago", () => {
       intentoPago: "pi_3AbCdEfGhIjK",
       cuenta: { tipo: "MESA", id: CUENTA },
       restauranteId: RESTAURANTE,
+      checkoutId: CHECKOUT,
       montoCentimos: 6200,
     });
   });
@@ -122,11 +153,66 @@ describe("POST /api/stripe/webhook: registro del pago", () => {
     expect(registrarPagoStripe).not.toHaveBeenCalled();
   });
 
-  it("si la cuenta ya estaba pagada, responde 200 y avisa que requiere reembolso", async () => {
+  it("si la cuenta cambió, solicita y registra el reembolso", async () => {
     vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: false, codigo: "AMOUNT_EXCEEDS_BALANCE" });
     const respuesta = await POST(peticion(evento("checkout.session.completed")));
     expect(respuesta.status).toBe(200);
-    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("REQUIERE REEMBOLSO"));
+    expect(refundCreate).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_3AbCdEfGhIjK" }), {
+      idempotencyKey: `altoque-us097-refund-${CHECKOUT}-1`,
+    });
+    expect(finalizarReembolsoCheckout).toHaveBeenCalledWith("cs_test_a1B2c3D4e5", "re_test_123", null);
+  });
+
+  it("valida que el registro guardado coincida con los metadatos y el importe", async () => {
+    vi.mocked(obtenerCheckoutStripe).mockResolvedValueOnce({
+      id: CHECKOUT, sessionId: "cs_test_a1B2c3D4e5", restaurantId: RESTAURANTE,
+      tableSessionId: CUENTA, orderId: null, orderIds: ["order-original"], amountCentimos: 5000,
+      status: "OPEN", expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const respuesta = await POST(peticion(evento("checkout.session.completed")));
+    expect(await respuesta.json()).toMatchObject({ detalle: "checkout no reconocido" });
+    expect(registrarPagoStripe).not.toHaveBeenCalled();
+  });
+
+  it("deja registrado el fallo de reembolso para que un evento reintentado vuelva a intentarlo", async () => {
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: false, codigo: "CHECKOUT_STALE" });
+    refundCreate.mockRejectedValueOnce(Object.assign(new Error("fallo"), { code: "api_error" }));
+    expect((await POST(peticion(evento("checkout.session.completed")))).status).toBe(500);
+    expect(finalizarReembolsoCheckout).toHaveBeenCalledWith("cs_test_a1B2c3D4e5", null, "PENDING:api_error");
+
+    vi.mocked(prepararReembolsoCheckout).mockResolvedValueOnce({ id: CHECKOUT, attempt: 1, alreadyRefunded: false });
+    refundCreate.mockResolvedValueOnce({ id: "re_test_retry", status: "succeeded" } as Awaited<ReturnType<typeof refundCreate>>);
+    expect((await POST(peticion(evento("checkout.session.completed")))).status).toBe(200);
+    expect(refundCreate).toHaveBeenLastCalledWith(expect.any(Object), { idempotencyKey: `altoque-us097-refund-${CHECKOUT}-1` });
+  });
+
+  it("guarda un reembolso rechazado por Stripe como fallido", async () => {
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: false, codigo: "CHECKOUT_STALE" });
+    refundCreate.mockResolvedValueOnce({ id: "re_test_failed", status: "failed", failure_reason: "declined" } as Awaited<ReturnType<typeof refundCreate>>);
+    expect((await POST(peticion(evento("checkout.session.completed")))).status).toBe(500);
+    expect(finalizarReembolsoCheckout).toHaveBeenCalledWith("cs_test_a1B2c3D4e5", "re_test_failed", "FAILED:declined");
+  });
+
+  it("mantiene como pendiente un reembolso que Stripe aún está procesando", async () => {
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: false, codigo: "CHECKOUT_STALE" });
+    refundCreate.mockResolvedValueOnce({ id: "re_test_pending", status: "pending" } as Awaited<ReturnType<typeof refundCreate>>);
+    const respuesta = await POST(peticion(evento("checkout.session.completed")));
+    expect(respuesta.status).toBe(200);
+    expect(await respuesta.json()).toMatchObject({ detalle: "reembolso pendiente: CHECKOUT_STALE" });
+    expect(finalizarReembolsoCheckout).toHaveBeenCalledWith("cs_test_a1B2c3D4e5", "re_test_pending", "PENDING");
+  });
+
+  it("no repite un reembolso ya confirmado", async () => {
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: false, codigo: "CHECKOUT_STALE" });
+    vi.mocked(prepararReembolsoCheckout).mockResolvedValueOnce({ id: CHECKOUT, attempt: 1, alreadyRefunded: true });
+    expect((await POST(peticion(evento("checkout.session.completed")))).status).toBe(200);
+    expect(refundCreate).not.toHaveBeenCalled();
+  });
+
+  it("guarda cambios posteriores de estado del reembolso enviados por Stripe", async () => {
+    const respuesta = await POST(peticion(eventoReembolso("failed")));
+    expect(respuesta.status).toBe(200);
+    expect(actualizarEstadoReembolsoCheckout).toHaveBeenCalledWith(CHECKOUT, 1, "re_test_123", "failed", "declined");
   });
 
   it("si la base falla, responde 500 para que Stripe reintente", async () => {

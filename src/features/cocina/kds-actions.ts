@@ -4,6 +4,7 @@ import { requerirRol } from "../auth/sesion";
 import { cambiarEstadoPedido } from "../pedidos/estado-actions";
 import { contarPedidosEsperandoPago, listarPedidosCocina } from "./pedidos-cocina";
 import { puedeDeshacerListo } from "./cocina-logica";
+import { vencerPedidosSinPago } from "../pedidos/vencimiento-datos";
 
 async function restauranteCocina() {
   const roles = ["KITCHEN", "OWNER", "ADMIN"] as const;
@@ -16,6 +17,7 @@ async function restauranteCocina() {
 export async function obtenerKds() {
   const restauranteId = await restauranteCocina();
   try {
+    await vencerPedidosSinPago(restauranteId);
     const actualizadoEn = Date.now();
     const [pedidos, pedidosEsperandoPago] = await Promise.all([
       listarPedidosCocina(restauranteId, actualizadoEn),

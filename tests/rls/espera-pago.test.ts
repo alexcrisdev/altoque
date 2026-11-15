@@ -17,6 +17,7 @@ const mesaId = "30000000-0000-0000-0000-000000000001";
 const clientes: SupabaseClient[] = [];
 const pedidos: string[] = [];
 const pedidosMesa: string[] = [];
+const checkouts: string[] = [];
 const pagos: { id: string; pedidoId?: string; sesionId?: string }[] = [];
 let servicio: SupabaseClient;
 let caja: SupabaseClient;
@@ -123,12 +124,31 @@ async function guardarCobroAnticipadoOriginal() {
   cobroAnticipadoOriginal = restaurante.prepay_dine_in;
 }
 
-async function comprobarIngresoMesa(id: string, autor: string | null = cajaId) {
+async function comprobarIngresoMesa(
+  id: string,
+  autor: string | null = cajaId,
+  motivo = "US-094: pago confirmado",
+) {
   expect((await estado(id)).status).toBe("IN_PROGRESS");
-  expect((await historial(id)).filter((fila) => fila.reason === "US-094: pago confirmado")).toEqual([{
+  expect((await historial(id)).filter((fila) => fila.reason === motivo)).toEqual([{
     from_status: "PENDING", to_status: "IN_PROGRESS",
-    reason: "US-094: pago confirmado", changed_by: autor,
+    reason: motivo, changed_by: autor,
   }]);
+}
+
+async function crearCheckoutStripe(cuenta: { sesionId: string | null; pedidoId: string | null }) {
+  const inicio = exigir(await servicio.rpc("iniciar_checkout_stripe", {
+    p_sesion_id: cuenta.sesionId,
+    p_pedido_id: cuenta.pedidoId,
+  }).single<{ checkout_id: string; amount: number; order_ids: string[] }>());
+  const sessionId = `cs_test_US085094${crypto.randomUUID().replaceAll("-", "")}`;
+  checkouts.push(inicio.checkout_id);
+  const vinculado = exigir(await servicio.rpc("vincular_checkout_stripe", {
+    p_checkout_id: inicio.checkout_id,
+    p_session_id: sessionId,
+  }));
+  expect(vinculado).toBe(true);
+  return { sessionId, amount: Number(inicio.amount), orderIds: inicio.order_ids };
 }
 
 async function pagar(
@@ -172,19 +192,18 @@ async function vendidos() {
     .eq("stock_date", fechaStock).single<{ sold: number }>()).sold;
 }
 
-async function limpiarPedidosMesaDePrueba() {
+async function limpiarPedidosDePrueba() {
   if (!servicio) return;
-  const ids = [...new Set(pedidosMesa)];
-  const pagosPropios = pagos
-    .filter((pago) => pago.sesionId === sesionId || (pago.pedidoId && ids.includes(pago.pedidoId)))
-    .map((pago) => pago.id);
-  if (pagosPropios.length) {
-    const resultadoPagos = await servicio.from("payments").delete().in("id", pagosPropios);
+  const ids = [...new Set(pedidos)];
+  if (pagos.length) {
+    const resultadoPagos = await servicio.from("payments").delete().in("id", pagos.map((pago) => pago.id));
     if (resultadoPagos.error) throw new Error(resultadoPagos.error.message);
-    for (const id of pagosPropios) {
-      const indice = pagos.findIndex((pago) => pago.id === id);
-      if (indice >= 0) pagos.splice(indice, 1);
-    }
+    pagos.splice(0);
+  }
+  if (checkouts.length) {
+    const resultadoCheckouts = await servicio.from("stripe_checkout_attempts").delete().in("id", checkouts);
+    if (resultadoCheckouts.error) throw new Error(resultadoCheckouts.error.message);
+    checkouts.splice(0);
   }
   if (ids.length) {
     const resultadoPedidos = await servicio.from("orders").delete().in("id", ids);
@@ -254,6 +273,9 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
         if (pagos.length) {
           comprobar((await servicio.from("payments").delete().in("id", pagos.map((pago) => pago.id))).error);
         }
+        if (checkouts.length) {
+          comprobar((await servicio.from("stripe_checkout_attempts").delete().in("id", checkouts)).error);
+        }
         if (pedidos.length) {
           comprobar((await servicio.from("orders").delete().in("id", pedidos)).error);
         }
@@ -277,7 +299,7 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
   }, 30_000);
 
   afterEach(async () => {
-    await limpiarPedidosMesaDePrueba();
+    await limpiarPedidosDePrueba();
   }, 30_000);
 
   it("QR para llevar nace PENDING y su historial inicial también", async () => {
@@ -351,11 +373,11 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
 
   it("la RPC de Stripe lo inicia una sola vez y registra autor nulo", async () => {
     const id = await crearPedido();
-    const referencia = crypto.randomUUID().replaceAll("-", "");
+    const checkout = await crearCheckoutStripe({ sesionId: null, pedidoId: id });
     const parametros = {
-      p_stripe_session_id: `cs_test_US085${referencia}`,
-      p_payment_intent: `pi_US085${referencia}`,
-      p_sesion_id: null, p_pedido_id: id, p_monto: "10.00",
+      p_stripe_session_id: checkout.sessionId,
+      p_payment_intent: `pi_US085${crypto.randomUUID().replaceAll("-", "")}`,
+      p_sesion_id: null, p_pedido_id: id, p_monto: checkout.amount.toFixed(2),
     };
     const primero = exigir(await servicio.rpc("registrar_pago_stripe", parametros)
       .single<{ pago_id: string; duplicado: boolean }>());
@@ -419,14 +441,15 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
   it("US-094: Stripe registra pago de sesión y libera sus pedidos con autor nulo", async () => {
     await configurarCobroAnticipado(true);
     const id = await crearPedido("MESA");
-    const referencia = crypto.randomUUID().replaceAll("-", "");
+    const checkout = await crearCheckoutStripe({ sesionId: sesionId!, pedidoId: null });
+    expect(checkout.orderIds).toContain(id);
     const pago = exigir(await servicio.rpc("registrar_pago_stripe", {
-      p_stripe_session_id: `cs_test_US094${referencia}`,
-      p_payment_intent: `pi_US094${referencia}`,
-      p_sesion_id: sesionId, p_pedido_id: null, p_monto: "10.00",
+      p_stripe_session_id: checkout.sessionId,
+      p_payment_intent: `pi_US094${crypto.randomUUID().replaceAll("-", "")}`,
+      p_sesion_id: sesionId, p_pedido_id: null, p_monto: checkout.amount.toFixed(2),
     }).single<{ pago_id: string; duplicado: boolean }>());
     registrarPago(pago.pago_id, { sesionId });
-    await comprobarIngresoMesa(id, null);
+    await comprobarIngresoMesa(id, null, "US-097: pago Checkout");
   });
 
   it("US-094: los pedidos tomados por el mesero no esperan aunque el ajuste esté activo", async () => {

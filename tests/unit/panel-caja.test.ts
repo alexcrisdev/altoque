@@ -4,6 +4,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("../../src/features/pago-cierre/acceso-caja", () => ({ requerirCaja: vi.fn() }));
 vi.mock("../../src/features/mesero/sesiones", () => ({ listarMesasConSesion: vi.fn() }));
 vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() }));
+vi.mock("../../src/features/pedidos/vencimiento-datos", () => ({ vencerPedidosSinPago: vi.fn().mockResolvedValue(undefined) }));
 
 import { requerirCaja } from "../../src/features/pago-cierre/acceso-caja";
 import { listarMesasConSesion } from "../../src/features/mesero/sesiones";

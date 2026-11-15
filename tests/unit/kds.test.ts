@@ -74,6 +74,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("../../src/features/auth/sesion", () => ({ requerirRol: vi.fn() }));
 vi.mock("../../src/features/cocina/pedidos-cocina", () => ({ listarPedidosCocina: vi.fn(), contarPedidosEsperandoPago: vi.fn() }));
 vi.mock("../../src/features/pedidos/estado-actions", () => ({ cambiarEstadoPedido: vi.fn() }));
+vi.mock("../../src/features/pedidos/vencimiento-datos", () => ({ vencerPedidosSinPago: vi.fn().mockResolvedValue(undefined) }));
 import { requerirRol } from "../../src/features/auth/sesion";
 import { contarPedidosEsperandoPago, listarPedidosCocina } from "../../src/features/cocina/pedidos-cocina";
 import { cambiarEstadoPedido } from "../../src/features/pedidos/estado-actions";

@@ -35,7 +35,7 @@ describe("registro de pedidos desde QR", () => {
     const entrada = [{ productoId: "producto", cantidad: 2, observacion: null, precioMostradoCentimos: 3290 }];
     await expect(registrarPedidoQrAction("token-qr-largo", clave, entrada)).resolves.toEqual({ ok: true, numero: 42 });
     expect(validarPedido).toHaveBeenCalledWith("restaurante", entrada);
-    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", clave, lineas, { modalidad: "TAKEAWAY", nombre: null, telefono: null });
+    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", "restaurante", clave, lineas, { modalidad: "TAKEAWAY", nombre: null, telefono: null });
   });
 
   it("rechaza una clave inválida sin consultar el QR", async () => {
@@ -65,6 +65,16 @@ describe("registro de pedidos desde QR", () => {
     expect(guardarPedidoQr).not.toHaveBeenCalled();
   });
 
+  it("explica con claridad cuando el QR ya tiene dos pedidos sin pagar", async () => {
+    vi.mocked(resolverAccesoQr).mockResolvedValue(acceso);
+    vi.mocked(buscarPedidoIdempotente).mockResolvedValue(null);
+    vi.mocked(validarPedido).mockResolvedValue({ ok: true, lineas, totalCentimos: 6580 });
+    vi.mocked(guardarPedidoQr).mockRejectedValue(new Error("Tienes 2 pedidos sin pagar. Págalos o espera a que venzan para pedir otro."));
+
+    await expect(registrarPedidoQrAction("token-qr-largo", clave, []))
+      .resolves.toEqual({ ok: false, mensaje: "Tienes 2 pedidos sin pagar. Págalos o espera a que venzan para pedir otro." });
+  });
+
   it("US-002: desde una mesa el cliente puede pedir para llevar con sus datos", async () => {
     const mesa = { ...acceso, modalidad: "DINE_IN" as const, mesa: { id: "mesa", numero: 3 } };
     vi.mocked(resolverAccesoQr).mockResolvedValue(mesa);
@@ -75,7 +85,7 @@ describe("registro de pedidos desde QR", () => {
 
     await expect(registrarPedidoQrAction("token-qr-largo", clave, [{}], { modalidad: "TAKEAWAY", nombre: " Ana ", telefono: "987 654-321" }))
       .resolves.toEqual({ ok: true, numero: 43 });
-    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", clave, lineas, { modalidad: "TAKEAWAY", nombre: "Ana", telefono: "987654321" });
+    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", "restaurante", clave, lineas, { modalidad: "TAKEAWAY", nombre: "Ana", telefono: "987654321" });
   });
 
   it("US-002: no registra para llevar sin los datos que pide el restaurante", async () => {
