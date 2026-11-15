@@ -258,7 +258,13 @@ export function PanelCarrito(props: Props) {
                 {([ ["NONE", "No"], ["YES", "Sí"] ] as const).map(([respuesta, etiqueta]) => (
                   <Boton key={respuesta} type="button" variante="secundario"
                     aria-pressed={props.alergia.respuesta === respuesta}
-                    onClick={() => props.onAlergia({ respuesta, alergenos: [], detalle: "", aceptada: false })}>
+                    className="flex-1 aria-pressed:border-info-borde aria-pressed:bg-info-fondo aria-pressed:text-info-texto"
+                    onClick={() => {
+                      if (props.alergia.respuesta !== respuesta) {
+                        props.onAlergia({ respuesta, alergenos: [], detalle: "", aceptada: false });
+                      }
+                    }}>
+                    {props.alergia.respuesta === respuesta && <span aria-hidden="true">✓</span>}
                     {etiqueta}
                   </Boton>
                 ))}
