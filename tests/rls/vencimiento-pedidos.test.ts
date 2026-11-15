@@ -40,6 +40,9 @@ async function crearPedido(clave = crypto.randomUUID(), qrCodeId = qrId) {
     p_modality: "TAKEAWAY",
     p_customer_name: "Prueba US-097",
     p_customer_phone: null,
+    p_alergia_respuesta: "NONE",
+    p_alergenos: [],
+    p_alergia_detalle: null,
   }).single<{ pedido_id: string }>();
   if (resultado.error) throw new Error(resultado.error.message);
   if (!resultado.data?.pedido_id) throw new Error("El RPC no creó un pedido: pedido_id vacío.");
@@ -56,6 +59,9 @@ async function crearPedidoMesa(clave = crypto.randomUUID()) {
     p_modality: "DINE_IN",
     p_customer_name: null,
     p_customer_phone: null,
+    p_alergia_respuesta: "NONE",
+    p_alergenos: [],
+    p_alergia_detalle: null,
   }).single<{ pedido_id: string }>();
   const pedido = exigir(resultado).pedido_id;
   pedidos.push(pedido);
@@ -221,6 +227,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       p_qr_code_id: qrId, p_idempotency_key: claveRechazada,
       p_items: [{ productoId, cantidad: 1, observacion: null }],
       p_modality: "TAKEAWAY", p_customer_name: "Prueba US-097", p_customer_phone: null,
+      p_alergia_respuesta: "NONE", p_alergenos: [], p_alergia_detalle: null,
     }).single();
     expect(tercero.error).toBeNull();
     expect(tercero.data).toMatchObject({ pedido_id: null, numero_pedido: null });
@@ -247,6 +254,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       p_qr_code_id: qrId, p_idempotency_key: crypto.randomUUID(),
       p_items: [{ productoId, cantidad: 1, observacion: null }],
       p_modality: "TAKEAWAY", p_customer_name: "Prueba US-097", p_customer_phone: null,
+      p_alergia_respuesta: "NONE", p_alergenos: [], p_alergia_detalle: null,
     }).single();
     expect(tercero.error).toBeNull();
     expect(tercero.data).toMatchObject({ pedido_id: null, numero_pedido: null });
@@ -286,6 +294,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       p_qr_code_id: qrId, p_idempotency_key: crypto.randomUUID(),
       p_items: [{ productoId, cantidad: 1, observacion: null }],
       p_modality: "TAKEAWAY", p_customer_name: "Prueba US-097", p_customer_phone: null,
+      p_alergia_respuesta: "NONE", p_alergenos: [], p_alergia_detalle: null,
     }).single<{ pedido_id: string | null; numero_pedido: number | null; repetido: boolean }>()));
     for (const resultado of resultados) if (resultado.error) throw new Error(resultado.error.message);
     const ids = resultados.flatMap(resultado => resultado.data?.pedido_id ? [resultado.data.pedido_id] : []);

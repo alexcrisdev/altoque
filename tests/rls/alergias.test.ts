@@ -7,7 +7,8 @@ const restaurante = "10000000-0000-0000-0000-000000000001";
 let servicio: SupabaseClient;
 let cocina: SupabaseClient;
 let producto: string | undefined;
-let qr: string;
+let rama: string | undefined;
+let qr: string | undefined;
 const pedidos: string[] = [];
 function exigir<T>({ data, error }: { data: T | null; error: { message: string } | null }): NonNullable<T> {
   if (error || !data) throw new Error(error?.message ?? "Sin datos");
@@ -21,35 +22,50 @@ function parametros() {
 }
 
 // Nunca autentica ni escribe en una base remota. Requiere migraciones y seed locales.
+// Usa una sucursal y un QR propios: el límite de 2 pedidos sin pagar por QR (US-097)
+// no choca con el QR del mostrador que usan las pruebas E2E.
 describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", () => {
   beforeAll(async () => {
     const { NEXT_PUBLIC_SUPABASE_ANON_KEY: anon, SUPABASE_SERVICE_ROLE_KEY: key, DEMO_PASSWORD: password } = process.env;
     if (!anon || !key || !password) throw new Error("Falta configuración de Supabase local.");
-    servicio = createClient(url!, key, { auth: { persistSession: false } });
-    cocina = createClient(url!, anon, { auth: { persistSession: false } });
+    servicio = createClient(url!, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    cocina = createClient(url!, anon, { auth: { persistSession: false, autoRefreshToken: false } });
     const auth = await cocina.auth.signInWithPassword({ email: "cocina@demo.altoque.pe", password });
     if (auth.error) throw auth.error;
-    qr = exigir(await servicio.from("qr_codes").select("id").eq("restaurant_id", restaurante)
-      .eq("purpose", "TAKEAWAY").eq("active", true).limit(1).single<{ id: string }>()).id;
+    rama = exigir(await servicio.from("branches").insert({ restaurant_id: restaurante,
+      name: `Pruebas US-091 ${crypto.randomUUID().slice(0, 8)}`, active: true }).select("id").single<{ id: string }>()).id;
+    qr = exigir(await servicio.from("qr_codes").insert({ restaurant_id: restaurante, branch_id: rama, purpose: "TAKEAWAY",
+      token_hash: (crypto.randomUUID() + crypto.randomUUID()).replaceAll("-", "").toLowerCase().slice(0, 64),
+    }).select("id").single<{ id: string }>()).id;
+    const categoria = exigir(await servicio.from("categories").select("id")
+      .eq("restaurant_id", restaurante).limit(1).single<{ id: string }>()).id;
     producto = exigir(await servicio.from("products").insert({ restaurant_id: restaurante,
-      category_id: "40000000-0000-0000-0000-000000000001", name: `US-091 ${crypto.randomUUID()}`,
+      category_id: categoria, name: `US-091 ${crypto.randomUUID().slice(0, 8)}`,
       price: 10, active: true, available: true }).select("id").single<{ id: string }>()).id;
     const fecha = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
     const stock = await servicio.from("product_daily_stock").insert({ restaurant_id: restaurante, product_id: producto, stock_date: fecha, quantity: 20, sold: 0 });
     if (stock.error) throw stock.error;
-  });
+  }, 30_000);
+
   afterAll(async () => {
-    const errores: unknown[] = [];
-    if (servicio) {
-      if (pedidos.length) errores.push((await servicio.from("orders").delete().in("id", pedidos)).error);
-      if (producto) {
-        errores.push((await servicio.from("product_daily_stock").delete().eq("product_id", producto)).error);
-        errores.push((await servicio.from("products").delete().eq("id", producto)).error);
+    const errores: string[] = [];
+    const anotar = (error: { message: string } | null) => { if (error) errores.push(error.message); };
+    try {
+      if (servicio) {
+        if (pedidos.length) anotar((await servicio.from("payments").delete().in("order_id", pedidos)).error);
+        if (pedidos.length) anotar((await servicio.from("order_items").delete().in("order_id", pedidos)).error);
+        if (pedidos.length) anotar((await servicio.from("orders").delete().in("id", pedidos)).error);
+        if (producto) anotar((await servicio.from("product_daily_stock").delete().eq("product_id", producto)).error);
+        if (producto) anotar((await servicio.from("products").delete().eq("id", producto)).error);
+        if (qr) anotar((await servicio.from("qr_codes").delete().eq("id", qr)).error);
+        if (rama) anotar((await servicio.from("branches").delete().eq("id", rama)).error);
       }
+    } finally {
+      await cocina?.auth.signOut();
     }
-    if (cocina) await cocina.auth.signOut();
-    expect(errores.filter(Boolean)).toEqual([]);
-  });
+    if (errores.length) throw new Error(`Limpieza US-091: ${errores.join("; ")}`);
+  }, 30_000);
+
   it("guarda alergia y KITCHEN la lee; repetir clave no cambia la declaración", async () => {
     const entrada = parametros();
     const creado = exigir(await servicio.rpc("registrar_pedido_cliente", entrada).single<{ pedido_id: string }>());
@@ -63,6 +79,7 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
     const ajeno = await cocina.from("orders").select("id").neq("restaurant_id", restaurante);
     expect(ajeno.error).toBeNull(); expect(ajeno.data).toEqual([]);
   });
+
   it.each([
     { p_alergia_respuesta: null }, { p_alergenos: ["OTRO"] },
     { p_alergenos: [], p_alergia_detalle: " " }, { p_alergia_detalle: "x".repeat(121) },
@@ -73,6 +90,7 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
     const filas = exigir(await servicio.from("orders").select("id").eq("idempotency_key", entrada.p_idempotency_key));
     expect(filas).toEqual([]);
   });
+
   it("no conserva la firma antigua de seis parámetros", async () => {
     const entrada = parametros();
     const { error } = await servicio.rpc("registrar_pedido_cliente", {
