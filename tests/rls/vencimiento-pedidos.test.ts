@@ -15,7 +15,9 @@ const pagos: string[] = [];
 const checkouts: string[] = [];
 let servicio: SupabaseClient;
 let ramaId: string;
+let ramaLegadoId: string;
 let qrId: string;
+let qrLegadoId: string;
 let qrMesaId: string;
 let mesaId: string;
 let sesionMesaId: string;
@@ -30,16 +32,18 @@ function exigir<T>(resultado: { data: T | null; error: { message: string } | nul
   return resultado.data;
 }
 
-async function crearPedido(clave = crypto.randomUUID()) {
+async function crearPedido(clave = crypto.randomUUID(), qrCodeId = qrId) {
   const resultado = await servicio.rpc("registrar_pedido_cliente", {
-    p_qr_code_id: qrId,
+    p_qr_code_id: qrCodeId,
     p_idempotency_key: clave,
     p_items: [{ productoId, cantidad: 1, observacion: "Prueba local US-097" }],
     p_modality: "TAKEAWAY",
     p_customer_name: "Prueba US-097",
     p_customer_phone: null,
   }).single<{ pedido_id: string }>();
-  const pedido = exigir(resultado);
+  if (resultado.error) throw new Error(resultado.error.message);
+  if (!resultado.data?.pedido_id) throw new Error("El RPC no creó un pedido: pedido_id vacío.");
+  const pedido = resultado.data;
   pedidos.push(pedido.pedido_id);
   return pedido.pedido_id;
 }
@@ -68,6 +72,11 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       active: true,
     }).select("id").single<{ id: string }>());
     ramaId = rama.id;
+    ramaLegadoId = exigir(await servicio.from("branches").insert({
+      restaurant_id: restauranteId,
+      name: `Pruebas US-097 histórico ${crypto.randomUUID().slice(0, 8)}`,
+      active: true,
+    }).select("id").single<{ id: string }>()).id;
 
     usuarioId = exigir(await servicio.from("users").select("id").limit(1).single<{ id: string }>()).id;
     mesaId = exigir(await servicio.from("dining_tables").insert({
@@ -102,6 +111,11 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       token_hash: (crypto.randomUUID() + crypto.randomUUID()).replaceAll("-", "").toLowerCase().slice(0, 64),
     }).select("id").single<{ id: string }>());
     qrMesaId = qrMesa.id;
+    const qrLegado = exigir(await servicio.from("qr_codes").insert({
+      restaurant_id: restauranteId, branch_id: ramaLegadoId, purpose: "TAKEAWAY",
+      token_hash: (crypto.randomUUID() + crypto.randomUUID()).replaceAll("-", "").toLowerCase().slice(0, 64),
+    }).select("id").single<{ id: string }>());
+    qrLegadoId = qrLegado.id;
   }, 30_000);
 
   afterAll(async () => {
@@ -111,13 +125,16 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       if (servicio) {
         if (pagos.length) anotar((await servicio.from("payments").delete().in("id", pagos)).error);
         if (pedidos.length) anotar((await servicio.from("payments").delete().in("order_id", pedidos)).error);
+        if (pedidos.length) anotar((await servicio.from("order_items").delete().in("order_id", pedidos)).error);
         if (pedidos.length) anotar((await servicio.from("orders").delete().in("id", pedidos)).error);
         if (productoId) anotar((await servicio.from("product_daily_stock").delete().eq("product_id", productoId)).error);
         if (productoId) anotar((await servicio.from("products").delete().eq("id", productoId)).error);
         if (qrId) anotar((await servicio.from("qr_codes").delete().eq("id", qrId)).error);
+        if (qrLegadoId) anotar((await servicio.from("qr_codes").delete().eq("id", qrLegadoId)).error);
         if (qrMesaId) anotar((await servicio.from("qr_codes").delete().eq("id", qrMesaId)).error);
         if (sesionMesaId) anotar((await servicio.from("table_sessions").delete().eq("id", sesionMesaId)).error);
         if (mesaId) anotar((await servicio.from("dining_tables").delete().eq("id", mesaId)).error);
+        if (ramaLegadoId) anotar((await servicio.from("branches").delete().eq("id", ramaLegadoId)).error);
         if (ramaId) anotar((await servicio.from("branches").delete().eq("id", ramaId)).error);
       }
     } finally {
@@ -135,6 +152,8 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
     if (pedidos.length) {
       const pagosDelCaso = await servicio.from("payments").delete().in("order_id", pedidos);
       if (pagosDelCaso.error) throw new Error(pagosDelCaso.error.message);
+      const itemsDelCaso = await servicio.from("order_items").delete().in("order_id", pedidos);
+      if (itemsDelCaso.error) throw new Error(itemsDelCaso.error.message);
     }
     if (pagos.length) {
       const resultado = await servicio.from("payments").delete().in("id", pagos.splice(0));
@@ -184,13 +203,18 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
   });
 
   it("confirma dos vencimientos, su historial y la devolución de stock aunque rechace el nuevo intento", async () => {
-    const primero = await crearPedido();
-    const segundo = await crearPedido();
+    // Simular dos pedidos antiguos que ya existían antes del límite estricto
+    // de dos pendientes por QR: se crean bajo otro QR y se reasignan como
+    // datos históricos, sin pasar de dos pedidos durante el registro.
+    const primero = await crearPedido(crypto.randomUUID(), qrLegadoId);
+    const segundo = await crearPedido(crypto.randomUUID(), qrLegadoId);
     await crearPedido();
     await crearPedido();
-    exigir(await servicio.from("orders").update({
+    const reasignados = exigir(await servicio.from("orders").update({
+      qr_code_id: qrId,
       created_at: new Date(Date.now() - 16 * 60_000).toISOString(),
     }).in("id", [primero, segundo]).select("id").order("id"));
+    expect(reasignados).toHaveLength(2);
 
     const claveRechazada = crypto.randomUUID();
     const tercero = await servicio.rpc("registrar_pedido_cliente", {
@@ -326,11 +350,31 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       created_at: new Date(Date.now() - 16 * 60_000).toISOString(),
     }).eq("id", pedido).select("id").single());
     const checkout = await servicio.rpc("iniciar_checkout_stripe", { p_sesion_id: null, p_pedido_id: pedido });
-    expect(checkout.error?.message).toContain("NOTHING_TO_PAY");
+    expect(checkout.error).toBeNull();
+    expect(checkout.data).toEqual([]);
     expect(exigir(await servicio.from("orders").select("status").eq("id", pedido)
       .single<{ status: string }>()).status).toBe("CANCELLED");
     expect(exigir(await servicio.from("product_daily_stock").select("sold").eq("product_id", productoId)
       .eq("stock_date", fechaStock).single<{ sold: number }>()).sold).toBe(0);
+  });
+
+  it("vence un pedido antiguo y crea Checkout con los pedidos vigentes de la sesión", async () => {
+    const vencido = await crearPedidoMesa();
+    const vigente = await crearPedidoMesa();
+    exigir(await servicio.from("orders").update({
+      created_at: new Date(Date.now() - 16 * 60_000).toISOString(),
+    }).eq("id", vencido).select("id").single());
+
+    const checkout = exigir(await servicio.rpc("iniciar_checkout_stripe", {
+      p_sesion_id: sesionMesaId, p_pedido_id: null,
+    }).single<{ checkout_id: string; amount: number; order_ids: string[] }>());
+    checkouts.push(checkout.checkout_id);
+    expect(checkout.order_ids).toEqual([vigente]);
+    expect(Number(checkout.amount)).toBe(1);
+    expect(exigir(await servicio.from("orders").select("status").eq("id", vencido)
+      .single<{ status: string }>()).status).toBe("CANCELLED");
+    expect(exigir(await servicio.from("product_daily_stock").select("sold").eq("product_id", productoId)
+      .eq("stock_date", fechaStock).single<{ sold: number }>()).sold).toBe(1);
   });
 
   it("un Checkout antiguo de mesa solo conserva los pedidos de su snapshot", async () => {
