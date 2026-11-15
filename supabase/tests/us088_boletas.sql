@@ -118,9 +118,21 @@ insert into public.order_items(order_id, product_id, product_name, quantity, uni
  select '88000000-0000-4000-8000-000000000012', id, name, 1, 32, 32 from public.products
  where restaurant_id = '10000000-0000-0000-0000-000000000001' and name = 'Ceviche clásico';
 set local role service_role;
-select * from public.registrar_pago_stripe('cs_test_us088A', 'pi_us088pruebaA', null, '88000000-0000-4000-8000-000000000012', 32, 'stripe@example.test');
+-- US-097: registrar solo un Checkout OPEN con snapshot y monto válidos.
+select public.vincular_checkout_stripe(checkout_id, 'cs_test_us088A')
+  from public.iniciar_checkout_stripe(null, '88000000-0000-4000-8000-000000000012');
+select * from public.registrar_pago_stripe('cs_test_us088A', 'pi_us088pruebaA', null, '88000000-0000-4000-8000-000000000012', 32, ' stripe@example.test ');
 select * from public.registrar_pago_stripe('cs_test_us088A', 'pi_us088pruebaA', null, '88000000-0000-4000-8000-000000000012', 32, 'stripe@example.test');
 do $$ begin
+ if (select receipt_email from public.payments where stripe_session_id = 'cs_test_us088A') <> 'stripe@example.test' then raise exception 'FAIL correo Stripe normalizado'; end if;
+ if (select status from public.stripe_checkout_attempts where checkout_session_id = 'cs_test_us088A') <> 'PAID' then raise exception 'FAIL Checkout no quedó PAID'; end if;
+ if (select status from public.orders where id = '88000000-0000-4000-8000-000000000011') <> 'IN_PROGRESS' then raise exception 'FAIL trigger US-094'; end if;
+ begin
+   perform public.registrar_pago_stripe('cs_test_sinSnapshot', 'pi_us088invalido', null, '88000000-0000-4000-8000-000000000012', 32, 'stripe@example.test');
+   raise exception 'FAIL pago sin snapshot aceptado';
+ exception when invalid_parameter_value then
+   if sqlerrm <> 'CHECKOUT_STALE' then raise; end if;
+ end;
  if (select count(*) from public.receipts where number = 8 and status = 'PENDIENTE') <> 1 then raise exception 'FAIL reserva Stripe'; end if;
  if (select count(*) from public.payments where stripe_session_id = 'cs_test_us088A') <> 1 then raise exception 'FAIL Stripe duplicado'; end if;
  if (select next_number from public.receipt_series where restaurant_id = '10000000-0000-0000-0000-000000000001') <> 9 then raise exception 'FAIL correlativo Stripe'; end if;

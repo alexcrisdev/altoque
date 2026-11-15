@@ -63,20 +63,24 @@ const estados: Array<{
 
 describe("mensajes y progreso del pedido", () => {
   it("US-085: explica que el pedido para llevar espera pago antes de prepararse", () => {
-    expect(etiquetaEstadoCliente("PENDING", "TAKEAWAY")).toBe("Esperando pago");
+    expect(etiquetaEstadoCliente("PENDING")).toBe("Esperando pago");
     expect(mensajeEstadoCliente("PENDING", "TAKEAWAY")).toBe(
       "Esperando pago. Paga en caja o con tarjeta para que comencemos a preparar tu pedido.",
     );
   });
 
-  it("US-085: conserva las etiquetas y el mensaje pendiente de mesa", () => {
+  it("US-094: explica que un pedido de mesa espera el pago antes de prepararse", () => {
+    expect(etiquetaEstadoCliente("PENDING")).toBe("Esperando pago");
+    expect(mensajeEstadoCliente("PENDING", "DINE_IN")).toBe(
+      "Esperando pago. Paga en caja o con tarjeta para que comencemos a preparar tu pedido.",
+    );
+  });
+
+  it("conserva las demás etiquetas de los pedidos de mesa y para llevar", () => {
     for (const { estado } of estados) {
-      expect(etiquetaEstadoCliente(estado, "DINE_IN")).toBe(ETIQUETA_ESTADO[estado]);
-      if (estado !== "PENDING") {
-        expect(etiquetaEstadoCliente(estado, "TAKEAWAY")).toBe(ETIQUETA_ESTADO[estado]);
-      }
+      if (estado !== "PENDING") expect(etiquetaEstadoCliente(estado)).toBe(ETIQUETA_ESTADO[estado]);
     }
-    expect(mensajeEstadoCliente("PENDING", "DINE_IN")).toBe(MENSAJE_ESTADO_CLIENTE.PENDING);
+    expect(MENSAJE_ESTADO_CLIENTE.PENDING).toBe("Recibimos tu pedido, en breve lo confirmamos");
   });
 
   it("avisa que el mesero lleva el pedido listo a la mesa", () => {

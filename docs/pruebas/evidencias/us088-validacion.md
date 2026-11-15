@@ -2,6 +2,101 @@
 
 Fecha: **14/11/2026**, America/Lima. Rama de trabajo: `dev/erick`.
 
+## Revisión sobre US-097 — 15/11/2026
+
+La migración vigente para aplicar es
+`supabase/migrations/20261115221935_us088_boletas_prueba.sql`, posterior a
+las migraciones de Alina. Se retiró el archivo anterior de US-088, que todavía
+no había sido aplicado en la base compartida. No aplicar ambos archivos.
+
+### Decisiones del merge
+
+El único archivo con conflicto explícito fue
+`src/features/pago-cierre/pago-online-actions.ts`:
+
+- Importaciones: se conservan iniciar/vincular/cancelar Checkout de Alina y
+  la validación de correo de US-088.
+- Preparación: se conserva el registro y snapshot de Checkout, el monto de
+  la base, su expiración, clave de idempotencia y tratamiento de fallos.
+  A la metadata de sesión que incluye `checkout_id` se añade únicamente el
+  correo voluntario. El PaymentIntent mantiene metadata sin ese correo.
+
+Se revisaron las fusiones automáticas de `pago-online.ts`, `stripe-logica.ts`,
+`webhook-stripe.ts` y sus pruebas. Se preserva el reconocimiento de Checkout,
+los pagos tardíos y el flujo de reembolsos de Alina. El correo solo se lee de
+la metadata de la sesión y llega como `p_receipt_email`; el correo solicitado
+por Stripe se ignora.
+
+### Preservación SQL y regresión
+
+La función Stripe nueva se copió de `20261115190000` y se comprobó textualmente
+que, retirando únicamente el parámetro y el guardado del correo, se recuperan
+exactamente la definición y los permisos de Alina. Se mantienen OPEN, snapshot,
+expiración, monto, CHECKOUT_STALE, consulta de duplicados bajo bloqueo y PAID.
+Se elimina la firma de cinco argumentos y se declara la nueva de seis, con
+correo predeterminado null y ejecución exclusiva de service_role.
+
+Se comprobó que `registrar_pago` sigue partiendo de su definición más reciente
+de `20261102120000`. No se modificaron las migraciones de Alina ni
+`iniciar_checkout_stripe` de `20261115210000`. La prueba SQL verifica que el
+trigger `payments_us094_iniciar_preparacion_sesion` sigue liberando pedidos.
+
+Resultados de esta revisión:
+
+- Base local recreada desde cero con `supabase db reset --local`; se aplicaron
+  US-094, todas las migraciones US-097 y finalmente US-088.
+- Usuarios demo preparados con variables de Supabase local, sin editar `.env.local`.
+- Unitarias: **1111/1111 aprobadas**, incluidas las nuevas combinaciones de
+  correo + Checkout y correo + reembolso de un Checkout obsoleto.
+- Integración: **109/109 aprobadas en dos vueltas consecutivas**, 15 archivos,
+  incluyendo `vencimiento-pedidos.test.ts` y `boletas-local.test.ts`.
+- La prueba SQL de US-088 es transaccional y termina con ROLLBACK: valida
+  correo normalizado, snapshot obligatorio, PAID, correlativos, RLS y callback.
+- `npx eslint src tests scripts`, typecheck y build aprobados.
+
+Se encontró un fallo intermitente en IDs ficticios de PaymentIntent que podían
+contener 13 dígitos seguidos y activar `payments_reference_sin_tarjeta`.
+Se mantuvo esa protección SQL; solo se sustituyeron los separadores del UUID
+ficticio por letras en las pruebas RLS de espera de pago y vencimiento.
+
+### Repetición DEMO con el código integrado
+
+El usuario reconfirmó DEMO y autorizó un único envío a su correo propio de
+US-071. Primero se consultó BBB1-2 en Nubefact: HTTP 400, código 24, libre.
+Después, con Supabase local y la migración nueva, se confirmó un pedido de
+S/ 6.00 en dos pagos de S/ 3.00. El primero no creó reserva; el segundo reservó
+BBB1-2. n8n emitió la boleta DEMO real, devolvió PDF/XML y el callback dejó
+la misma reserva EMITIDO. Gmail envió el correo y confirmó el mismo mensaje
+en INBOX. La cuenta se entregó y cerró mediante la interfaz.
+
+La prueba funcional propia pasó **1/1** sobre el código de US-094/US-097 y US-088
+integrados. Se utilizó un receptor HTTP local para capturar el aviso firmado y
+una copia inactiva ejecutada por CLI; se adaptaron solo los nodos de entrada y
+respuesta para ese modo. Nubefact, Gmail y el callback a AlToque fueron reales.
+Los flujos publicados no se modificaron. Las contraseñas de los seis usuarios
+locales se restauraron al finalizar y no se escribieron claves en archivos públicos.
+
+**Última boleta DEMO emitida: BBB1-2.** Alexander debe confirmar el siguiente
+correlativo libre antes de cargar `receipt_series` en la base compartida.
+Tras la emisión se consultó BBB1-3: Nubefact devolvió HTTP 400 y código 24,
+confirmando que estaba libre. No se emitió BBB1-3 ni se envió otro correo.
+
+![PDF real BBB1-2 sobre la revisión US-097](us088-boleta-us097-demo.png)
+
+![Contenido del correo real leído desde Gmail API, INBOX confirmado](us088-correo-us097-demo-recibido.png)
+
+La evidencia del correo representa el mensaje real obtenido por API, no la
+interfaz web de Gmail. Se ocultan dirección y enlaces.
+
+![Caja con BBB1-2 y PDF real](us088-caja-us097-demo.png)
+
+No se ha escrito en la base compartida, aplicado migraciones remotas, hecho
+push ni reabierto el PR #83 durante esta revisión.
+
+---
+
+## Evidencia anterior — 14/11/2026
+
 **Estado: implementación y prueba DEMO real aprobadas en entorno local;
 revisión de la migración y despliegue compartido pendientes.**
 Comprobante de prueba, sin valor tributario.
@@ -199,7 +294,7 @@ en [la guía](../../automatizacion/boleta.md).
 
 ## Archivos del avance
 
-- Migración: `supabase/migrations/20261114223625_us088_boletas_prueba.sql`;
+- Migración: `supabase/migrations/20261115221935_us088_boletas_prueba.sql`;
   prueba SQL: `supabase/tests/us088_boletas.sql`.
 - Callback: `src/app/api/n8n/comprobantes/route.ts`,
   `src/features/pago-cierre/comprobante-actions.ts`, `comprobantes.ts`,

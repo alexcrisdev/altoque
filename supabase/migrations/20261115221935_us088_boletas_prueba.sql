@@ -224,38 +224,42 @@ $$;
 revoke all on function public.registrar_pago(uuid, uuid, text, numeric, numeric, text, boolean, uuid, text) from public, anon;
 grant execute on function public.registrar_pago(uuid, uuid, text, numeric, numeric, text, boolean, uuid, text) to authenticated;
 
+-- US-097: definición de Alina conservada; solo firma y columna de correo adicionales.
 drop function public.registrar_pago_stripe(text, text, uuid, uuid, numeric);
-create function public.registrar_pago_stripe(p_stripe_session_id text,
-  p_payment_intent    text,
-  p_sesion_id         uuid,
-  p_pedido_id         uuid,
-  p_monto             numeric,
-  p_receipt_email text default null
-)
-returns table (pago_id uuid, duplicado boolean)
-language plpgsql
-security definer
-set search_path = ''
-as $$
+create function public.registrar_pago_stripe(
+  p_stripe_session_id text, p_payment_intent text, p_sesion_id uuid,
+  p_pedido_id uuid, p_monto numeric, p_receipt_email text default null
+) returns table (pago_id uuid, duplicado boolean)
+language plpgsql security definer set search_path = '' as $$
 declare
+  v_checkout public.stripe_checkout_attempts%rowtype;
   v_restaurant uuid;
-  v_saldo      numeric;
-  v_existente  public.payments%rowtype;
+  v_saldo numeric;
+  v_existente public.payments%rowtype;
+  v_invalidos integer;
+  v_checkout_encontrado boolean;
 begin
   if p_stripe_session_id is null or p_payment_intent is null
-     or ((p_sesion_id is null) = (p_pedido_id is null))
-     or p_monto is null or p_monto <= 0 or p_monto <> round(p_monto, 2) then
+    or ((p_sesion_id is null) = (p_pedido_id is null))
+    or p_monto is null or p_monto <= 0 or p_monto <> round(p_monto, 2) then
     raise exception 'INVALID_PAYMENT' using errcode = '22023';
   end if;
-
-  -- Evento repetido: mismo checkout = mismo pago.
   select * into v_existente from public.payments where stripe_session_id = p_stripe_session_id;
-  if found then
-    return query select v_existente.id, true;
-    return;
+  if found then return query select v_existente.id, true; return; end if;
+
+  select * into v_checkout from public.stripe_checkout_attempts
+    where checkout_session_id = p_stripe_session_id for update;
+  v_checkout_encontrado := found;
+  if v_checkout_encontrado then
+    select * into v_existente from public.payments where stripe_session_id = p_stripe_session_id;
+    if found then return query select v_existente.id, true; return; end if;
+  end if;
+  if not v_checkout_encontrado or v_checkout.status <> 'OPEN' or v_checkout.expires_at <= clock_timestamp()
+    or v_checkout.amount <> p_monto or v_checkout.table_session_id is distinct from p_sesion_id
+    or v_checkout.order_id is distinct from p_pedido_id then
+    raise exception 'CHECKOUT_STALE' using errcode = '22023';
   end if;
 
-  -- Bloquea la cuenta, igual que registrar_pago.
   if p_sesion_id is not null then
     select restaurant_id into v_restaurant from public.table_sessions
       where id = p_sesion_id and closed_at is null for update;
@@ -263,26 +267,40 @@ begin
     select restaurant_id into v_restaurant from public.orders
       where id = p_pedido_id and modality = 'TAKEAWAY' and status <> 'CANCELLED' for update;
   end if;
-  if v_restaurant is null then raise exception 'ACCOUNT_NOT_FOUND' using errcode = 'P0002'; end if;
+  if v_restaurant is null or v_restaurant <> v_checkout.restaurant_id then
+    raise exception 'ACCOUNT_NOT_FOUND' using errcode = 'P0002';
+  end if;
+  -- Revalida bajo el bloqueo de la cuenta: otro webhook idéntico pudo haber
+  -- confirmado el Checkout mientras este esperaba el mismo bloqueo.
+  select * into v_existente from public.payments where stripe_session_id = p_stripe_session_id;
+  if found then return query select v_existente.id, true; return; end if;
+  if exists (select 1 from public.payments p where p.status = 'CONFIRMED'
+      and p.confirmed_at > v_checkout.created_at
+      and (p.table_session_id = p_sesion_id or p.order_id = p_pedido_id)) then
+    raise exception 'CHECKOUT_STALE' using errcode = '22023';
+  end if;
+  select count(*) into v_invalidos from public.orders o
+    where o.id = any(v_checkout.order_ids) and o.status = 'CANCELLED';
+  if v_invalidos > 0 or cardinality(v_checkout.order_ids) = 0 then
+    raise exception 'CHECKOUT_STALE' using errcode = '22023';
+  end if;
 
-  -- Stripe ya cobró. Si la cuenta se pagó por otro medio mientras tanto, no se
-  -- registra un pago de más: el webhook lo informa para devolver el dinero.
   v_saldo := case when p_sesion_id is not null
     then private.saldo_pendiente_sesion(p_sesion_id)
     else private.saldo_pendiente_pedido(p_pedido_id) end;
-  if p_monto > v_saldo then raise exception 'AMOUNT_EXCEEDS_BALANCE' using errcode = '22023'; end if;
+  if p_monto > v_saldo then raise exception 'CHECKOUT_STALE' using errcode = '22023'; end if;
 
-  insert into public.payments (
-    restaurant_id, table_session_id, order_id, method, status, amount,
-    reference, stripe_session_id, idempotency_key, created_by, confirmed_at, receipt_email
-  ) values (
-    v_restaurant, p_sesion_id, p_pedido_id, 'CARD', 'CONFIRMED', p_monto,
-    p_payment_intent, p_stripe_session_id, gen_random_uuid(), null, now(), nullif(trim(p_receipt_email), '')
-  )
+  insert into public.payments (restaurant_id, table_session_id, order_id, method,
+    status, amount, reference, stripe_session_id, idempotency_key, created_by, confirmed_at, receipt_email)
+  values (v_restaurant, p_sesion_id, p_pedido_id, 'CARD', 'CONFIRMED', p_monto,
+    p_payment_intent, p_stripe_session_id, gen_random_uuid(), null, clock_timestamp(), nullif(trim(p_receipt_email), ''))
   returning * into v_existente;
-
+  update public.stripe_checkout_attempts set status = 'PAID', updated_at = clock_timestamp()
+    where id = v_checkout.id;
   return query select v_existente.id, false;
 end;
 $$;
-revoke all on function public.registrar_pago_stripe(text, text, uuid, uuid, numeric, text) from public, anon, authenticated;
+revoke all on function public.registrar_pago_stripe(text, text, uuid, uuid, numeric, text)
+  from public, anon, authenticated;
 grant execute on function public.registrar_pago_stripe(text, text, uuid, uuid, numeric, text) to service_role;
+

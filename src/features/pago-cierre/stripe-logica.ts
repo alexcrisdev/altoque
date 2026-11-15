@@ -42,20 +42,22 @@ export function nombreLineaCheckout(cuenta: CuentaACobrar, mesaNumero: number | 
 
 // Lo que viaja a Stripe y vuelve en el webhook para saber qué cuenta se pagó.
 // Solo IDs internos: nunca datos del cliente.
-export function metadatosCheckout(cuenta: CuentaACobrar, restauranteId: string): Record<string, string> {
-  return { tipo: cuenta.tipo, cuenta_id: cuenta.id, restaurante_id: restauranteId };
+export function metadatosCheckout(cuenta: CuentaACobrar, restauranteId: string, checkoutId: string): Record<string, string> {
+  return { tipo: cuenta.tipo, cuenta_id: cuenta.id, restaurante_id: restauranteId, checkout_id: checkoutId };
 }
 
 export function leerMetadatosCheckout(
   metadatos: Record<string, string> | null | undefined,
-): { cuenta: CuentaACobrar; restauranteId: string } | null {
+): { cuenta: CuentaACobrar; restauranteId: string; checkoutId: string } | null {
   const tipo = metadatos?.tipo;
   const id = metadatos?.cuenta_id;
   const restauranteId = metadatos?.restaurante_id;
-  if ((tipo !== "MESA" && tipo !== "PARA_LLEVAR") || !UUID.test(id ?? "") || !UUID.test(restauranteId ?? "")) {
+  const checkoutId = metadatos?.checkout_id;
+  if ((tipo !== "MESA" && tipo !== "PARA_LLEVAR") || !UUID.test(id ?? "")
+    || !UUID.test(restauranteId ?? "") || !UUID.test(checkoutId ?? "")) {
     return null;
   }
-  return { cuenta: { tipo, id: id as string }, restauranteId: restauranteId as string };
+  return { cuenta: { tipo, id: id as string }, restauranteId: restauranteId as string, checkoutId: checkoutId as string };
 }
 
 // Solo los campos de la sesión de Checkout que usa el webhook.
@@ -74,6 +76,7 @@ export type PagoStripeAceptado = {
   intentoPago: string;
   cuenta: CuentaACobrar;
   restauranteId: string;
+  checkoutId: string;
   montoCentimos: number;
   correoBoleta?: string | null;
 };

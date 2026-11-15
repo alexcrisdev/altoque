@@ -26,7 +26,7 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
 
 describe("correo voluntario US-088", () => {
   it("el webhook solo toma receipt_email de metadata y omite el email que pudiera pedir Stripe", () => {
-    const sesion = { id: "cs_test_abc123", payment_status: "paid", currency: "pen", amount_total: 1000, payment_intent: "pi_123456789", metadata: { tipo: "MESA", cuenta_id: dato.pago_id, restaurante_id: dato.pago_id }, customer_details: { email: "stripe@example.test" } };
+    const sesion = { id: "cs_test_abc123", payment_status: "paid", currency: "pen", amount_total: 1000, payment_intent: "pi_123456789", metadata: { tipo: "MESA", cuenta_id: dato.pago_id, restaurante_id: dato.pago_id, checkout_id: "cccccccc-dddd-4eee-8fff-000000000001" }, customer_details: { email: "stripe@example.test" } };
     expect(interpretarSesionPagada(sesion)).not.toHaveProperty("correoBoleta");
     expect(interpretarSesionPagada({ ...sesion, metadata: { ...sesion.metadata, receipt_email: "voluntario@example.test" } })).toMatchObject({ ok: true, correoBoleta: "voluntario@example.test" });
     const alterado = interpretarSesionPagada({ ...sesion, metadata: { ...sesion.metadata, receipt_email: "invalido" } });

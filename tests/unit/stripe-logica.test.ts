@@ -15,6 +15,7 @@ import {
 
 const CUENTA = "11111111-2222-4333-8444-555555555555";
 const RESTAURANTE = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+const CHECKOUT = "cccccccc-dddd-4eee-8fff-000000000001";
 
 function sesion(cambios: Partial<SesionCheckoutRecibida> = {}): SesionCheckoutRecibida {
   return {
@@ -23,7 +24,7 @@ function sesion(cambios: Partial<SesionCheckoutRecibida> = {}): SesionCheckoutRe
     currency: "pen",
     amount_total: 6200,
     payment_intent: "pi_3AbCdEfGhIjK",
-    metadata: { tipo: "MESA", cuenta_id: CUENTA, restaurante_id: RESTAURANTE },
+    metadata: { tipo: "MESA", cuenta_id: CUENTA, restaurante_id: RESTAURANTE, checkout_id: CHECKOUT },
     ...cambios,
   };
 }
@@ -47,17 +48,18 @@ describe("validarMontoCheckout", () => {
 
 describe("metadatos de Checkout", () => {
   it("ida y vuelta: lo que se manda a Stripe se puede leer en el webhook", () => {
-    const metadatos = metadatosCheckout({ tipo: "PARA_LLEVAR", id: CUENTA }, RESTAURANTE);
+    const metadatos = metadatosCheckout({ tipo: "PARA_LLEVAR", id: CUENTA }, RESTAURANTE, CHECKOUT);
     expect(leerMetadatosCheckout(metadatos)).toEqual({
       cuenta: { tipo: "PARA_LLEVAR", id: CUENTA },
       restauranteId: RESTAURANTE,
+      checkoutId: CHECKOUT,
     });
   });
 
   it("rechaza metadatos incompletos o alterados", () => {
     expect(leerMetadatosCheckout(null)).toBeNull();
-    expect(leerMetadatosCheckout({ tipo: "MESA", cuenta_id: "no-es-uuid", restaurante_id: RESTAURANTE })).toBeNull();
-    expect(leerMetadatosCheckout({ tipo: "OTRO", cuenta_id: CUENTA, restaurante_id: RESTAURANTE })).toBeNull();
+    expect(leerMetadatosCheckout({ tipo: "MESA", cuenta_id: "no-es-uuid", restaurante_id: RESTAURANTE, checkout_id: CHECKOUT })).toBeNull();
+    expect(leerMetadatosCheckout({ tipo: "OTRO", cuenta_id: CUENTA, restaurante_id: RESTAURANTE, checkout_id: CHECKOUT })).toBeNull();
     expect(leerMetadatosCheckout({ tipo: "MESA", cuenta_id: CUENTA })).toBeNull();
   });
 });
@@ -70,6 +72,7 @@ describe("interpretarSesionPagada", () => {
       intentoPago: "pi_3AbCdEfGhIjK",
       cuenta: { tipo: "MESA", id: CUENTA },
       restauranteId: RESTAURANTE,
+      checkoutId: CHECKOUT,
       montoCentimos: 6200,
     });
   });

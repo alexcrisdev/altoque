@@ -34,7 +34,7 @@ exclusivamente para una empresa Nubefact en modo DEMO. No activar producción.
 
 ## Aplicación de la migración (Alexander)
 
-Archivo nuevo: `supabase/migrations/20261114223625_us088_boletas_prueba.sql`.
+Archivo nuevo: `supabase/migrations/20261115221935_us088_boletas_prueba.sql`.
 Se probó primero en Supabase local. No ejecutar `supabase db push` desde esta guía.
 Alexander revisa y aplica la migración en la base compartida antes de publicar
 la app modificada.
@@ -43,6 +43,14 @@ La migración agrega el correo opcional y sustituye las firmas antiguas de
 `registrar_pago` y `registrar_pago_stripe` por las nuevas con el último parámetro
 `p_receipt_email text default null`; conserva las reglas anteriores y vuelve a
 declarar permisos. Las llamadas que omiten el correo siguen funcionando.
+
+La revisión del 15/11/2026 parte del `registrar_pago_stripe` de
+`20261115190000_us097_stripe_checkout_snapshot_refunds.sql`: conserva validación
+OPEN, vencimiento, monto, snapshot, CHECKOUT_STALE, bloqueos e idempotencia.
+Solo añade firma y guardado del correo. No redefine `iniciar_checkout_stripe`
+de `20261115210000` ni los triggers de preparación de US-094/US-097.
+El archivo anterior `20261114223625_us088_boletas_prueba.sql`, que no se aplicó
+a la base compartida, se retiró para que no haya dos definiciones incompatibles.
 
 Alexander carga **una configuración por restaurante** en `receipt_series`:
 `restaurant_id`, `series`, `next_number`, `is_test=true`. Debe comprobar el próximo
@@ -154,3 +162,8 @@ con etiqueta INBOX. Se probó una copia inactiva del flujo mediante CLI, sin
 modificar los flujos publicados del equipo; el informe distingue ese recorrido
 de la comprobación posterior del webhook compartido. BBB1-1 ya no está libre:
 verificar el siguiente correlativo antes de configurar el entorno compartido.
+
+El 15/11/2026 se repitió el recorrido sobre US-097 con la migración nueva:
+**BBB1-2** emitida, PDF/XML, callback EMITIDO, caja y recepción Gmail INBOX
+confirmados. El último documento emitido es BBB1-2; BBB1-3 se consultó y estaba
+libre. Alexander debe reconfirmar ese valor antes de configurar la base compartida.
