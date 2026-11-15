@@ -20,6 +20,7 @@ import {
 } from "@/features/pedidos/estados";
 import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
 import { AvisoEstadoCliente } from "@/features/pedidos/aviso-estado-cliente";
+import { TemporizadorPagoCliente } from "@/features/pedidos/temporizador-pago-cliente";
 
 export const metadata: Metadata = {
   title: "Estado de mi pedido | AlToque",
@@ -204,6 +205,10 @@ function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
             {pedido.motivo || "El restaurante no registró un motivo."}
           </p>
         </div>
+      )}
+
+      {pedido.estado === "PENDING" && (
+        <TemporizadorPagoCliente limite={pedido.limitePago} pagoPendiente={pedido.pagoPendiente} />
       )}
 
       <section aria-labelledby="productos-del-pedido">

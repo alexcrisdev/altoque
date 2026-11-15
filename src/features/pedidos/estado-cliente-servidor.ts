@@ -6,6 +6,8 @@ import {
   ETIQUETA_ESTADO,
   type EstadoPedido,
 } from "./estados";
+import { calcularLimitePago } from "./temporizador-pago";
+import { vencerPedidosSinPago } from "./vencimiento-datos";
 
 export type PedidoCliente = {
   numero: number;
@@ -18,6 +20,8 @@ export type PedidoCliente = {
     cantidad: number;
   }[];
   motivo: string | null;
+  limitePago: string;
+  pagoPendiente: boolean;
 };
 
 type FilaPedido = {
@@ -25,6 +29,7 @@ type FilaPedido = {
   order_number: number;
   status: string;
   created_at: string;
+  table_session_id: string | null;
   modality: "DINE_IN" | "TAKEAWAY";
   dining_tables: { number: number } | null;
   order_items: {
@@ -57,6 +62,7 @@ export async function consultarPedidoCliente(
   if (acceso.estado !== "VALIDO") return null;
 
   const supabase = crearClienteAdmin();
+  await vencerPedidosSinPago(acceso.restauranteId);
 
   // La búsqueda exige el QR y la clave privada de este pedido.
   // El restaurante también se obtiene del QR validado en el servidor.
@@ -67,6 +73,7 @@ export async function consultarPedidoCliente(
       order_number,
       status,
       created_at,
+      table_session_id,
       modality,
       dining_tables(number),
       order_items(product_name, quantity)
@@ -84,6 +91,22 @@ export async function consultarPedidoCliente(
 
   // Un resultado vacío es distinto de una consulta fallida.
   if (!data) return null;
+
+  let pagoPendiente = false;
+  if (data.status === "PENDING") {
+    const pagosPedido = await supabase.from("payments").select("id").eq("restaurant_id", acceso.restauranteId)
+      .eq("order_id", data.id).eq("status", "PENDING").limit(1).maybeSingle()
+      .overrideTypes<{ id: string } | null, { merge: false }>();
+    if (pagosPedido.error) throw new Error("No se pudo consultar el pago del pedido.");
+    pagoPendiente = pagosPedido.data !== null;
+    if (!pagoPendiente && data.table_session_id) {
+      const pagosSesion = await supabase.from("payments").select("id").eq("restaurant_id", acceso.restauranteId)
+        .eq("table_session_id", data.table_session_id).eq("status", "PENDING").limit(1).maybeSingle()
+        .overrideTypes<{ id: string } | null, { merge: false }>();
+      if (pagosSesion.error) throw new Error("No se pudo consultar el pago de la sesión.");
+      pagoPendiente = pagosSesion.data !== null;
+    }
+  }
 
   if (!esEstadoPedido(data.status)) {
     throw new Error("El estado del pedido no es válido.");
@@ -133,5 +156,7 @@ export async function consultarPedidoCliente(
       cantidad: item.quantity,
     })),
     motivo,
+    limitePago: calcularLimitePago(data.created_at),
+    pagoPendiente,
   };
 }
