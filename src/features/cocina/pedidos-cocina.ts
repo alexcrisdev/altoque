@@ -71,6 +71,21 @@ export async function listarPedidosCocina(restauranteId: string, diaKds?: number
   }));
 }
 
+// Solo devuelve el total: no consulta ni expone los platos de pedidos pendientes.
+export async function contarPedidosEsperandoPago(restauranteId: string): Promise<number> {
+  const supabase = await crearClienteServidor();
+  const { count, error } = await supabase.from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("restaurant_id", restauranteId)
+    .eq("status", "PENDING");
+
+  if (error) {
+    console.error("contarPedidosEsperandoPago", error.code);
+    throw new Error("No se pudieron contar los pedidos que esperan pago.");
+  }
+  return count ?? 0;
+}
+
 // Solo se consulta tras un rechazo para distinguir una cancelación de otro cambio.
 export async function obtenerEstadoActualCocina(restauranteId: string, pedidoId: string): Promise<EstadoPedido | null> {
   const supabase = await crearClienteServidor();

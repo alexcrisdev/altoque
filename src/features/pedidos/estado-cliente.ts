@@ -11,11 +11,8 @@ export const MENSAJE_ESTADO_CLIENTE: Record<EstadoPedido, string> = {
 
 type PasoPedido = 1 | 2 | 3 | 4;
 
-export function etiquetaEstadoCliente(
-  estado: EstadoPedido,
-  modalidad: "DINE_IN" | "TAKEAWAY",
-): string {
-  return estado === "PENDING" && modalidad === "TAKEAWAY"
+export function etiquetaEstadoCliente(estado: EstadoPedido): string {
+  return estado === "PENDING"
     ? "Esperando pago"
     : ETIQUETA_ESTADO[estado];
 }
@@ -24,7 +21,7 @@ export function mensajeEstadoCliente(
   estado: EstadoPedido,
   modalidad: "DINE_IN" | "TAKEAWAY",
 ): string {
-  if (estado === "PENDING" && modalidad === "TAKEAWAY") {
+  if (estado === "PENDING") {
     return "Esperando pago. Paga en caja o con tarjeta para que comencemos a preparar tu pedido.";
   }
   if (estado === "READY") {

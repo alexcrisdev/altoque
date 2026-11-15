@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,6 +16,9 @@ const localId = "20000000-0000-0000-0000-000000000001";
 const mesaId = "30000000-0000-0000-0000-000000000001";
 const clientes: SupabaseClient[] = [];
 const pedidos: string[] = [];
+const pedidosMesa: string[] = [];
+const checkouts: string[] = [];
+const pagos: { id: string; pedidoId?: string; sesionId?: string }[] = [];
 let servicio: SupabaseClient;
 let caja: SupabaseClient;
 let mesero: SupabaseClient;
@@ -25,6 +28,8 @@ let sesionId: string | undefined;
 let qrMostradorId: string;
 let qrMesaId: string;
 let fechaStock: string;
+let cobroAnticipadoOriginal: boolean | undefined;
+let cobroAnticipadoRestaurar = false;
 
 function exigir<T>(respuesta: { data: T | null; error: { message: string } | null }): NonNullable<T> {
   if (respuesta.error) throw new Error(respuesta.error.message);
@@ -40,6 +45,10 @@ function cliente(clave: string): SupabaseClient {
   return nuevo;
 }
 
+function registrarPago(id: string, asociacion: { pedidoId?: string; sesionId?: string }) {
+  if (!pagos.some((pago) => pago.id === id)) pagos.push({ id, ...asociacion });
+}
+
 async function iniciar(correo: string) {
   const nuevo = cliente(anonKey!);
   const { data, error } = await nuevo.auth.signInWithPassword({ email: correo, password: password! });
@@ -47,12 +56,14 @@ async function iniciar(correo: string) {
   return { cliente: nuevo, id: data.user.id };
 }
 
-async function crearPedido(tipo: "CLIENTE" | "QR_ANTIGUO" | "MESA" | "MESERO" | "PARA_LLEVAR_DESDE_MESA" = "CLIENTE") {
+async function crearPedido(tipo: "CLIENTE" | "QR_ANTIGUO" | "MESA" | "MESERO" | "MESERO_MESA" | "PARA_LLEVAR_DESDE_MESA" = "CLIENTE") {
   const items = [{ productoId: productoId!, cantidad: 1, observacion: "Prueba local US-085" }];
   let respuesta;
-  if (tipo === "MESERO") {
+  if (tipo === "MESERO" || tipo === "MESERO_MESA") {
     respuesta = await mesero.rpc("registrar_pedido_mesero", {
-      p_restaurant_id: restauranteId, p_modality: "TAKEAWAY", p_dining_table_id: null,
+      p_restaurant_id: restauranteId,
+      p_modality: tipo === "MESERO_MESA" ? "DINE_IN" : "TAKEAWAY",
+      p_dining_table_id: tipo === "MESERO_MESA" ? mesaId : null,
       p_branch_id: localId, p_idempotency_key: crypto.randomUUID(), p_items: items,
     }).single<{ pedido_id: string }>();
   } else if (tipo === "QR_ANTIGUO") {
@@ -71,6 +82,7 @@ async function crearPedido(tipo: "CLIENTE" | "QR_ANTIGUO" | "MESA" | "MESERO" | 
   }
   const pedido = exigir(respuesta);
   pedidos.push(pedido.pedido_id);
+  if (tipo === "MESA" || tipo === "MESERO_MESA") pedidosMesa.push(pedido.pedido_id);
   return pedido.pedido_id;
 }
 
@@ -96,6 +108,50 @@ async function comprobarIngreso(id: string, autor: string | null = cajaId) {
   }]);
 }
 
+async function configurarCobroAnticipado(activo: boolean) {
+  if (cobroAnticipadoOriginal === undefined) {
+    throw new Error("No se puede cambiar el cobro anticipado sin guardar su valor original.");
+  }
+  cobroAnticipadoRestaurar = true;
+  const { error } = await servicio.from("restaurants")
+    .update({ prepay_dine_in: activo }).eq("id", restauranteId);
+  if (error) throw new Error(error.message);
+}
+
+async function guardarCobroAnticipadoOriginal() {
+  const restaurante = exigir(await servicio.from("restaurants")
+    .select("prepay_dine_in").eq("id", restauranteId)
+    .single<{ prepay_dine_in: boolean }>());
+  cobroAnticipadoOriginal = restaurante.prepay_dine_in;
+}
+
+async function comprobarIngresoMesa(
+  id: string,
+  autor: string | null = cajaId,
+  motivo = "US-094: pago confirmado",
+) {
+  expect((await estado(id)).status).toBe("IN_PROGRESS");
+  expect((await historial(id)).filter((fila) => fila.reason === motivo)).toEqual([{
+    from_status: "PENDING", to_status: "IN_PROGRESS",
+    reason: motivo, changed_by: autor,
+  }]);
+}
+
+async function crearCheckoutStripe(cuenta: { sesionId: string | null; pedidoId: string | null }) {
+  const inicio = exigir(await servicio.rpc("iniciar_checkout_stripe", {
+    p_sesion_id: cuenta.sesionId,
+    p_pedido_id: cuenta.pedidoId,
+  }).single<{ checkout_id: string; amount: number; order_ids: string[] }>());
+  const sessionId = `cs_test_US085094${crypto.randomUUID().replaceAll("-", "")}`;
+  checkouts.push(inicio.checkout_id);
+  const vinculado = exigir(await servicio.rpc("vincular_checkout_stripe", {
+    p_checkout_id: inicio.checkout_id,
+    p_session_id: sessionId,
+  }));
+  expect(vinculado).toBe(true);
+  return { sessionId, amount: Number(inicio.amount), orderIds: inicio.order_ids };
+}
+
 async function pagar(
   pedidoId: string,
   metodo: "CASH" | "CARD" | "YAPE" = "CASH",
@@ -104,12 +160,31 @@ async function pagar(
   clave = crypto.randomUUID(),
 ) {
   const monto = (centimos / 100).toFixed(2);
-  return exigir(await caja.rpc("registrar_pago", {
+  const pago = exigir(await caja.rpc("registrar_pago", {
     p_sesion_id: null, p_pedido_id: pedidoId, p_metodo: metodo, p_monto: monto,
     p_recibido: metodo === "CASH" ? monto : null,
     p_referencia: metodo === "CASH" ? null : "US085-PRUEBA",
     p_aprobado: metodo === "CARD" ? aprobado : null, p_clave: clave,
   }).single<{ pago_id: string; estado: string }>());
+  registrarPago(pago.pago_id, { pedidoId });
+  return pago;
+}
+
+async function pagarSesion(
+  metodo: "CASH" | "CARD" | "YAPE" = "CASH",
+  centimos = 1000,
+  aprobado = true,
+  clave = crypto.randomUUID(),
+) {
+  const monto = (centimos / 100).toFixed(2);
+  const pago = exigir(await caja.rpc("registrar_pago", {
+    p_sesion_id: sesionId, p_pedido_id: null, p_metodo: metodo, p_monto: monto,
+    p_recibido: metodo === "CASH" ? monto : null,
+    p_referencia: metodo === "CASH" ? null : `US094-${crypto.randomUUID().slice(0, 8)}`,
+    p_aprobado: metodo === "CARD" ? aprobado : null, p_clave: clave,
+  }).single<{ pago_id: string; estado: string }>());
+  registrarPago(pago.pago_id, { sesionId });
+  return pago;
 }
 
 async function vendidos() {
@@ -118,11 +193,38 @@ async function vendidos() {
     .eq("stock_date", fechaStock).single<{ sold: number }>()).sold;
 }
 
+async function limpiarPedidosDePrueba() {
+  if (!servicio) return;
+  const ids = [...new Set(pedidos)];
+  if (pagos.length) {
+    const resultadoPagos = await servicio.from("payments").delete().in("id", pagos.map((pago) => pago.id));
+    if (resultadoPagos.error) throw new Error(resultadoPagos.error.message);
+    pagos.splice(0);
+  }
+  if (checkouts.length) {
+    const resultadoCheckouts = await servicio.from("stripe_checkout_attempts").delete().in("id", checkouts);
+    if (resultadoCheckouts.error) throw new Error(resultadoCheckouts.error.message);
+    checkouts.splice(0);
+  }
+  if (ids.length) {
+    const resultadoPedidos = await servicio.from("orders").delete().in("id", ids);
+    if (resultadoPedidos.error) throw new Error(resultadoPedidos.error.message);
+  }
+  for (const id of ids) {
+    const indice = pedidos.indexOf(id);
+    if (indice >= 0) pedidos.splice(indice, 1);
+    const indiceMesa = pedidosMesa.indexOf(id);
+    if (indiceMesa >= 0) pedidosMesa.splice(indiceMesa, 1);
+  }
+}
+
 // Esta suite nunca prepara datos ni se autentica en una base remota.
 describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo local)", () => {
   beforeAll(async () => {
     if (!anonKey || !serviceKey || !password) throw new Error("Faltan las variables del Supabase local.");
     servicio = cliente(serviceKey);
+    // Capturar antes de cualquier escritura; si falla la lectura, no se modifica la base.
+    await guardarCobroAnticipadoOriginal();
     const [usuarioCaja, usuarioMesero] = await Promise.all([
       iniciar("caja@demo.altoque.pe"), iniciar("mesero@demo.altoque.pe"),
     ]);
@@ -136,6 +238,9 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     qrMesaId = exigir(await servicio.from("qr_codes").select("id")
       .eq("restaurant_id", restauranteId).eq("dining_table_id", mesaId)
       .eq("active", true).limit(1).single<{ id: string }>()).id;
+
+    // Este grupo nunca se conecta a una URL remota; afterAll restaura el valor capturado.
+    await configurarCobroAnticipado(false);
 
     // Producto propio: las pruebas no cambian el stock de los productos del seed.
     productoId = exigir(await servicio.from("products").insert({
@@ -166,8 +271,13 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     };
     try {
       if (servicio) {
+        if (pagos.length) {
+          comprobar((await servicio.from("payments").delete().in("id", pagos.map((pago) => pago.id))).error);
+        }
+        if (checkouts.length) {
+          comprobar((await servicio.from("stripe_checkout_attempts").delete().in("id", checkouts)).error);
+        }
         if (pedidos.length) {
-          comprobar((await servicio.from("payments").delete().in("order_id", pedidos)).error);
           comprobar((await servicio.from("orders").delete().in("id", pedidos)).error);
         }
         if (sesionId) comprobar((await servicio.from("table_sessions").delete().eq("id", sesionId)).error);
@@ -177,9 +287,20 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
         }
       }
     } finally {
-      await Promise.all(clientes.map((actual) => actual.auth.signOut()));
+      try {
+        if (servicio && cobroAnticipadoRestaurar && cobroAnticipadoOriginal !== undefined) {
+          comprobar((await servicio.from("restaurants")
+            .update({ prepay_dine_in: cobroAnticipadoOriginal }).eq("id", restauranteId)).error);
+        }
+      } finally {
+        await Promise.all(clientes.map((actual) => actual.auth.signOut()));
+      }
     }
     if (errores.length) throw new Error(`Limpieza US-085: ${errores.join("; ")}`);
+  }, 30_000);
+
+  afterEach(async () => {
+    await limpiarPedidosDePrueba();
   }, 30_000);
 
   it("QR para llevar nace PENDING y su historial inicial también", async () => {
@@ -253,14 +374,15 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
 
   it("la RPC de Stripe lo inicia una sola vez y registra autor nulo", async () => {
     const id = await crearPedido();
-    const referencia = crypto.randomUUID().replaceAll("-", "");
+    const checkout = await crearCheckoutStripe({ sesionId: null, pedidoId: id });
     const parametros = {
-      p_stripe_session_id: `cs_test_US085${referencia}`,
-      p_payment_intent: `pi_US085${referencia}`,
-      p_sesion_id: null, p_pedido_id: id, p_monto: "10.00",
+      p_stripe_session_id: checkout.sessionId,
+      p_payment_intent: `pi_US085${crypto.randomUUID().replaceAll("-", "")}`,
+      p_sesion_id: null, p_pedido_id: id, p_monto: checkout.amount.toFixed(2),
     };
     const primero = exigir(await servicio.rpc("registrar_pago_stripe", parametros)
       .single<{ pago_id: string; duplicado: boolean }>());
+    registrarPago(primero.pago_id, { pedidoId: id });
     expect(primero.duplicado).toBe(false);
     await comprobarIngreso(id, null);
     const repetido = exigir(await servicio.rpc("registrar_pago_stripe", parametros)
@@ -272,6 +394,83 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
   it("el pedido QR en mesa sigue naciendo IN_PROGRESS sin pagar", async () => {
     const id = await crearPedido("MESA");
     expect(await estado(id)).toMatchObject({ status: "IN_PROGRESS", modality: "DINE_IN", table_session_id: sesionId });
+    expect((await historial(id)).map((fila) => fila.to_status)).toEqual(["IN_PROGRESS"]);
+  });
+
+  it("US-094: el QR de mesa nace esperando pago; el pago parcial no lo libera y el total sí", async () => {
+    await configurarCobroAnticipado(true);
+    const id = await crearPedido("MESA");
+    expect(await estado(id)).toMatchObject({ status: "PENDING", modality: "DINE_IN", table_session_id: sesionId });
+    expect((await historial(id)).map((fila) => fila.to_status)).toEqual(["PENDING"]);
+
+    await pagarSesion("CASH", 400);
+    expect((await estado(id)).status).toBe("PENDING");
+    expect(await historial(id)).toHaveLength(1);
+
+    await pagarSesion("CASH", 600);
+    await comprobarIngresoMesa(id);
+  });
+
+  it("US-094: todos los pendientes de la sesión entran al pagar; un pedido posterior vuelve a esperar", async () => {
+    await configurarCobroAnticipado(true);
+    const primero = await crearPedido("MESA");
+    const segundo = await crearPedido("MESA");
+    await pagarSesion("CASH", 2000);
+    await comprobarIngresoMesa(primero);
+    await comprobarIngresoMesa(segundo);
+
+    const tercero = await crearPedido("MESA");
+    expect((await estado(tercero)).status).toBe("PENDING");
+    await pagarSesion("CASH", 1000);
+    await comprobarIngresoMesa(tercero);
+  });
+
+  it.each(["CARD", "YAPE"] as const)("US-094: el pago de mesa por %s inicia al quedar confirmado", async (metodo) => {
+    await configurarCobroAnticipado(true);
+    const id = await crearPedido("MESA");
+    const pago = await pagarSesion(metodo);
+    if (metodo === "YAPE") {
+      expect(pago.estado).toBe("PENDING");
+      expect((await estado(id)).status).toBe("PENDING");
+      exigir(await caja.rpc("verificar_pago", { p_pago_id: pago.pago_id, p_confirmar: true }));
+    } else {
+      expect(pago.estado).toBe("CONFIRMED");
+    }
+    await comprobarIngresoMesa(id);
+  });
+
+  it("US-094: Stripe registra pago de sesión y libera sus pedidos con autor nulo", async () => {
+    await configurarCobroAnticipado(true);
+    const id = await crearPedido("MESA");
+    const checkout = await crearCheckoutStripe({ sesionId: sesionId!, pedidoId: null });
+    expect(checkout.orderIds).toContain(id);
+    const pago = exigir(await servicio.rpc("registrar_pago_stripe", {
+      p_stripe_session_id: checkout.sessionId,
+      p_payment_intent: `pi_US094${crypto.randomUUID().replaceAll("-", "")}`,
+      p_sesion_id: sesionId, p_pedido_id: null, p_monto: checkout.amount.toFixed(2),
+    }).single<{ pago_id: string; duplicado: boolean }>());
+    registrarPago(pago.pago_id, { sesionId });
+    await comprobarIngresoMesa(id, null, "US-097: pago Checkout");
+  });
+
+  it("US-094: los pedidos tomados por el mesero no esperan aunque el ajuste esté activo", async () => {
+    await configurarCobroAnticipado(true);
+    const id = await crearPedido("MESERO_MESA");
+    expect(await estado(id)).toMatchObject({ status: "IN_PROGRESS", source: "WAITER", modality: "DINE_IN" });
+  });
+
+  it("US-094: dos pagos parciales simultáneos solo crean una transición a cocina", async () => {
+    await configurarCobroAnticipado(true);
+    const id = await crearPedido("MESA");
+    await Promise.all([pagarSesion("CASH", 500), pagarSesion("CASH", 500)]);
+    await comprobarIngresoMesa(id);
+    expect((await historial(id)).filter((fila) => fila.reason === "US-094: pago confirmado")).toHaveLength(1);
+  });
+
+  it("US-094: una mesa con el ajuste apagado mantiene el ingreso directo a cocina", async () => {
+    await configurarCobroAnticipado(false);
+    const id = await crearPedido("MESA");
+    expect(await estado(id)).toMatchObject({ status: "IN_PROGRESS", modality: "DINE_IN" });
     expect((await historial(id)).map((fila) => fila.to_status)).toEqual(["IN_PROGRESS"]);
   });
 

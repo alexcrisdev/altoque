@@ -3,7 +3,10 @@
 // US-076: acciones del pago con tarjeta online. Las usa el cliente desde su
 // celular, sin iniciar sesión: todo se valida con el token del QR.
 
-import { pagoStripeRegistrado, resolverCuentaOnline } from "./pago-online";
+import {
+  cancelarCheckoutStripe, iniciarRegistroCheckoutStripe, pagoStripeRegistrado,
+  resolverCuentaOnline, vincularCheckoutStripe,
+} from "./pago-online";
 import { crearClienteStripe, stripeConfigurado } from "./stripe";
 import {
   esSesionStripe,
@@ -20,7 +23,6 @@ export type ResultadoInicioPago = { ok: true; url: string } | { ok: false; mensa
 // Etiqueta para ver este flujo en el dashboard de Stripe.
 const IDENTIFICADOR_INTEGRACION = "altoque_pago_qr_hfkwqzpe";
 // Stripe pide que la sesión dure al menos 30 minutos.
-const DURACION_SESION_SEGUNDOS = 31 * 60;
 
 export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown): Promise<ResultadoInicioPago> {
   if (typeof token !== "string" || (clave !== null && typeof clave !== "string")) {
@@ -35,14 +37,26 @@ export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown): 
     return { ok: false, mensaje: mensajeErrorStripe("STRIPE_ERROR") };
   }
   if (!cuenta) return { ok: false, mensaje: mensajeErrorStripe("ACCOUNT_NOT_FOUND") };
+  const saldoInicialError = validarMontoCheckout(cuenta.saldoCentimos);
+  if (saldoInicialError) return { ok: false, mensaje: saldoInicialError };
 
   // El monto es el saldo que calculó la base; el navegador no manda ningún monto.
-  const error = validarMontoCheckout(cuenta.saldoCentimos);
-  if (error) return { ok: false, mensaje: error };
-
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const retorno = urlsRetornoCheckout(base, token, clave);
-  const metadatos = metadatosCheckout(cuenta.cuenta, cuenta.restauranteId);
+  let checkout: Awaited<ReturnType<typeof iniciarRegistroCheckoutStripe>>;
+  try {
+    checkout = await iniciarRegistroCheckoutStripe(cuenta.cuenta);
+  } catch {
+    return { ok: false, mensaje: mensajeErrorStripe("STRIPE_ERROR") };
+  }
+  if (!checkout) return { ok: false, mensaje: mensajeErrorStripe("ACCOUNT_NOT_FOUND") };
+  const error = validarMontoCheckout(checkout.amountCentimos);
+  if (error) {
+    await cancelarCheckoutStripe(checkout.id).catch(() => {});
+    return { ok: false, mensaje: error };
+  }
+  const metadatos = metadatosCheckout(cuenta.cuenta, cuenta.restauranteId, checkout.id);
+  let sesionCreada: string | null = null;
 
   try {
     const sesion = await crearClienteStripe().checkout.sessions.create({
@@ -52,7 +66,7 @@ export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown): 
         quantity: 1,
         price_data: {
           currency: MONEDA_STRIPE,
-          unit_amount: cuenta.saldoCentimos,
+          unit_amount: checkout.amountCentimos,
           product_data: {
             name: nombreLineaCheckout(cuenta.cuenta, cuenta.mesaNumero),
             description: cuenta.restauranteNombre,
@@ -63,12 +77,29 @@ export async function iniciarPagoTarjetaAction(token: unknown, clave: unknown): 
       payment_intent_data: { metadata: metadatos },
       success_url: retorno.exito,
       cancel_url: retorno.cancelado,
-      expires_at: Math.floor(Date.now() / 1000) + DURACION_SESION_SEGUNDOS,
+      expires_at: Math.floor(new Date(checkout.expiresAt).getTime() / 1000),
       integration_identifier: IDENTIFICADOR_INTEGRACION,
-    });
-    if (!sesion.url) return { ok: false, mensaje: mensajeErrorStripe("STRIPE_ERROR") };
+    }, { idempotencyKey: `altoque-checkout-${checkout.id}` });
+    sesionCreada = sesion.id;
+    if (!sesion.url) {
+      try {
+        await crearClienteStripe().checkout.sessions.expire(sesion.id);
+        await cancelarCheckoutStripe(checkout.id);
+      } catch {
+        await vincularCheckoutStripe(checkout.id, sesion.id).catch(() => {});
+      }
+      return { ok: false, mensaje: mensajeErrorStripe("STRIPE_ERROR") };
+    }
+    await vincularCheckoutStripe(checkout.id, sesion.id);
     return { ok: true, url: sesion.url };
   } catch {
+    if (sesionCreada) {
+      // Si la creación remota terminó pero falló el enlace local, conservar el
+      // registro y reintentar el enlace. No desproteger pedidos de un Checkout vivo.
+      await vincularCheckoutStripe(checkout.id, sesionCreada).catch(() => {});
+    } else {
+      await cancelarCheckoutStripe(checkout.id).catch(() => {});
+    }
     return { ok: false, mensaje: mensajeErrorStripe("STRIPE_ERROR") };
   }
 }

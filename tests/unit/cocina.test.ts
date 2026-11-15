@@ -115,6 +115,7 @@ import { beforeEach, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() }));
 vi.mock("../../src/features/auth/sesion", () => ({ requerirRol: vi.fn() }));
+vi.mock("../../src/features/pedidos/vencimiento-datos", () => ({ vencerPedidosSinPago: vi.fn().mockResolvedValue(undefined) }));
 
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { requerirRol } from "../../src/features/auth/sesion";

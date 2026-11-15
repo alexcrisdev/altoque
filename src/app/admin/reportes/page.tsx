@@ -13,6 +13,8 @@ import {
   consultarTendenciasAction,
   consultarTiemposCocinaAction,
 } from "@/features/dashboard/actions";
+import { consultarPrediccionMananaAction } from "@/features/dashboard/prediccion-actions";
+import { TarjetaPrediccion } from "@/features/dashboard/tarjeta-prediccion";
 import { MapaCalorPanel } from "@/features/dashboard/mapa-calor-panel";
 import { ESTADOS_TENDENCIAS } from "@/features/dashboard/tendencias-logica";
 import {
@@ -85,11 +87,12 @@ async function ContenidoReportes({
       ? parametros.hasta
       : "";
 
-  // Las consultas usan las mismas fechas y resultados independientes.
-  const [resultado, resultadoTendencias, resultadoTiempos] = await Promise.all([
+  // Los reportes usan el rango; la predicción siempre corresponde a mañana en Lima.
+  const [resultado, resultadoTendencias, resultadoTiempos, resultadoPrediccion] = await Promise.all([
     consultarVentasAction(desde, hasta),
     consultarTendenciasAction(desde, hasta),
     consultarTiemposCocinaAction(desde, hasta),
+    consultarPrediccionMananaAction(),
   ]);
 
   const claseCampo =
@@ -108,6 +111,8 @@ async function ContenidoReportes({
         titulo="Reportes de ventas"
         subtitulo="Ventas confirmadas y ticket promedio del restaurante."
       />
+
+      <TarjetaPrediccion resultado={resultadoPrediccion} />
 
       <Tarjeta>
         <form

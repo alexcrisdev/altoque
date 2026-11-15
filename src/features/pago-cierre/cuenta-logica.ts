@@ -57,6 +57,20 @@ export type PagoCuenta = {
   verificadoEn?: string | null;
 };
 
+export type CuentaPendienteCaja = {
+  esperaPagoDesde: string | null;
+};
+
+// Las cuentas con pedidos pendientes de pago aparecen primero y, entre ellas,
+// se atiende antes la que lleva más tiempo esperando.
+export function ordenarCuentasCaja<T extends CuentaPendienteCaja>(cuentas: readonly T[]): T[] {
+  return [...cuentas].sort((a, b) => {
+    if (a.esperaPagoDesde === null) return b.esperaPagoDesde === null ? 0 : 1;
+    if (b.esperaPagoDesde === null) return -1;
+    return a.esperaPagoDesde.localeCompare(b.esperaPagoDesde);
+  });
+}
+
 export type ResumenCuenta = {
   pedidos: (PedidoCuenta & { totalCentimos: number })[]; // los que se cobran
   cancelados: PedidoCuenta[]; // se muestran, pero no suman
@@ -66,6 +80,7 @@ export type ResumenCuenta = {
   pagadoCentimos: number;
   saldoCentimos: number;
   puedeCerrar: boolean; // cierre ordinario: saldo 0 y ningún Yape por verificar (US-020)
+  pedidosSinEntregar: number; // US-063: una MESA no se cierra mientras sea mayor a 0
 };
 
 export function subtotalCentimos(linea: LineaCuenta): number {
@@ -99,5 +114,6 @@ export function calcularCuenta(pedidos: readonly PedidoCuenta[], pagos: readonly
     pagadoCentimos,
     saldoCentimos,
     puedeCerrar: saldoCentimos <= 0 && !pagosNoVerificados.some((pago) => pago.estado === "PENDING"),
+    pedidosSinEntregar: cobrables.filter((pedido) => pedido.estado !== "DELIVERED").length,
   };
 }
