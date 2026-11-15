@@ -11,5 +11,5 @@ export async function obtenerPanelCaja() {
     listarCuentasAbiertas(restauranteId),
     listarMesasConSesion(restauranteId),
   ]);
-  return { cuentas, mesas };
+  return { cuentas, mesas, actualizadoEn: Date.now() };
 }

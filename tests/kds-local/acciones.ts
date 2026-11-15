@@ -10,14 +10,14 @@ export function crearPedido(numero: number): PedidoCocina {
 }
 declare global {
   interface Window {
-    kds: { pedidos: PedidoCocina[]; llamadas: { id: string; deshacer: boolean }[]; consultas: number; fallar: boolean; tonos: number };
+    kds: { pedidos: PedidoCocina[]; pedidosEsperandoPago: number; llamadas: { id: string; deshacer: boolean }[]; consultas: number; fallar: boolean; tonos: number };
   }
 }
-window.kds = { pedidos: Array.from({ length: 10 }, (_, i) => crearPedido(10 - i)), llamadas: [], consultas: 0, fallar: false, tonos: 0 };
+window.kds = { pedidos: Array.from({ length: 10 }, (_, i) => crearPedido(10 - i)), pedidosEsperandoPago: 2, llamadas: [], consultas: 0, fallar: false, tonos: 0 };
 export async function obtenerKds() {
   window.kds.consultas++;
   if (window.kds.fallar) return { ok: false as const, restauranteId: "demo-local" };
-  return { ok: true as const, restauranteId: "demo-local", actualizadoEn: Date.now(), pedidos: structuredClone(window.kds.pedidos) };
+  return { ok: true as const, restauranteId: "demo-local", actualizadoEn: Date.now(), pedidos: structuredClone(window.kds.pedidos), pedidosEsperandoPago: window.kds.pedidosEsperandoPago };
 }
 export async function cambiarEstadoKds(id: string, deshacer = false) {
   window.kds.llamadas.push({ id, deshacer });

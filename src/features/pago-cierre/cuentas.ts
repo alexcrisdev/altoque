@@ -9,6 +9,7 @@ import {
   type PagoCuenta,
   type PedidoCuenta,
   type ResumenCuenta,
+  ordenarCuentasCaja,
 } from "./cuenta-logica";
 import type { CierreCuenta } from "./cierre-logica";
 import { aCierreCuenta, COLUMNAS_CIERRE, type FilaCierre } from "./cierres";
@@ -41,6 +42,7 @@ export type CuentaAbierta = {
   pagadoCentimos: number;
   saldoCentimos: number;
   porVerificar: number; // US-020: pagos Yape pendientes de confirmar
+  esperaPagoDesde: string | null;
 };
 
 // US-020: un pedido para llevar ya pagado sigue en caja hasta que alguien cierre su
@@ -236,8 +238,9 @@ export async function listarCuentasAbiertas(restauranteId: string): Promise<Cuen
   const pagos = { data: [...(pagosMesa.data as FilaPago[]), ...(pagosLlevar.data as FilaPago[])] };
 
   const mesas = sesiones.data.map((sesion): CuentaAbierta => {
+    const pedidosDeMesa = (pedidosMesa.data as FilaPedido[]).filter((p) => p.table_session_id === sesion.id);
     const cuenta = calcularCuenta(
-      (pedidosMesa.data as FilaPedido[]).filter((p) => p.table_session_id === sesion.id).map(aPedidoCuenta),
+      pedidosDeMesa.map(aPedidoCuenta),
       pagos.data.filter((p) => p.table_session_id === sesion.id).map(aPagoCuenta),
     );
     return {
@@ -248,6 +251,8 @@ export async function listarCuentasAbiertas(restauranteId: string): Promise<Cuen
       pagadoCentimos: cuenta.pagadoCentimos,
       saldoCentimos: cuenta.saldoCentimos,
       porVerificar: porVerificar(cuenta),
+      esperaPagoDesde: pedidosDeMesa.filter((p) => p.status === "PENDING")
+        .map((p) => p.created_at).sort()[0] ?? null,
     };
   });
 
@@ -266,6 +271,7 @@ export async function listarCuentasAbiertas(restauranteId: string): Promise<Cuen
         pagadoCentimos: cuenta.pagadoCentimos,
         saldoCentimos: cuenta.saldoCentimos,
         porVerificar: porVerificar(cuenta),
+        esperaPagoDesde: pedido.status === "PENDING" ? pedido.created_at : null,
       };
       const reciente = new Date(pedido.created_at).getTime() >= limiteReciente;
       return { fila, mostrar: fila.saldoCentimos > 0 || fila.porVerificar > 0 || (reciente && fila.consumoCentimos > 0) };
@@ -273,5 +279,5 @@ export async function listarCuentasAbiertas(restauranteId: string): Promise<Cuen
     .filter((cuenta) => cuenta.mostrar)
     .map((cuenta) => cuenta.fila);
 
-  return [...mesas, ...llevar];
+  return ordenarCuentasCaja([...mesas, ...llevar]);
 }

@@ -4,11 +4,12 @@ import { cerrarSesion } from "@/features/auth/actions";
 import { formatearPrecio } from "@/features/carta/formato";
 import { obtenerPanelCaja } from "@/features/pago-cierre/panel-actions";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
+import { Insignia } from "@/components/ui";
 
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
 async function CajaPanel() {
-  const { cuentas, mesas } = await obtenerPanelCaja();
+  const { cuentas, mesas, actualizadoEn } = await obtenerPanelCaja();
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
@@ -37,6 +38,13 @@ async function CajaPanel() {
                     <span className="text-sm text-zinc-600">
                       {cuenta.detalle} · consumo {soles(cuenta.consumoCentimos)}
                     </span>
+                    {cuenta.esperaPagoDesde && (
+                      <span className="mt-2 block">
+                        <Insignia tono="aviso">
+                          Esperando pago · hace {Math.max(0, Math.floor((actualizadoEn - Date.parse(cuenta.esperaPagoDesde)) / 60_000))} min
+                        </Insignia>
+                      </span>
+                    )}
                   </span>
                   <span className="text-right">
                     <span className={`block font-bold ${cuenta.saldoCentimos > 0 ? "text-red-700" : "text-emerald-800"}`}>
