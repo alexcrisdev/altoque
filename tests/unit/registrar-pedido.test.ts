@@ -45,7 +45,7 @@ describe("registro de pedidos desde QR", () => {
     expect((await registrarReal("token-qr-largo", clave, [], undefined, alergia)).ok).toBe(false);
     expect(guardarPedidoQr).not.toHaveBeenCalled();
     expect((await registrarReal("token-qr-largo", clave, [], undefined, { ...alergia, aceptada: true })).ok).toBe(true);
-    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", clave, lineas, expect.anything(), {
+    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", "restaurante", clave, lineas, expect.anything(), {
       respuesta: "YES", alergenos: ["PESCADO"], detalle: "Sin contacto",
     });
   });

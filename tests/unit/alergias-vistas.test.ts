@@ -18,7 +18,7 @@ const pedido: PedidoCocina = { id: "p1", numero: 91, creadoEn: new Date(ahora).t
 
 describe("US-091: avisos visibles al personal", () => {
   it.each([true, false])("KDS muestra la declaración separada del producto (TV %s)", tv => {
-    const html = renderToStaticMarkup(createElement(TableroKds, { inicial: { ok: true, restauranteId: "r1", pedidos: [pedido], actualizadoEn: ahora }, tv }));
+    const html = renderToStaticMarkup(createElement(TableroKds, { inicial: { ok: true, restauranteId: "r1", pedidos: [pedido], actualizadoEn: ahora, pedidosEsperandoPago: 0 }, tv }));
     expect(html).toContain("Alergia: Maní — Evitar contacto");
     expect(html).toContain("Pescado");
     expect(html).toContain("text-peligro-texto");
