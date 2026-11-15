@@ -23,6 +23,7 @@ async function registrarPago(
   cuenta: CuentaACobrar,
   pago: DatosPago,
   clave: string,
+  correo: string | null = null,
 ): Promise<ResultadoPago> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
@@ -35,6 +36,7 @@ async function registrarPago(
       p_referencia: pago.referencia,
       p_aprobado: pago.aprobado,
       p_clave: clave,
+      p_receipt_email: correo,
     })
     .single()
     .overrideTypes<{ pago_id: string; estado: string; vuelto: number | string | null }, { merge: false }>();
@@ -52,9 +54,10 @@ export function registrarPagoEfectivo(
   montoCentimos: number,
   recibidoCentimos: number,
   clave: string,
+  correo: string | null = null,
 ): Promise<ResultadoPago> {
   return registrarPago("registrarPagoEfectivo", cuenta,
-    { metodo: "CASH", montoCentimos, recibidoCentimos, referencia: null, aprobado: null }, clave);
+    { metodo: "CASH", montoCentimos, recibidoCentimos, referencia: null, aprobado: null }, clave, correo);
 }
 
 // US-023: el pago Yape queda "Por verificar" (PENDING): no baja el saldo hasta que
@@ -64,9 +67,10 @@ export function registrarPagoYape(
   montoCentimos: number,
   referencia: string,
   clave: string,
+  correo: string | null = null,
 ): Promise<ResultadoPago> {
   return registrarPago("registrarPagoYape", cuenta,
-    { metodo: "YAPE", montoCentimos, recibidoCentimos: null, referencia, aprobado: null }, clave);
+    { metodo: "YAPE", montoCentimos, recibidoCentimos: null, referencia, aprobado: null }, clave, correo);
 }
 
 // US-024: el cobro se hace en el POS; aquí solo se anota la referencia del voucher y
@@ -77,9 +81,10 @@ export function registrarPagoTarjeta(
   referencia: string,
   aprobado: boolean,
   clave: string,
+  correo: string | null = null,
 ): Promise<ResultadoPago> {
   return registrarPago("registrarPagoTarjeta", cuenta,
-    { metodo: "CARD", montoCentimos, recibidoCentimos: null, referencia, aprobado }, clave);
+    { metodo: "CARD", montoCentimos, recibidoCentimos: null, referencia, aprobado }, clave, correo);
 }
 
 export async function verificarPago(

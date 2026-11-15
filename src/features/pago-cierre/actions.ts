@@ -1,5 +1,6 @@
 "use server";
 
+import { leerCorreoBoleta } from "./comprobante-logica";
 import { revalidatePath } from "next/cache";
 import { obtenerSesion } from "../auth/sesion";
 import { tienePermiso } from "../auth/permisos";
@@ -51,17 +52,20 @@ export async function registrarPagoEfectivoAction(
   monto: unknown,
   recibido: unknown,
   clave: unknown,
+  correo: unknown = null,
 ): Promise<RespuestaPago> {
   if (!(await puedeCobrar())) return { ok: false, mensaje: mensajeErrorPago("FORBIDDEN") };
   if (!datosValidos(cuenta, clave)) return { ok: false, mensaje: mensajeErrorPago("INVALID_PAYMENT") };
 
+  const email = leerCorreoBoleta(correo);
+  if (!email.ok) return email;
   const montoCentimos = parsearSoles(monto);
   const recibidoCentimos = parsearSoles(recibido);
   // Aquí no conocemos el saldo (lo valida la base); solo revisamos el formato.
   const invalido = validarPagoEfectivo(montoCentimos, recibidoCentimos, Number.MAX_SAFE_INTEGER);
   if (invalido) return { ok: false, mensaje: invalido };
 
-  const resultado = await registrarPagoEfectivo(cuenta, montoCentimos!, recibidoCentimos!, clave);
+  const resultado = await registrarPagoEfectivo(cuenta, montoCentimos!, recibidoCentimos!, clave, email.correo);
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
 
   refrescarCaja(cuenta);
@@ -76,16 +80,19 @@ export async function registrarPagoYapeAction(
   monto: unknown,
   referencia: unknown,
   clave: unknown,
+  correo: unknown = null,
 ): Promise<{ ok: true } | { ok: false; mensaje: string }> {
   if (!(await puedeCobrar())) return { ok: false, mensaje: mensajeErrorPago("FORBIDDEN") };
   if (!datosValidos(cuenta, clave)) return { ok: false, mensaje: mensajeErrorPago("INVALID_PAYMENT") };
 
+  const email = leerCorreoBoleta(correo);
+  if (!email.ok) return email;
   const montoCentimos = parsearSoles(monto);
   const referenciaLimpia = normalizarReferencia(referencia);
   const invalido = validarPagoYape(montoCentimos, referenciaLimpia, Number.MAX_SAFE_INTEGER);
   if (invalido) return { ok: false, mensaje: invalido };
 
-  const resultado = await registrarPagoYape(cuenta, montoCentimos!, referenciaLimpia!, clave);
+  const resultado = await registrarPagoYape(cuenta, montoCentimos!, referenciaLimpia!, clave, email.correo);
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
   refrescarCaja(cuenta);
   return { ok: true };
@@ -99,16 +106,19 @@ export async function registrarPagoTarjetaAction(
   referencia: unknown,
   aprobado: unknown,
   clave: unknown,
+  correo: unknown = null,
 ): Promise<{ ok: true; aprobado: boolean } | { ok: false; mensaje: string }> {
   if (!(await puedeCobrar())) return { ok: false, mensaje: mensajeErrorPago("FORBIDDEN") };
   if (!datosValidos(cuenta, clave)) return { ok: false, mensaje: mensajeErrorPago("INVALID_PAYMENT") };
 
+  const email = leerCorreoBoleta(correo);
+  if (!email.ok) return email;
   const montoCentimos = parsearSoles(monto);
   const resultadoPos = typeof aprobado === "boolean" ? aprobado : null;
   const invalido = validarPagoTarjeta(montoCentimos, referencia, resultadoPos, Number.MAX_SAFE_INTEGER);
   if (invalido) return { ok: false, mensaje: invalido };
 
-  const resultado = await registrarPagoTarjeta(cuenta, montoCentimos!, normalizarReferencia(referencia)!, resultadoPos!, clave);
+  const resultado = await registrarPagoTarjeta(cuenta, montoCentimos!, normalizarReferencia(referencia)!, resultadoPos!, clave, email.correo);
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
   refrescarCaja(cuenta);
   // US-086: solo el voucher aprobado es un pago confirmado; el rechazado no avisa.

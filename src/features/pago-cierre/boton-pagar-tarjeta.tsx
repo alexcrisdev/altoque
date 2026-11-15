@@ -3,12 +3,14 @@
 import { useRef, useState } from "react";
 import { Boton } from "../../components/ui";
 import { iniciarPagoTarjetaAction } from "./pago-online-actions";
+import { CorreoBoleta } from "./correo-boleta";
 
 // US-076: lleva al cliente a la página de pago de Stripe. No manda ningún monto.
 export function BotonPagarTarjeta({ token, clave }: { token: string; clave: string | null }) {
   const enCurso = useRef(false);
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState("");
+  const [correo, setCorreo] = useState("");
 
   async function pagar() {
     if (enCurso.current) return;
@@ -16,7 +18,7 @@ export function BotonPagarTarjeta({ token, clave }: { token: string; clave: stri
     setAbriendo(true);
     setError("");
     try {
-      const resultado = await iniciarPagoTarjetaAction(token, clave);
+      const resultado = await iniciarPagoTarjetaAction(token, clave, correo);
       if (resultado.ok) {
         window.location.assign(resultado.url);
         return; // El botón sigue desactivado mientras se abre Stripe.
@@ -30,6 +32,7 @@ export function BotonPagarTarjeta({ token, clave }: { token: string; clave: stri
   }
 
   return <div className="space-y-2">
+    <CorreoBoleta correo={correo} alCambiar={setCorreo} disabled={abriendo} />
     <Boton type="button" className="w-full" onClick={pagar} disabled={abriendo}>
       {abriendo ? "Abriendo pago seguro…" : "Pagar con tarjeta"}
     </Boton>

@@ -376,7 +376,7 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     const checkout = await crearCheckoutStripe({ sesionId: null, pedidoId: id });
     const parametros = {
       p_stripe_session_id: checkout.sessionId,
-      p_payment_intent: `pi_US085${crypto.randomUUID().replaceAll("-", "")}`,
+      p_payment_intent: `pi_US085${crypto.randomUUID().replaceAll("-", "x")}`,
       p_sesion_id: null, p_pedido_id: id, p_monto: checkout.amount.toFixed(2),
     };
     const primero = exigir(await servicio.rpc("registrar_pago_stripe", parametros)
@@ -445,7 +445,8 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     expect(checkout.orderIds).toContain(id);
     const pago = exigir(await servicio.rpc("registrar_pago_stripe", {
       p_stripe_session_id: checkout.sessionId,
-      p_payment_intent: `pi_US094${crypto.randomUUID().replaceAll("-", "")}`,
+      // Separadores alfabéticos evitan 13 dígitos seguidos en IDs ficticios.
+      p_payment_intent: `pi_US094${crypto.randomUUID().replaceAll("-", "x")}`,
       p_sesion_id: sesionId, p_pedido_id: null, p_monto: checkout.amount.toFixed(2),
     }).single<{ pago_id: string; duplicado: boolean }>());
     registrarPago(pago.pago_id, { sesionId });

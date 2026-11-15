@@ -112,6 +112,28 @@ describe("POST /api/stripe/webhook: firma", () => {
 });
 
 describe("POST /api/stripe/webhook: registro del pago", () => {
+  it("US-088: conserva el Checkout de US-097 y pasa solo el correo voluntario de metadata", async () => {
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: true, pagoId: "p-correo", duplicado: false });
+    const cuerpo = evento("checkout.session.completed", {
+      metadata: { tipo: "MESA", cuenta_id: CUENTA, restaurante_id: RESTAURANTE, checkout_id: CHECKOUT, receipt_email: " voluntario@example.test " },
+      customer_details: { email: "correo-de-stripe@example.test" },
+    });
+    expect((await POST(peticion(cuerpo))).status).toBe(200);
+    expect(registrarPagoStripe).toHaveBeenCalledWith(expect.objectContaining({ checkoutId: CHECKOUT, correoBoleta: "voluntario@example.test" }));
+    expect(programarAvisoPago).toHaveBeenCalledWith("p-correo");
+    expect(refundCreate).not.toHaveBeenCalled();
+  });
+
+  it("US-088: un Checkout obsoleto con correo se reembolsa sin avisar una boleta", async () => {
+    vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: false, codigo: "CHECKOUT_STALE" });
+    const cuerpo = evento("checkout.session.completed", {
+      metadata: { tipo: "MESA", cuenta_id: CUENTA, restaurante_id: RESTAURANTE, checkout_id: CHECKOUT, receipt_email: "voluntario@example.test" },
+    });
+    expect((await POST(peticion(cuerpo))).status).toBe(200);
+    expect(refundCreate).toHaveBeenCalledOnce();
+    expect(programarAvisoPago).not.toHaveBeenCalled();
+  });
+
   it("registra el pago confirmado con los datos de Stripe", async () => {
     vi.mocked(registrarPagoStripe).mockResolvedValue({ ok: true, pagoId: "p1", duplicado: false });
     const respuesta = await POST(peticion(evento("checkout.session.completed")));

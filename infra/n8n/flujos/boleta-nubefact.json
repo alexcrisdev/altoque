@@ -1,0 +1,562 @@
+{
+  "name": "US-088: boleta de prueba y correo (aviso v2)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "altoque-pago-confirmado",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "altoque-pago-confirmado",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "secreto",
+      "name": "Secreto compartido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "secreto",
+              "name": "secreto",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "demo",
+              "name": "demo_confirmado",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "verificar",
+      "name": "Verificar firma",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// US-086: verifica que el aviso venga de AlToque (HMAC-SHA256 con el secreto\n// compartido), que no sea viejo (más de 5 minutos) y que no sea repetido.\nconst crypto = require('crypto');\nconst secreto = $input.first().json.secreto;\nif (typeof secreto !== 'string' || secreto.length < 32) {\n  throw new Error('Configura el secreto compartido (mínimo 32 caracteres) antes de publicar');\n}\nconst entrada = $('Webhook').first().json;\nconst cabeceras = entrada.headers || {};\nconst aviso = entrada.body;\nconst tiempo = Number(cabeceras['x-altoque-timestamp']);\nconst firma = String(cabeceras['x-altoque-firma'] || '');\nconst ahora = Math.floor(Date.now() / 1000);\n\nlet valido = false;\nlet motivo = '';\nif (!Number.isInteger(tiempo) || Math.abs(ahora - tiempo) > 300) {\n  motivo = 'hora ausente o fuera de los 5 minutos';\n} else if (!/^sha256=[0-9a-f]{64}$/.test(firma)) {\n  motivo = 'firma ausente o mal formada';\n} else if (!aviso || typeof aviso !== 'object' || aviso.evento !== 'pago_confirmado' || typeof aviso.id !== 'string') {\n  motivo = 'contenido no reconocido';\n} else {\n  // AlToque firma el JSON exacto que envía; leerlo y reescribirlo da el mismo texto.\n  const esperada = crypto.createHmac('sha256', secreto)\n    .update(`${tiempo}.${JSON.stringify(aviso)}`, 'utf8').digest();\n  const recibida = Buffer.from(firma.slice(7), 'hex');\n  valido = recibida.length === esperada.length && crypto.timingSafeEqual(recibida, esperada);\n  if (!valido) motivo = 'firma inválida';\n}\n\nconst duplicado = false;\n// Nunca se devuelve el secreto ni la firma.\nreturn [{ json: { valido, motivo, duplicado, aviso: valido ? aviso : null } }];\n"
+      }
+    },
+    {
+      "id": "condicion",
+      "name": "Firma valida",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "valido",
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "aceptado",
+      "name": "Aviso aceptado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        960,
+        -120
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, duplicado: $json.duplicado } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "siguiente",
+      "name": "Siguiente paso (US-088 boleta, US-089 resumen)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -120
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "rechazado",
+      "name": "Aviso rechazado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        960,
+        120
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\":false,\"mensaje\":\"Aviso no autorizado\"}",
+        "options": {
+          "responseCode": 401
+        }
+      }
+    },
+    {
+      "id": "preparar-boleta",
+      "name": "Preparar boleta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "function prepararBoleta(aviso, ahora = new Date()) {\n  const reserva = aviso?.comprobante;\n  if (aviso?.version !== 2 || aviso.evento !== \"pago_confirmado\" || aviso.cuenta?.saldo_restante !== \"0.00\"\n    || !reserva || reserva.is_test !== true || reserva.estado === \"EMITIDO\") return null;\n  if (!/^B[A-Z0-9]{3}$/.test(reserva.serie) || !Number.isInteger(reserva.numero) || reserva.numero < 1 || reserva.numero > 99999999) {\n    throw new Error(\"Reserva de boleta inválida\");\n  }\n  if (!Array.isArray(aviso.platos) || !aviso.platos.length) throw new Error(\"Cuenta sin platos\");\n  const centimos = (texto) => {\n    if (typeof texto !== \"string\" || !/^\\d+\\.\\d{2}$/.test(texto)) throw new Error(\"Monto inválido\");\n    const valor = Math.round(Number(texto) * 100);\n    if (!Number.isSafeInteger(valor)) throw new Error(\"Monto fuera de rango\");\n    return valor;\n  };\n  let total = 0;\n  let neto = 0;\n  const items = aviso.platos.map((plato) => {\n    const bruto = centimos(plato.subtotal);\n    const unitario = centimos(plato.precio_unitario);\n    if (!Number.isInteger(plato.cantidad) || plato.cantidad <= 0 || unitario <= 0\n      || bruto !== unitario * plato.cantidad || typeof plato.nombre !== \"string\" || !plato.nombre.trim()) throw new Error(\"Plato inválido\");\n    const base = Math.round(bruto * 100 / 118);\n    total += bruto;\n    neto += base;\n    return {\n      unidad_de_medida: \"NIU\", descripcion: plato.nombre, cantidad: plato.cantidad,\n      valor_unitario: Number((unitario / 118).toFixed(10)), precio_unitario: unitario / 100,\n      subtotal: base / 100, tipo_de_igv: 1, igv: (bruto - base) / 100, total: bruto / 100,\n      anticipo_regularizacion: false,\n    };\n  });\n  if (total <= 0 || total >= 70000) throw new Error(\"Boleta VARIOS solo para importes menores de S/ 700\");\n  const fecha = new Date(ahora);\n  if (!Number.isFinite(fecha.getTime())) throw new Error(\"Fecha de pago inválida\");\n  const partes = new Intl.DateTimeFormat(\"en-GB\", { timeZone: \"America/Lima\", year: \"numeric\", month: \"2-digit\", day: \"2-digit\" }).format(fecha).split(\"/\");\n  return {\n    operacion: \"generar_comprobante\", tipo_de_comprobante: 2,\n    serie: reserva.serie, numero: reserva.numero, sunat_transaction: 1,\n    cliente_tipo_de_documento: \"-\", cliente_numero_de_documento: \"-\", cliente_denominacion: \"VARIOS\",\n    fecha_de_emision: partes.join(\"-\"), moneda: 1, porcentaje_de_igv: 18,\n    total_gravada: neto / 100, total_igv: (total - neto) / 100, total: total / 100,\n    enviar_automaticamente_al_cliente: false, enviar_automaticamente_a_la_sunat: false,\n    observaciones: \"COMPROBANTE DE PRUEBA SIN VALOR TRIBUTARIO\", items,\n  };\n}\nif ($('Secreto compartido').first().json.demo_confirmado !== true) return [];\nconst aviso = $('Verificar firma').first().json.aviso;\nconst solicitud = prepararBoleta(aviso);\nreturn solicitud ? [{json: {solicitud, aviso}}] : [];"
+      },
+      "position": [
+        1440,
+        0
+      ]
+    },
+    {
+      "id": "consultar-boleta",
+      "name": "Consultar boleta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "http://nubefact-demo:8080/comprobante",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({operacion: \"consultar_comprobante\", tipo_de_comprobante: 2, serie: $(\"Preparar boleta\").first().json.solicitud.serie, numero: $(\"Preparar boleta\").first().json.solicitud.numero}) }}",
+        "options": {
+          "timeout": 35000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "position": [
+        1680,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "no-existe-en-nubefact",
+      "name": "No existe en Nubefact",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condicion",
+              "leftValue": "={{ Number($json.body?.codigo) === 24 && $json.statusCode === 400 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "position": [
+        1920,
+        0
+      ]
+    },
+    {
+      "id": "emitir-boleta-demo",
+      "name": "Emitir boleta DEMO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "http://nubefact-demo:8080/comprobante",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($(\"Preparar boleta\").first().json.solicitud) }}",
+        "options": {
+          "timeout": 35000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "position": [
+        2160,
+        -140
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "resultado-de-emisi-n",
+      "name": "Resultado de emisión",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "function resultadoNubefact(respuesta, aviso) {\n  const reserva = aviso.comprobante;\n  const body = respuesta?.body ?? respuesta;\n  // Code se ejecuta en un sandbox: no depende de URL ni de módulos adicionales.\n  // AlToque vuelve a validar los enlaces con URL antes de guardarlos.\n  const segura = (valor) => typeof valor === \"string\" && valor.length <= 2048\n    && /^https:\\/\\/[a-z0-9.-]+(?::443)?\\/[^\\s]*$/i.test(valor);\n  const correcto = !body?.errors && body?.serie === reserva.serie && Number(body?.numero) === reserva.numero\n    && segura(body?.enlace_del_pdf) && segura(body?.enlace_del_xml);\n  return {\n    pago_id: aviso.id, serie: reserva.serie, numero: reserva.numero,\n    estado: correcto ? \"EMITIDO\" : \"ERROR\",\n    enlace_pdf: correcto ? body.enlace_del_pdf : null,\n    enlace_xml: correcto ? body.enlace_del_xml : null,\n  };\n}\nconst aviso = $('Preparar boleta').first().json.aviso;\nreturn [{json: resultadoNubefact($input.first().json, aviso)}];"
+      },
+      "position": [
+        2400,
+        0
+      ]
+    },
+    {
+      "id": "firmar-resultado",
+      "name": "Firmar resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst cuerpo = JSON.stringify($input.first().json);\nconst tiempo = Math.floor(Date.now()/1000);\nconst secreto = $('Secreto compartido').first().json.secreto;\nconst firma = 'sha256=' + crypto.createHmac('sha256',secreto).update(`${tiempo}.${cuerpo}`,'utf8').digest('hex');\nreturn [{json:{cuerpo,tiempo:String(tiempo),firma}}];"
+      },
+      "position": [
+        2640,
+        0
+      ]
+    },
+    {
+      "id": "guardar-en-altoque",
+      "name": "Guardar en AlToque",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/n8n/comprobantes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-AlToque-Timestamp",
+              "value": "={{ $json.tiempo }}"
+            },
+            {
+              "name": "X-AlToque-Firma",
+              "value": "={{ $json.firma }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.cuerpo }}",
+        "options": {
+          "timeout": 10000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "position": [
+        2880,
+        0
+      ]
+    },
+    {
+      "id": "tiene-correo-y-boleta",
+      "name": "Tiene correo y boleta",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condicion",
+              "leftValue": "={{ $(\"Resultado de emisión\").first().json.estado === \"EMITIDO\" && typeof $(\"Preparar boleta\").first().json.aviso.cliente?.correo === \"string\" }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "position": [
+        3120,
+        0
+      ]
+    },
+    {
+      "id": "correo-boleta",
+      "name": "Enviar boleta de prueba",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3360,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $(\"Preparar boleta\").first().json.aviso.cliente.correo }}",
+        "subject": "={{ \"Tu boleta de prueba – \" + $(\"Preparar boleta\").first().json.aviso.restaurante.nombre }}",
+        "emailType": "text",
+        "message": "={{ [\"Comprobante de prueba, sin valor tributario.\", \"Boleta \" + $(\"Resultado de emisión\").first().json.serie + \"-\" + $(\"Resultado de emisión\").first().json.numero, \"PDF: \" + $(\"Resultado de emisión\").first().json.enlace_pdf, \"XML: \" + $(\"Resultado de emisión\").first().json.enlace_xml].join(String.fromCharCode(10)) }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Secreto compartido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Secreto compartido": {
+      "main": [
+        [
+          {
+            "node": "Verificar firma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar firma": {
+      "main": [
+        [
+          {
+            "node": "Firma valida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firma valida": {
+      "main": [
+        [
+          {
+            "node": "Aviso aceptado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso rechazado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso aceptado": {
+      "main": [
+        [
+          {
+            "node": "Siguiente paso (US-088 boleta, US-089 resumen)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siguiente paso (US-088 boleta, US-089 resumen)": {
+      "main": [
+        [
+          {
+            "node": "Preparar boleta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar boleta": {
+      "main": [
+        [
+          {
+            "node": "Consultar boleta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar boleta": {
+      "main": [
+        [
+          {
+            "node": "No existe en Nubefact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No existe en Nubefact": {
+      "main": [
+        [
+          {
+            "node": "Emitir boleta DEMO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado de emisión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emitir boleta DEMO": {
+      "main": [
+        [
+          {
+            "node": "Resultado de emisión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado de emisión": {
+      "main": [
+        [
+          {
+            "node": "Firmar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firmar resultado": {
+      "main": [
+        [
+          {
+            "node": "Guardar en AlToque",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en AlToque": {
+      "main": [
+        [
+          {
+            "node": "Tiene correo y boleta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tiene correo y boleta": {
+      "main": [
+        [
+          {
+            "node": "Enviar boleta de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false
+  },
+  "pinData": {},
+  "tags": []
+}

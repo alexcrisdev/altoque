@@ -17,7 +17,7 @@ import {
 
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
-export function RegistrarPagoEfectivo({ cuenta, saldoCentimos }: { cuenta: CuentaACobrar; saldoCentimos: number }) {
+export function RegistrarPagoEfectivo({ cuenta, saldoCentimos, correo = "" }: { cuenta: CuentaACobrar; saldoCentimos: number; correo?: string }) {
   const [monto, setMonto] = useState(saldoCentimos > 0 ? centimosATexto(saldoCentimos) : "");
   const [recibido, setRecibido] = useState("");
   // La misma clave en cada reintento: si el primer envío sí llegó, la base no crea otro pago.
@@ -41,7 +41,7 @@ export function RegistrarPagoEfectivo({ cuenta, saldoCentimos }: { cuenta: Cuent
     }
     startTransition(async () => {
       try {
-        const resultado = await registrarPagoEfectivoAction(cuenta, monto, recibido, clave);
+        const resultado = await registrarPagoEfectivoAction(cuenta, monto, recibido, clave, correo);
         if (!resultado.ok) {
           setError(resultado.mensaje);
           return;

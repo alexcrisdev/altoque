@@ -1,0 +1,22 @@
+# US-088: solo la red interna de Compose. No publicar este servicio en Cloudflare.
+server {
+    listen 8080;
+    server_tokens off;
+    access_log off;
+    error_log /dev/stderr crit;
+    client_max_body_size 64k;
+
+    location = /comprobante {
+        limit_except POST { deny all; }
+        proxy_pass https://api.nubefact.com/api/v1/${NUBEFACT_EMPRESA_ID};
+        proxy_set_header Host api.nubefact.com;
+        proxy_ssl_server_name on;
+        proxy_ssl_name api.nubefact.com;
+        proxy_ssl_verify on;
+        proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 30s;
+        proxy_redirect off;
+    }
+    location / { return 404; }
+}
