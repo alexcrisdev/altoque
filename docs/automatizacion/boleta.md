@@ -147,3 +147,10 @@ aunque no duplique la boleta. No se garantiza envío de correo exactamente una v
 
 Los resultados y pendientes reales se registran en
 [la evidencia de US-088](../pruebas/evidencias/us088-validacion.md).
+
+El 14/11/2026 se completó una emisión DEMO real **BBB1-1**, con PDF/XML,
+callback guardado en Supabase local, visualización en caja y correo recibido
+con etiqueta INBOX. Se probó una copia inactiva del flujo mediante CLI, sin
+modificar los flujos publicados del equipo; el informe distingue ese recorrido
+de la comprobación posterior del webhook compartido. BBB1-1 ya no está libre:
+verificar el siguiente correlativo antes de configurar el entorno compartido.

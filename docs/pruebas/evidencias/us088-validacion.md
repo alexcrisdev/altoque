@@ -2,7 +2,8 @@
 
 Fecha: **14/11/2026**, America/Lima. Rama de trabajo: `dev/erick`.
 
-**Estado: implementación probada localmente; aceptación externa pendiente.**
+**Estado: implementación y prueba DEMO real aprobadas en entorno local;
+revisión de la migración y despliegue compartido pendientes.**
 Comprobante de prueba, sin valor tributario.
 
 ## Alcance y ajustes de Alexander
@@ -36,8 +37,11 @@ Comprobante de prueba, sin valor tributario.
 | `supabase/tests/us088_boletas.sql` | Aprobado en `supabase_db_altoque`; rollback de todos los datos de cada ejecución |
 | Regresión Playwright | 20/20 aprobadas, Chromium, instancia aislada `localhost:3100` con Supabase local |
 | Comprobación E2E ampliada US-088 | 1/1 aprobada: añade correo inválido del cliente con Stripe simulado y captura de caja a 390 px |
+| Emisión Nubefact DEMO real | BBB1-1 emitida; PDF y XML descargados y comprobados |
+| Gmail real | Mensaje enviado y leído mediante Gmail OAuth; etiqueta INBOX confirmada |
+| Caja con comprobante real | Boleta BBB1-1 visible con PDF y aviso sin valor tributario; captura a 390 px |
 | `docker compose --profile boletas config --quiet` | Configuración válida; no se reinició el n8n existente |
-| Revisión de Git autorizada | `dev/erick`, sin errores de espacios; sin commit/push/PR de US-088 |
+| Revisión de Git autorizada | `dev/erick`, sin errores de espacios; implementación guardada en `ffeff94` y [PR #83](https://github.com/alexcrisdev/altoque/pull/83) hacia develop |
 
 La primera ejecución de build encontró un `runtime` explícito incompatible con
 Cache Components y una descarga de fuentes bloqueada por la red restringida.
@@ -99,34 +103,96 @@ Checkout. No se contactó a Stripe ni se cobró dinero.
 **Esta captura usa enlaces `example.test`: no acredita una emisión real de
 Nubefact ni un correo recibido.**
 
+## Validación DEMO real — 14/11/2026
+
+Se utilizó exclusivamente Supabase local y la empresa Nubefact DEMO confirmada
+por el usuario. Se cargó BBB1 con el siguiente número libre comunicado: **1**.
+El pedido ficticio tuvo un consumo de **S/ 6.00**, pagado en dos partes de
+S/ 3.00. El primer pago no creó reserva; el segundo dejó saldo cero y reservó
+una única fila PENDIENTE para BBB1-1.
+
+El primer intento de ejecutar el flujo por consola falló y dejó la reserva
+pendiente. Se adaptaron únicamente los nodos de respuesta HTTP de la copia
+privada de prueba y se reenvió el aviso del **mismo pago**, con firma nueva,
+sin registrar otro pago ni consumir otro número. La emisión se completó
+aproximadamente a las **19:03, America/Lima**.
+
+### Recorrido y límites de esta comprobación
+
+- La interfaz real de caja registró los dos pagos locales. El reenvío posterior
+  utilizó `enviarAvisoPago` y la reserva existente; no se construyó una boleta
+  ficticia como respuesta del proveedor.
+- El aviso firmado llegó a un receptor HTTP local de prueba, que lo entregó
+  a una copia inactiva del flujo n8n ejecutada por CLI. Se conservaron la
+  verificación HMAC, preparación, consulta/emisión HTTP, callback y Gmail.
+  En esa copia, el nodo de entrada leyó el aviso capturado y los nodos
+  Respond to Webhook se sustituyeron por NoOp, porque CLI no tiene una
+  conexión HTTP de webhook a la que responder.
+- Nubefact y Gmail fueron servicios **reales**, con sus credenciales almacenadas
+  en n8n. El PDF contiene la marca **SIN VALOR LEGAL** y la observación de
+  comprobante de prueba sin valor tributario. Se descargaron PDF y XML.
+- El callback firmado actualizó la misma reserva a EMITIDO. La cuenta local
+  quedó entregada, pagada y cerrada; caja muestra la boleta aun estando cerrada.
+- Gmail devolvió el mensaje enviado y después se leyó ese mismo mensaje con
+  su etiqueta **INBOX**, confirmando recepción en la cuenta propia autorizada
+  de US-071. No se envió a terceros.
+- No se publicaron ni cambiaron los flujos activos de US-071/US-086. La copia
+  local de validación quedó inactiva y sin el secreto efímero ni el aviso capturado.
+  La entrega al webhook publicado en un despliegue compartido sigue siendo
+  una comprobación de despliegue posterior; no se presenta como ejecutada aquí.
+
+Después se consultó **BBB1-2** directamente desde n8n, usando únicamente
+`consultar_comprobante`: Nubefact respondió **HTTP 400, código 24** (documento
+inexistente). Por tanto, al cierre de esta validación, el siguiente número
+libre verificado era **2**. Esa consulta no emitió otra boleta ni envió correo.
+
+### Evidencias reales
+
+Primera página del PDF descargado directamente de Nubefact DEMO, renderizada
+con el lector PDF de Windows; no es una boleta fabricada ni una simulación:
+
+![Boleta DEMO BBB1-000001 con marca sin valor legal](us088-boleta-demo-real.png)
+
+Mensaje real leído desde Gmail API mediante n8n. La captura representa su
+contenido y la recepción INBOX; **no es una captura de la interfaz web de Gmail**.
+Se ocultan la dirección del destinatario y los enlaces del comprobante:
+
+![Correo real recibido y verificado en Gmail](us088-correo-demo-recibido.png)
+
+Caja a 390 px, con la reserva real en EMITIDO, el PDF del proveedor y los dos pagos:
+
+![Caja con boleta DEMO real y cuenta cerrada](us088-caja-demo-real.png)
+
 ## Criterios de aceptación
 
 | Criterio | Estado y evidencia |
 |---|---|
-| 1. n8n → Nubefact DEMO → PDF/XML | Flujo y contrato implementados; prueba contra proveedor real pendiente |
-| 2. Correo opcional y envío Gmail | Campo, metadata y rama Gmail implementados; recepción real pendiente |
-| 3. Guardar serie/número/enlaces | Aprobado en callback + SQL/RLS local; resultado del proveedor simulado en E2E |
-| 4. Boleta visible en caja | Aprobado en E2E local y captura adjunta |
+| 1. n8n → Nubefact DEMO → PDF/XML | Aprobado: emisión real BBB1-1 mediante la copia CLI local; PDF/XML descargados. Webhook publicado pendiente de comprobar al desplegar |
+| 2. Correo opcional y envío Gmail | Aprobado: envío real y lectura del mismo mensaje con etiqueta INBOX |
+| 3. Guardar serie/número/enlaces | Aprobado: callback real guardó EMITIDO en la misma reserva local; idempotencia adicional en SQL y E2E |
+| 4. Boleta visible en caja | Aprobado: captura de caja con PDF real, además de las pruebas simuladas anteriores |
 | 5. Aviso sin valor tributario | Aprobado en pantalla, flujo y guía |
-| 6. Credencial fuera del repositorio | Plantilla vacía; Header Auth por configurar/seleccionar en la instancia de n8n; no se incluyó token ni ruta privada |
-| 7. DEMO y rotación antes de emitir | El usuario confirmó DEMO y configuración de credencial; adjuntar confirmación/evidencia operativa antes de la emisión controlada |
+| 6. Credencial fuera del repositorio | Aprobado: Header Auth y Gmail existentes utilizados solo por n8n; plantilla pública vacía, sin token ni ruta privada |
+| 7. DEMO y rotación antes de emitir | Confirmados por el usuario antes de la emisión; PDF real con marca SIN VALOR LEGAL. La captura del panel se comparte con Alexander por privado |
 
-## Pendientes antes de declarar aceptación completa
+## Pendientes de revisión y despliegue
 
 1. Alexander revisa y aplica la migración en la base compartida. Confirma el
-   correlativo libre de BBB1 y carga `receipt_series`; no copiar los números
-   usados localmente. En esta sesión **no se escribió en Supabase compartido**.
-2. Configurar el UUID privado del endpoint en `infra/n8n/.env`, iniciar el perfil
-   `boletas`, importar el flujo desactivado y seleccionar Header Auth/Gmail.
-   Configurar un secreto HMAC nuevo y el callback correcto. No se modificaron
-   `.env.local` ni el `.env` privado de n8n durante esta implementación.
-3. Reconfirmar DEMO, activar `demo_confirmado` y acordar una emisión controlada.
-   Guardar captura de PDF/XML, correo recibido y caja con la misma serie/número,
-   sin token, cabeceras ni URL privada visibles.
-4. Comprobar también una emisión sin correo y un reenvío del aviso real sin
-   consumir otro correlativo. Registrar aquí fecha y resultado reales.
+   correlativo libre de BBB1 y carga `receipt_series`: BBB1-1 ya está utilizado
+   por la prueba DEMO; no volver a configurarlo como 1. En esta sesión
+   **no se escribió en Supabase compartido**.
+2. El UUID privado del endpoint se configuró en `infra/n8n/.env` y se inició
+   únicamente el proxy adicional. `.env.local` quedó intacto: el secreto HMAC,
+   las claves de Supabase local y las variables de la prueba se pasaron solo
+   a los procesos aislados. Para el uso compartido, publicar el flujo original
+   con las credenciales, secreto y callback definitivos y probar su webhook HTTP.
+3. Erick comparte por privado con Alexander el correlativo que esté libre al
+   aplicar la migración y la captura del panel DEMO. No compartir tokens.
+4. Una emisión DEMO real sin correo y el reenvío real de un aviso ya EMITIDO
+   no se ejecutaron para evitar consumir otro número o reenviar correo.
+   Estas ramas están cubiertas por pruebas unitarias, SQL y E2E locales.
 
-No se emitieron boletas ni se enviaron correos por US-088 durante estas pruebas.
+La validación real emitió una sola boleta y envió un solo correo.
 No hay cola de entrega automática; la limitación de reintentos y el posible
 reenvío de correo al reejecutar manualmente un evento antiguo están descritos
 en [la guía](../../automatizacion/boleta.md).
@@ -154,3 +220,5 @@ en [la guía](../../automatizacion/boleta.md).
 - Documentación: `docs/automatizacion/boleta.md`, `aviso-pago.md`,
   únicamente la fila US-088 añadida a `docs/pruebas/matriz-trazabilidad.md`,
   este informe y la captura local simulada.
+  El avance de validación real agrega las tres capturas `us088-*-demo-*.png`
+  y actualiza únicamente esta historia en la matriz.
