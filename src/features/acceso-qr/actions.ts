@@ -1,9 +1,10 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { refresh } from "next/cache";
-import QRCode from "qrcode";
 import { requerirRol } from "@/features/auth/sesion";
-import { generarToken, hashToken } from "./token";
+import { armarQr } from "./imagen-qr";
+import { generarToken, hashToken, tokenDeQr } from "./token";
 import { cambiarEstadoMesa, crearMesa, desactivarQr, reemplazarQr } from "./mesas";
 import { desactivarQrMostrador, reemplazarQrMostrador } from "./mostrador";
 
@@ -40,14 +41,16 @@ export async function crearMesaAction(
 export type ResultadoQr =
   | { estado: "inicial" }
   | { estado: "error"; mensaje: string }
-  | { estado: "listo"; etiqueta: string; url: string; imagen: string };
+  | { estado: "listo"; etiqueta: string; url: string; imagen: string; guardado: boolean };
 
-// Arma el enlace /m/<token> y su imagen QR. El token solo vive en esta respuesta.
-async function armarQr(token: string): Promise<{ url: string; imagen: string }> {
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  const url = `${base}/m/${token}`;
-  const imagen = await QRCode.toDataURL(url, { width: 512, margin: 2 });
-  return { url, imagen };
+// US-096: id y token del QR nuevo. Con QR_TOKEN_SECRET el token es HMAC(secreto, id) y el QR
+// se puede volver a mostrar; sin el secreto se usa un token aleatorio (no se vuelve a mostrar).
+function nuevoQr(): { qrId: string; token: string; guardado: boolean } {
+  const qrId = randomUUID();
+  const calculado = tokenDeQr(qrId);
+  return calculado
+    ? { qrId, token: calculado, guardado: true }
+    : { qrId, token: generarToken(), guardado: false };
 }
 
 export async function generarQrAction(
@@ -57,8 +60,8 @@ export async function generarQrAction(
   const restauranteId = await restauranteDelAdmin();
   const mesaId = String(formData.get("mesaId") ?? "");
 
-  const token = generarToken();
-  const resultado = await reemplazarQr(restauranteId, mesaId, hashToken(token));
+  const { qrId, token, guardado } = nuevoQr();
+  const resultado = await reemplazarQr(restauranteId, mesaId, qrId, hashToken(token));
 
   if (!resultado.ok) {
     const mensaje =
@@ -71,7 +74,7 @@ export async function generarQrAction(
   const { url, imagen } = await armarQr(token);
 
   refresh();
-  return { estado: "listo", etiqueta: `mesa ${resultado.numero}`, url, imagen };
+  return { estado: "listo", etiqueta: `mesa ${resultado.numero}`, url, imagen, guardado };
 }
 
 export async function desactivarQrAction(formData: FormData): Promise<void> {
@@ -95,8 +98,8 @@ export async function generarQrMostradorAction(
   const restauranteId = await restauranteDelAdmin();
   const localId = String(formData.get("localId") ?? "");
 
-  const token = generarToken();
-  const resultado = await reemplazarQrMostrador(restauranteId, localId, hashToken(token));
+  const { qrId, token, guardado } = nuevoQr();
+  const resultado = await reemplazarQrMostrador(restauranteId, localId, qrId, hashToken(token));
 
   if (!resultado.ok) {
     const mensaje =
@@ -109,7 +112,7 @@ export async function generarQrMostradorAction(
   const { url, imagen } = await armarQr(token);
 
   refresh();
-  return { estado: "listo", etiqueta: `mostrador ${resultado.local}`, url, imagen };
+  return { estado: "listo", etiqueta: `mostrador ${resultado.local}`, url, imagen, guardado };
 }
 
 export async function desactivarQrMostradorAction(formData: FormData): Promise<void> {

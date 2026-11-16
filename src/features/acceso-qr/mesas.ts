@@ -10,6 +10,9 @@ export type MesaAdmin = {
     activa: boolean;
     local: string;
     tieneQrActivo: boolean;
+    // US-096: QR activo (id y hash) para decidir en el servidor si se puede volver a mostrar.
+    // Nunca se envía al navegador.
+    qrActivo: { id: string; token_hash: string } | null;
 }
 
 export type Local = { id: string; nombre: string };
@@ -19,14 +22,14 @@ type FilaMesa = {
   number: number;
   active: boolean;
   branches: { name: string } | null;
-  qr_codes: { active: boolean }[];
+  qr_codes: { id: string; active: boolean; token_hash: string }[];
 };
 
 export async function listarMesas(restauranteId: string): Promise<MesaAdmin[]> {
     const supabase = await crearClienteServidor();
     const {data, error} = await supabase
         .from("dining_tables")
-        .select("id, number, active, branches(name), qr_codes(active)")
+        .select("id, number, active, branches(name), qr_codes(id, active, token_hash)")
         .eq("restaurant_id", restauranteId)
         .order("number")
         .overrideTypes<FilaMesa[], {merge: false}>();
@@ -42,7 +45,13 @@ export async function listarMesas(restauranteId: string): Promise<MesaAdmin[]> {
         activa: fila.active,
         local: fila.branches?.name ?? "",
         tieneQrActivo: fila.qr_codes.some((qr) => qr.active),
+        qrActivo: activoDe(fila.qr_codes),
     }));
+}
+
+function activoDe(qrs: { id: string; active: boolean; token_hash: string }[]) {
+    const qr = qrs.find((q) => q.active);
+    return qr ? { id: qr.id, token_hash: qr.token_hash } : null;
 }
 
 export async function listarLocales(restauranteId: string): Promise<Local[]> {
@@ -115,9 +124,11 @@ export type ResultadoReemplazo =
 
 // Genera o regenera: primero anula el QR viejo y luego guarda el hash del nuevo.
 // El orden importa: la base solo permite un QR activo por mesa.
+// US-096: el id del QR llega calculado de antes, porque el token depende de él.
 export async function reemplazarQr(
     restauranteId: string,
     mesaId: string,
+    qrId: string,
     tokenHash: string,
 ):Promise<ResultadoReemplazo> {
     const supabase = await crearClienteServidor();
@@ -137,6 +148,7 @@ export async function reemplazarQr(
     if (!(await desactivarQr(restauranteId, mesaId))) return { ok: false, motivo: "ERROR" };
 
     const { error: errorInsert } = await supabase.from("qr_codes").insert({
+        id: qrId,
         restaurant_id: restauranteId,
         branch_id: mesa.branch_id,
         dining_table_id: mesa.id,

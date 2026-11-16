@@ -18,10 +18,13 @@ import {
   listarLocales,
   listarMesas,
 } from "@/features/acceso-qr/mesas";
+import { estadoQrAdmin } from "@/features/acceso-qr/imagen-qr";
 import { listarMostradores } from "@/features/acceso-qr/mostrador";
 import { requerirRol } from "@/features/auth/sesion";
+import { BotonDesactivarQr } from "./boton-desactivar-qr";
 import { BotonQr } from "./boton-qr";
 import { FormularioNuevaMesa } from "./formulario-nueva-mesa";
+import { QrGuardado } from "./qr-guardado";
 
 async function PanelMesas() {
   const sesion = await requerirRol(["OWNER", "ADMIN"]);
@@ -30,10 +33,20 @@ async function PanelMesas() {
     (m) => m.rol === "OWNER" || m.rol === "ADMIN",
   )!.restaurantId;
 
-  const [mesas, locales, mostradores] = await Promise.all([
+  const [mesasBase, locales, mostradoresBase] = await Promise.all([
     listarMesas(restauranteId),
     listarLocales(restauranteId),
     listarMostradores(restauranteId),
+  ]);
+
+  // US-096: el QR activo se calcula en el servidor; al navegador solo llega su imagen y enlace.
+  const [mesas, mostradores] = await Promise.all([
+    Promise.all(mesasBase.map(async ({ qrActivo, ...mesa }) => ({
+      ...mesa, qr: await estadoQrAdmin(qrActivo),
+    }))),
+    Promise.all(mostradoresBase.map(async ({ qrActivo, ...mostrador }) => ({
+      ...mostrador, qr: await estadoQrAdmin(qrActivo),
+    }))),
   ]);
 
   return (
@@ -85,6 +98,12 @@ async function PanelMesas() {
                           : "Sin QR"}
                       </Insignia>
                     </div>
+
+                    {mesa.qr && (
+                      <div className="mt-3">
+                        <QrGuardado {...mesa.qr} etiqueta={`mesa ${mesa.numero}`} />
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-start gap-2">
@@ -98,20 +117,7 @@ async function PanelMesas() {
                     )}
 
                     {mesa.tieneQrActivo && (
-                      <form action={desactivarQrAction}>
-                        <input
-                          type="hidden"
-                          name="mesaId"
-                          value={mesa.id}
-                        />
-
-                        <Boton
-                          type="submit"
-                          variante="peligro"
-                        >
-                          Desactivar QR
-                        </Boton>
-                      </form>
+                      <BotonDesactivarQr desactivar={desactivarQrAction} campo="mesaId" valor={mesa.id} />
                     )}
 
                     <form action={cambiarEstadoMesaAction}>
@@ -191,6 +197,12 @@ async function PanelMesas() {
                             : "Sin QR"}
                         </Insignia>
                       </div>
+
+                      {mostrador.qr && (
+                        <div className="mt-3">
+                          <QrGuardado {...mostrador.qr} etiqueta={`mostrador ${mostrador.local}`} />
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-start gap-2">
@@ -202,20 +214,7 @@ async function PanelMesas() {
                       />
 
                       {mostrador.tieneQrActivo && (
-                        <form action={desactivarQrMostradorAction}>
-                          <input
-                            type="hidden"
-                            name="localId"
-                            value={mostrador.localId}
-                          />
-
-                          <Boton
-                            type="submit"
-                            variante="peligro"
-                          >
-                            Desactivar QR
-                          </Boton>
-                        </form>
+                        <BotonDesactivarQr desactivar={desactivarQrMostradorAction} campo="localId" valor={mostrador.localId} />
                       )}
                     </div>
                   </Tarjeta>
