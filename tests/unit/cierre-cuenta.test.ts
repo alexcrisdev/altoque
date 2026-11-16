@@ -10,6 +10,7 @@ import {
 } from "../../src/features/pago-cierre/cierre-logica";
 
 vi.mock("server-only", () => ({}));
+vi.mock("../../src/features/pago-cierre/capturas", () => ({ limpiarCapturas: vi.fn(async () => 0) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() }));
 vi.mock("../../src/features/auth/sesion", () => ({ obtenerSesion: vi.fn() }));

@@ -1,0 +1,23 @@
+name: US-102 limpieza de capturas
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: limpieza-capturas
+  cancel-in-progress: false
+jobs:
+  limpiar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Eliminar capturas vencidas o de cuentas cerradas
+        env:
+          APP_URL: ${{ vars.CAPTURAS_APP_URL }}
+          CRON_SECRET: ${{ secrets.CAPTURAS_CRON_SECRET }}
+        run: |
+          test -n "$APP_URL" && test -n "$CRON_SECRET"
+          curl --fail --silent --show-error --max-time 240 --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/capturas/limpieza"
