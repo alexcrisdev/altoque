@@ -108,8 +108,9 @@ export function BotonQr({
           </a>
 
           <p className="text-sm text-texto-suave">
-            Guárdalo ahora: por seguridad este QR no se vuelve a
-            mostrar. Si lo pierdes, regenéralo.
+            {resultado.guardado
+              ? "Listo: este QR queda guardado y lo verás en esta pantalla cuando quieras."
+              : "Guárdalo ahora: este QR no se vuelve a mostrar (falta configurar QR_TOKEN_SECRET). Si lo pierdes, regenéralo."}
           </p>
         </Tarjeta>
       )}
