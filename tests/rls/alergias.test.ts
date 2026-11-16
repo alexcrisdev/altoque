@@ -81,7 +81,9 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
   });
 
   it.each([
-    { p_alergia_respuesta: null }, { p_alergenos: ["OTRO"] },
+    // Sin respuesta solo se acepta si tampoco hay alérgenos ni detalle.
+    { p_alergia_respuesta: null }, { p_alergia_respuesta: null, p_alergenos: [] },
+    { p_alergenos: ["OTRO"] },
     { p_alergenos: [], p_alergia_detalle: " " }, { p_alergia_detalle: "x".repeat(121) },
   ])("rechaza declaración inválida: %j", async cambios => {
     const entrada = { ...parametros(), ...cambios };
@@ -91,13 +93,17 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
     expect(filas).toEqual([]);
   });
 
-  it("no conserva la firma antigua de seis parámetros", async () => {
+  it("compatibilidad: la llamada antigua de seis parámetros registra el pedido sin declaración", async () => {
     const entrada = parametros();
-    const { error } = await servicio.rpc("registrar_pedido_cliente", {
+    const creado = exigir(await servicio.rpc("registrar_pedido_cliente", {
       p_qr_code_id: entrada.p_qr_code_id, p_idempotency_key: entrada.p_idempotency_key,
       p_items: entrada.p_items, p_modality: entrada.p_modality,
       p_customer_name: entrada.p_customer_name, p_customer_phone: entrada.p_customer_phone,
-    });
-    expect(error).not.toBeNull();
+    }).single<{ pedido_id: string | null }>());
+    expect(creado.pedido_id).not.toBeNull();
+    pedidos.push(creado.pedido_id!);
+    const fila = exigir(await servicio.from("orders").select("allergy_answer, allergens, allergy_note")
+      .eq("id", creado.pedido_id!).single());
+    expect(fila).toEqual({ allergy_answer: null, allergens: [], allergy_note: null });
   });
 });

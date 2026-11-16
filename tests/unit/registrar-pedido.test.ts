@@ -33,6 +33,9 @@ describe("registro de pedidos desde QR", () => {
   it("US-091: rechaza respuesta ausente antes de guardar o devolver un reintento", async () => {
     vi.mocked(resolverAccesoQr).mockResolvedValue(acceso);
     expect(await registrarReal("token-qr-largo", clave, [], undefined)).toMatchObject({ ok: false });
+    // La base acepta respuesta null por compatibilidad; la obligación vive aquí.
+    expect(await registrarReal("token-qr-largo", clave, [], undefined,
+      { respuesta: null, alergenos: [], detalle: "", aceptada: false })).toMatchObject({ ok: false });
     expect(buscarPedidoIdempotente).not.toHaveBeenCalled();
     expect(guardarPedidoQr).not.toHaveBeenCalled();
   });

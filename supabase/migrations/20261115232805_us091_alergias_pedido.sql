@@ -15,7 +15,9 @@ alter table public.orders
   add constraint orders_allergy_no_detail check (
     allergy_answer is not distinct from 'YES' or (cardinality(allergens) = 0 and allergy_note is null));
 
--- No dejar sobrecargas antiguas que omitan la respuesta obligatoria.
+-- Reemplaza la firma de 6 parámetros. Los 3 nuevos tienen default null para que
+-- el código anterior (que llama con 6) siga registrando pedidos QR mientras se
+-- despliega el código nuevo; no quedan dos versiones (sobrecargas) de la función.
 drop function public.registrar_pedido_cliente(uuid, uuid, jsonb, text, text, text);
 drop function public.registrar_pedido_cliente_sin_bloqueo_stock(uuid, uuid, jsonb, text, text, text);
 
@@ -26,9 +28,9 @@ create function public.registrar_pedido_cliente_sin_bloqueo_stock(
   p_modality text,
   p_customer_name text,
   p_customer_phone text,
-  p_alergia_respuesta text,
-  p_alergenos text[],
-  p_alergia_detalle text
+  p_alergia_respuesta text default null,
+  p_alergenos text[] default null,
+  p_alergia_detalle text default null
 ) returns table (pedido_id uuid, numero_pedido bigint, repetido boolean)
 language plpgsql
 security definer
@@ -45,7 +47,15 @@ declare
   v_total numeric(12,2);
   v_count integer;
 begin
-  if p_alergia_respuesta is null or p_alergia_respuesta not in ('NONE','YES')
+  if p_alergia_respuesta is null then
+    -- Compatibilidad con el código anterior, que no envía la respuesta: se registra
+    -- sin declaración (allergy_answer null, como los pedidos del mesero) solo si
+    -- tampoco trae alérgenos ni detalle. La obligación de responder está en actions.ts.
+    if coalesce(cardinality(p_alergenos), 0) > 0
+      or nullif(trim(p_alergia_detalle), '') is not null then
+      raise exception 'INVALID_ALLERGY' using errcode = '22023';
+    end if;
+  elsif p_alergia_respuesta not in ('NONE','YES')
     or p_alergenos is null or cardinality(p_alergenos) > 6
     or array_position(p_alergenos, null) is not null
     or not (p_alergenos <@ array['MANI','MARISCOS','PESCADO','GLUTEN','LACTEOS','HUEVO']::text[])
@@ -125,7 +135,7 @@ begin
   values (v_qr.restaurant_id, v_qr.branch_id, v_qr.id,
     case when p_modality = 'DINE_IN' then v_session else null end,
     case when p_modality = 'DINE_IN' then v_qr.dining_table_id else null end,
-    p_modality, v_total, p_idempotency_key, v_name, v_phone, p_alergia_respuesta, p_alergenos, nullif(trim(p_alergia_detalle), ''))
+    p_modality, v_total, p_idempotency_key, v_name, v_phone, p_alergia_respuesta, coalesce(p_alergenos, '{}'), nullif(trim(p_alergia_detalle), ''))
   on conflict (qr_code_id, idempotency_key) do nothing
   returning * into v_order;
 
@@ -161,9 +171,9 @@ create function public.registrar_pedido_cliente(
   p_modality text,
   p_customer_name text,
   p_customer_phone text,
-  p_alergia_respuesta text,
-  p_alergenos text[],
-  p_alergia_detalle text
+  p_alergia_respuesta text default null,
+  p_alergenos text[] default null,
+  p_alergia_detalle text default null
 ) returns table (pedido_id uuid, numero_pedido bigint, repetido boolean)
 language plpgsql
 security definer

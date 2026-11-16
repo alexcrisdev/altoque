@@ -12,8 +12,9 @@ además de aceptar esta declaración informativa:
 
 > Entiendo que la cocina hará lo posible por evitar el alérgeno, pero puede haber trazas.
 
-No es una renuncia de responsabilidad (Ley 29571, art. 50). La validación se repite
-en el servidor (`src/features/pedidos/alergias.ts`) y en la base (`INVALID_ALLERGY`).
+No es una renuncia de responsabilidad (Ley 29571, art. 50). La obligación de responder
+la exige el servidor (`actions.ts` con `src/features/pedidos/alergias.ts`). La base
+valida el contenido de la declaración (`INVALID_ALLERGY`).
 Se pide no escribir datos personales en el detalle. La declaración no se guarda en
 localStorage ni se exporta a CSV ni al aviso de n8n.
 
@@ -26,6 +27,12 @@ y la rama `if v_order.id is null` (que devuelve `pedido_id` null cuando el trigg
 de US-097 omite la fila) quedan idénticos; se conservan `security definer`,
 `search_path`, grants y revokes. `registrar_pedido_mesero` no cambia (respuesta null).
 
+**Compatibilidad (pedido de Alexander):** los tres parámetros nuevos tienen
+`default null` en las dos funciones. Así, el código que hoy está en producción, que
+llama con 6 parámetros, sigue registrando pedidos QR mientras se despliega el
+código nuevo. Una respuesta null solo se acepta si no vienen alérgenos ni detalle,
+y el pedido queda con `allergy_answer` null, igual que los del mesero.
+
 El aviso se ve en rojo (Insignia tono peligro + ⚠ + texto «Alergia: Maní — detalle»)
 en el KDS (normal y TV), en el panel del mesero y en el detalle de la cuenta en caja,
 separado de los alérgenos de cada producto.
@@ -37,7 +44,7 @@ separado de los alérgenos de cada producto.
 | `npm run lint` | Aprobado |
 | `npx eslint src tests scripts` | Aprobado, sin errores |
 | `npm run typecheck` | Aprobado |
-| `npm test` | **1120/1120 pruebas en 69/69 archivos** |
+| `npm test` | **1149/1149 pruebas en 70/70 archivos** (con develop unido, incluye US-088) |
 | `npm run build` | Aprobado |
 | `npm run test:integracion` | **No ejecutado**: no hay Docker para Supabase local |
 | E2E (Playwright) | **No ejecutado**: escribiría en la base compartida |
@@ -45,10 +52,13 @@ separado de los alérgenos de cada producto.
 - Unitarias: validación y etiquetas, botón bloqueado sin respuesta, envío conjunto
   de parámetros al RPC, reintentos, lectura de cocina, KDS normal/TV, caja, y
   exclusión de los campos en CSV y n8n.
-- Integración preparada `tests/rls/alergias.test.ts` (6 casos, solo Supabase local,
+- Integración preparada `tests/rls/alergias.test.ts` (7 casos, solo Supabase local,
   con sucursal y QR propios que se borran en `afterAll`): pedido con alergia → el
-  rol KITCHEN la lee; repetir la clave no cambia la declaración; RPC sin respuesta o
-  con datos inválidos → `INVALID_ALLERGY`; la firma antigua de 6 parámetros ya no existe.
+  rol KITCHEN la lee; repetir la clave no cambia la declaración; respuesta null con
+  alérgenos o con detalle, o datos inválidos → `INVALID_ALLERGY`; la llamada antigua
+  de 6 parámetros registra el pedido con `allergy_answer` null.
+- Unitaria `registrar-pedido.test.ts`: `actions.ts` rechaza un pedido sin respuesta
+  (ausente o null) sin consultar ni guardar.
 - `tests/rls/vencimiento-pedidos.test.ts` (US-097) y `tests/rls/espera-pago.test.ts`
   se ajustaron para enviar `p_alergia_respuesta: "NONE"`. Los casos de US-097 que
   esperan `pedido_id: null` al superar el límite sirven también para comprobar que la
@@ -79,7 +89,8 @@ funcionando. Antes de aplicarla a la base compartida:
 2. `npm run test:integracion` contra `http://127.0.0.1:54321`: deben pasar
    `alergias.test.ts`, `vencimiento-pedidos.test.ts` y `espera-pago.test.ts`.
 3. E2E en local: `pedido-en-mesa.spec.ts`, `pedido-para-llevar.spec.ts` y `conexion.spec.ts`.
-4. Como el RPC cambia de firma, aplicar la migración y desplegar el código **juntos**:
-   el código anterior llama a la firma de 6 parámetros, que deja de existir.
+4. Gracias a los `default null`, la migración puede aplicarse antes de desplegar el
+   código nuevo: los pedidos QR siguen entrando (sin declaración de alergia) hasta
+   que el código nuevo esté en producción.
 
 No se modificaron `.env.local`, políticas RLS ni QR existentes.
