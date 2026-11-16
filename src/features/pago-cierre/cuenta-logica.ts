@@ -43,6 +43,7 @@ export type PedidoCuenta = {
 };
 
 export type PagoCuenta = {
+  capturaId?: string | null;
   id: string;
   metodo: MetodoPago;
   estado: EstadoPago;
