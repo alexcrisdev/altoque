@@ -36,6 +36,8 @@ No agregues librerías nuevas sin que el usuario lo apruebe.
 - Cada acción de servidor verifica el rol del usuario (staff_memberships).
 - Todo dato pertenece a un restaurante: filtra siempre por restaurante y respeta RLS.
 - Los tokens QR se guardan solo como hash (qr_codes), nunca en texto plano.
+  Desde US-096 el token es HMAC(QR_TOKEN_SECRET, id del QR): el servidor lo recalcula para volver a
+  mostrar el QR. Nunca expongas QR_TOKEN_SECRET; si cambia, todos los QR hay que regenerarlos.
 - Confirmar pedido es idempotente (misma clave = mismo pedido).
 
 ## Base de datos
