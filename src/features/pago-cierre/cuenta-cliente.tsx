@@ -7,6 +7,8 @@ import { resolverCuentaOnline } from "./pago-online";
 import { centimosATexto } from "./pago-logica";
 import { stripeConfigurado } from "./stripe";
 import { leerRetornoPago, validarMontoCheckout } from "./stripe-logica";
+import { titularBilletera } from "./capturas";
+import { SubirCaptura } from "./subir-captura";
 
 // US-076: «Tu cuenta» en la vista del cliente: saldo y botón «Pagar con tarjeta».
 // Al volver de Stripe muestra «Procesando pago…» o «Pago cancelado».
@@ -31,7 +33,10 @@ export async function CuentaCliente({ token, clave, pago, sesion }: {
   if (retorno === "PROCESANDO" && typeof sesion === "string") {
     return <EstadoPagoOnline token={token} clave={clave} sesionStripe={sesion} rutaBase={rutaBase} />;
   }
-  if (!cuenta || cuenta.saldoCentimos <= 0 || !stripeConfigurado()) return null;
+  if (!cuenta || cuenta.saldoCentimos <= 0) return null;
+  const titular = await titularBilletera(cuenta.restauranteId).catch(() => null);
+  const tarjetaDisponible = stripeConfigurado();
+  if (!titular && !tarjetaDisponible) return null;
 
   const aviso = validarMontoCheckout(cuenta.saldoCentimos);
 
@@ -43,7 +48,7 @@ export async function CuentaCliente({ token, clave, pago, sesion }: {
       <h2 className="font-semibold">Tu cuenta</h2>
       <p className="text-xl font-bold">S/ {centimosATexto(cuenta.saldoCentimos)}</p>
     </div>
-    {aviso
+    {tarjetaDisponible && (aviso
       ? <p className="text-sm text-texto-suave">{aviso}</p>
       : <>
         <BotonPagarTarjeta token={token} clave={clave} />
@@ -51,6 +56,7 @@ export async function CuentaCliente({ token, clave, pago, sesion }: {
           Pago seguro con Stripe. AlToque no ve ni guarda los datos de tu tarjeta.
           También puedes pagar en caja con efectivo o Yape.
         </p>
-      </>}
+      </>)}
+    {titular && <SubirCaptura token={token} clavePedido={clave} saldo={cuenta.saldoCentimos} titular={titular} />}
   </Tarjeta>;
 }

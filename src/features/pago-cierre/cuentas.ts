@@ -64,6 +64,7 @@ type FilaPedido = FilaAlergia & {
 };
 
 type FilaPago = {
+  payment_proof_id?: string | null;
   id: string;
   method: MetodoPago;
   status: EstadoPago;
@@ -90,7 +91,7 @@ type FilaSesion = {
 const COLUMNAS_PEDIDO =
   "id, order_number, status, created_at, table_session_id, customer_name, allergy_answer, allergens, allergy_note, order_items(product_name, quantity, unit_price, observation)";
 const COLUMNAS_PAGO =
-  "id, method, status, amount, received_amount, change_amount, reference, stripe_session_id, verified_at, created_at, table_session_id, order_id, verificador:users!payments_verified_by_fkey(full_name), registrador:users!payments_created_by_fkey(full_name)";
+  "id, payment_proof_id, method, status, amount, received_amount, change_amount, reference, stripe_session_id, verified_at, created_at, table_session_id, order_id, verificador:users!payments_verified_by_fkey(full_name), registrador:users!payments_created_by_fkey(full_name)";
 
 function aPedidoCuenta(fila: FilaPedido): PedidoCuenta {
   return {
@@ -110,6 +111,7 @@ function aPedidoCuenta(fila: FilaPedido): PedidoCuenta {
 
 function aPagoCuenta(fila: FilaPago): PagoCuenta {
   return {
+    capturaId: fila.payment_proof_id ?? null,
     id: fila.id,
     metodo: fila.method,
     estado: fila.status,

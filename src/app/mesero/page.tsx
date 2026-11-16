@@ -1,4 +1,5 @@
 import { AvisoAlergia } from "../../features/pedidos/aviso-alergia";
+import { PanelCapturas } from "../../features/pago-cierre/panel-capturas";
 import { Suspense } from "react";
 import { Boton, BotonEnlace, EncabezadoPantalla, Insignia, MensajeEstado, Tarjeta } from "@/components/ui";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
@@ -52,6 +53,7 @@ async function MeseroPanel() {
     <EncabezadoPantalla titulo="Panel mesero" subtitulo="Organiza la atención de mesas y pedidos activos."
       acciones={<form action={cerrarSesion}><Boton type="submit" variante="secundario">Cerrar sesión</Boton></form>} />
     <ActualizacionAutomatica segundos={10} />
+    <PanelCapturas restauranteId={resultado.restauranteId} mesero />
     <div className="flex flex-wrap gap-3">
       <BotonEnlace href="/mesero/pedido">Registrar pedido asistido</BotonEnlace>
       <BotonEnlace href="/mesero" variante="secundario">Actualizar panel</BotonEnlace>
