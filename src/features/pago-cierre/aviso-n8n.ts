@@ -27,6 +27,7 @@ type FilaPago = {
   amount: number | string;
   confirmed_at: string | null;
   stripe_session_id: string | null;
+  receipt_email: string | null;
   restaurants: { name: string } | null;
 };
 
@@ -39,7 +40,7 @@ export async function leerPagoConfirmado(pagoId: string): Promise<DatosPagoConfi
   const supabase = crearClienteAdmin();
   const { data: pago, error } = await supabase
     .from("payments")
-    .select("id, restaurant_id, table_session_id, order_id, method, status, amount, confirmed_at, stripe_session_id, restaurants(name)")
+    .select("id, restaurant_id, table_session_id, order_id, method, status, amount, confirmed_at, stripe_session_id, receipt_email, restaurants(name)")
     .eq("id", pagoId)
     .maybeSingle<FilaPago>();
   if (error) throw new Error("No se pudo leer el pago");
@@ -54,12 +55,14 @@ export async function leerPagoConfirmado(pagoId: string): Promise<DatosPagoConfi
       .from("table_sessions")
       .select("dining_table_id")
       .eq("id", pago.table_session_id)
+      .eq("restaurant_id", pago.restaurant_id)
       .maybeSingle<{ dining_table_id: string }>();
     if (errorSesion || !sesion) throw new Error("No se pudo leer la mesa");
     const { data: mesa } = await supabase
       .from("dining_tables")
       .select("number")
       .eq("id", sesion.dining_table_id)
+      .eq("restaurant_id", pago.restaurant_id)
       .maybeSingle<{ number: number }>();
     cuenta = { tipo: "MESA", id: pago.table_session_id, mesa: mesa?.number ?? null };
 
@@ -67,6 +70,7 @@ export async function leerPagoConfirmado(pagoId: string): Promise<DatosPagoConfi
       .from("orders")
       .select(columnasPedido)
       .eq("table_session_id", pago.table_session_id)
+      .eq("restaurant_id", pago.restaurant_id)
       .neq("status", "CANCELLED")
       .returns<FilaPedido[]>();
     if (errorPedidos) throw new Error("No se pudieron leer los pedidos");
@@ -76,6 +80,7 @@ export async function leerPagoConfirmado(pagoId: string): Promise<DatosPagoConfi
       .from("orders")
       .select(columnasPedido)
       .eq("id", pago.order_id)
+      .eq("restaurant_id", pago.restaurant_id)
       .returns<FilaPedido[]>();
     if (errorPedido) throw new Error("No se pudo leer el pedido");
     pedidos = data ?? [];
@@ -84,6 +89,18 @@ export async function leerPagoConfirmado(pagoId: string): Promise<DatosPagoConfi
     return null;
   }
 
+  const columnaCuenta = pago.table_session_id ? "table_session_id" : "order_id";
+  const idCuenta = pago.table_session_id ?? pago.order_id!;
+  const [pagos, reserva] = await Promise.all([
+    supabase.from("payments").select("amount").eq("restaurant_id", pago.restaurant_id)
+      .eq(columnaCuenta, idCuenta).eq("status", "CONFIRMED"),
+    supabase.from("receipts").select("id, series, number, status, is_test").eq("restaurant_id", pago.restaurant_id)
+      .eq("payment_id", pago.id).maybeSingle(),
+  ]);
+  if (pagos.error || reserva.error) throw new Error("No se pudo leer el saldo o la reserva de boleta");
+  const platos = agruparPlatos(pedidos.flatMap((p) => p.order_items));
+  const consumo = platos.reduce((total, p) => total + p.subtotalCentimos, 0);
+  const pagado = (pagos.data ?? []).reduce((total, p) => total + Math.round(Number(p.amount) * 100), 0);
   return {
     pagoId: pago.id,
     restauranteId: pago.restaurant_id,
@@ -93,7 +110,13 @@ export async function leerPagoConfirmado(pagoId: string): Promise<DatosPagoConfi
     enLinea: pago.stripe_session_id !== null,
     montoCentimos: Math.round(Number(pago.amount) * 100),
     confirmadoEn: new Date(pago.confirmed_at).toISOString(),
-    platos: agruparPlatos(pedidos.flatMap((p) => p.order_items)),
+    saldoRestanteCentimos: consumo - pagado,
+    correoBoleta: pago.receipt_email,
+    comprobante: reserva.data?.is_test ? {
+      id: reserva.data.id, serie: reserva.data.series, numero: reserva.data.number,
+      estado: reserva.data.status, is_test: true,
+    } : null,
+    platos,
   };
 }
 

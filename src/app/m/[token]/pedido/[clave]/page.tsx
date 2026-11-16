@@ -20,6 +20,7 @@ import {
 } from "@/features/pedidos/estados";
 import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
 import { AvisoEstadoCliente } from "@/features/pedidos/aviso-estado-cliente";
+import { TemporizadorPagoCliente } from "@/features/pedidos/temporizador-pago-cliente";
 
 export const metadata: Metadata = {
   title: "Estado de mi pedido | AlToque",
@@ -94,8 +95,13 @@ async function ContenidoPedido({ params, searchParams }: Props) {
       ) : pedido ? (
         <>
           <ResumenPedido key={clave} pedido={pedido} />
-          {/* US-076: pago con tarjeta online del pedido para llevar. */}
-          {pedido.modalidad === "TAKEAWAY" && <CuentaCliente token={token} clave={clave} pago={pago} sesion={sesion} />}
+          {/* US-094: una mesa usa su sesión; para llevar, su clave de pedido. */}
+          <CuentaCliente
+            token={token}
+            clave={pedido.modalidad === "TAKEAWAY" ? clave : null}
+            pago={pago}
+            sesion={sesion}
+          />
         </>
       ) : (
         <MensajeEstado
@@ -134,7 +140,7 @@ function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
         </h2>
 
         <Insignia tono={TONO_ESTADO[pedido.estado]}>
-          {etiquetaEstadoCliente(pedido.estado, pedido.modalidad)}
+          {etiquetaEstadoCliente(pedido.estado)}
         </Insignia>
       </div>
 
@@ -199,6 +205,10 @@ function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
             {pedido.motivo || "El restaurante no registró un motivo."}
           </p>
         </div>
+      )}
+
+      {pedido.estado === "PENDING" && (
+        <TemporizadorPagoCliente limite={pedido.limitePago} pagoPendiente={pedido.pagoPendiente} />
       )}
 
       <section aria-labelledby="productos-del-pedido">

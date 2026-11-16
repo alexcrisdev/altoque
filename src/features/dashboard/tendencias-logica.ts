@@ -22,7 +22,7 @@ export type ConteoPedidos = {
   total: number;
 };
 
-// También define el orden de presentación de los seis estados.
+// Orden de presentación de los seis estados.
 export const ESTADOS_TENDENCIAS: readonly EstadoPedido[] = [
   "PENDING",
   "ACCEPTED",
@@ -68,15 +68,20 @@ function validarPedido(pedido: PedidoTendencia): void {
   }
 }
 
-// Recibe pedidos del restaurante y periodo ya filtrados por la capa de datos.
-// Suma unidades de todos los estados excepto CANCELLED: no depende del pago.
-// Agrupa por product_id y usa el nombre del pedido no cancelado más reciente.
+// Recibe pedidos del restaurante y periodo ya filtrados.
+// Excluye cancelados y suma unidades, independientemente del pago.
+// El dashboard agrupa por producto; US-089 puede agrupar por nombre histórico.
 export function calcularProductosMasVendidos(
   pedidos: readonly PedidoTendencia[],
   limite = 5,
+  agruparPor: "producto" | "nombre" = "producto",
 ): ProductoMasVendido[] {
   if (!Number.isSafeInteger(limite) || limite < 1) {
     throw new Error("El límite de productos no es válido.");
+  }
+
+  if (agruparPor !== "producto" && agruparPor !== "nombre") {
+    throw new Error("La agrupación de productos no es válida.");
   }
 
   const productos = new Map<
@@ -95,10 +100,15 @@ export function calcularProductosMasVendidos(
     const fecha = Date.parse(pedido.created_at);
 
     for (const item of pedido.order_items) {
-      const actual = productos.get(item.product_id);
+      const clave =
+        agruparPor === "nombre"
+          ? item.product_name
+          : item.product_id;
+
+      const actual = productos.get(clave);
 
       if (!actual) {
-        productos.set(item.product_id, {
+        productos.set(clave, {
           productId: item.product_id,
           nombre: item.product_name,
           unidades: item.quantity,
@@ -147,7 +157,7 @@ export function calcularProductosMasVendidos(
 }
 
 // Cuenta cada pedido una vez según su estado actual.
-// Incluye cancelados y devuelve siempre los seis estados, incluso con cero.
+// Incluye cancelados y devuelve los seis estados, incluso con cero.
 export function contarPedidosPorEstado(
   pedidos: readonly PedidoTendencia[],
 ): ConteoPedidos {

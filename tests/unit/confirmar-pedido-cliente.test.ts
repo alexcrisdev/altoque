@@ -6,6 +6,7 @@ import type { ResultadoRegistroPedido } from "../../src/features/pedidos/actions
 
 const controles = vi.hoisted(() => ({
   setItems: vi.fn(),
+  alergia: { respuesta: "NONE", alergenos: [], detalle: "", aceptada: false } as import("../../src/features/pedidos/alergias").AlergiaFormulario,
   panel: null as ComponentProps<typeof PanelCarrito> | null,
   items: [{ productoId: "limonada", cantidad: 2, observacion: null }],
 }));
@@ -17,7 +18,8 @@ vi.mock("react", async (importOriginal) => {
     ...react,
     useState: (inicial: unknown) => Array.isArray(inicial)
       ? [controles.items, controles.setItems]
-      : react.useState(inicial),
+      : inicial && typeof inicial === "object" && "respuesta" in inicial
+        ? [controles.alergia, vi.fn()] : react.useState(inicial),
   };
 });
 vi.mock("../../src/features/pedidos/actions", () => ({ registrarPedidoQrAction: vi.fn() }));
@@ -47,15 +49,31 @@ function preparar(habilitados = true) {
 beforeEach(() => {
   vi.resetAllMocks();
   controles.panel = null;
+  controles.alergia = { respuesta: "NONE", alergenos: [], detalle: "", aceptada: false };
 });
 
 describe("envío del carrito desde la carta", () => {
+  it("US-091: sin respuesta no invoca la acción aunque se llame al callback", async () => {
+    controles.alergia.respuesta = null;
+    await preparar().onConfirmar();
+    expect(registrarPedidoQrAction).not.toHaveBeenCalled();
+  });
+  it("US-091: reintenta con la misma declaración y clave", async () => {
+    controles.alergia = { respuesta: "YES", alergenos: ["HUEVO"], detalle: "Sin contacto", aceptada: true };
+    vi.mocked(registrarPedidoQrAction).mockResolvedValue({ ok: false, mensaje: "Reintenta." });
+    const panel = preparar();
+    await panel.onConfirmar(); await panel.onConfirmar();
+    const llamadas = vi.mocked(registrarPedidoQrAction).mock.calls;
+    expect(llamadas[0][1]).toBe(llamadas[1][1]);
+    expect(llamadas[0][4]).toEqual(controles.alergia);
+    expect(llamadas[1][4]).toEqual(controles.alergia);
+  });
   it("envía el contrato con el token y vacía el carrito solo después del éxito", async () => {
     vi.mocked(registrarPedidoQrAction).mockResolvedValue({ ok: true, numero: 42 });
     await preparar().onConfirmar();
     expect(registrarPedidoQrAction).toHaveBeenCalledWith("token-qr", expect.any(String), [
       { productoId: "limonada", cantidad: 2, observacion: null, precioMostradoCentimos: 850 },
-    ], { modalidad: "DINE_IN", nombre: "", telefono: "" });
+    ], { modalidad: "DINE_IN", nombre: "", telefono: "" }, controles.alergia);
     expect(registrarPedidoQrAction).toHaveBeenCalledTimes(1);
     expect(controles.setItems).toHaveBeenCalledWith([]);
   });

@@ -31,6 +31,17 @@ services:
       start_period: 60s
       retries: 5
 
+  nubefact-demo:
+    image: nginx:1.30.6-alpine
+    profiles: ["boletas"]
+    restart: unless-stopped
+    environment:
+      NUBEFACT_EMPRESA_ID: ${NUBEFACT_EMPRESA_ID:-sin-configurar}
+      NGINX_ENVSUBST_FILTER: ^NUBEFACT_EMPRESA_ID$$
+    volumes:
+      - ./nubefact.conf.template:/etc/nginx/templates/default.conf.template:ro
+    # Sin puertos publicados; el token lo añade exclusivamente n8n con Header Auth.
+
   entrada-webhook:
     image: nginx:1.30.6-alpine
     profiles: ["tunel"]

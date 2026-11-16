@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CorreoBoleta } from "./correo-boleta";
 import type { CuentaACobrar } from "./pago-logica";
 import { RegistrarPagoEfectivo } from "./registrar-pago-efectivo";
 import { RegistrarPagoTarjeta } from "./registrar-pago-tarjeta";
@@ -18,6 +19,7 @@ type Metodo = (typeof METODOS)[number]["valor"];
 
 export function CobrarCuenta({ cuenta, saldoCentimos }: { cuenta: CuentaACobrar; saldoCentimos: number }) {
   const [metodo, setMetodo] = useState<Metodo>("CASH");
+  const [correo, setCorreo] = useState("");
 
   return (
     <section aria-labelledby="registrar-pago" className="mt-6 rounded-xl border-2 border-marca p-4">
@@ -48,9 +50,10 @@ export function CobrarCuenta({ cuenta, saldoCentimos }: { cuenta: CuentaACobrar;
       </fieldset>
 
       <div className="mt-4">
-        {metodo === "CASH" && <RegistrarPagoEfectivo cuenta={cuenta} saldoCentimos={saldoCentimos} />}
-        {metodo === "YAPE" && <RegistrarPagoYape cuenta={cuenta} saldoCentimos={saldoCentimos} />}
-        {metodo === "CARD" && <RegistrarPagoTarjeta cuenta={cuenta} saldoCentimos={saldoCentimos} />}
+        {saldoCentimos > 0 && <CorreoBoleta correo={correo} alCambiar={setCorreo} />}
+        {metodo === "CASH" && <RegistrarPagoEfectivo cuenta={cuenta} saldoCentimos={saldoCentimos} correo={correo} />}
+        {metodo === "YAPE" && <RegistrarPagoYape cuenta={cuenta} saldoCentimos={saldoCentimos} correo={correo} />}
+        {metodo === "CARD" && <RegistrarPagoTarjeta cuenta={cuenta} saldoCentimos={saldoCentimos} correo={correo} />}
       </div>
     </section>
   );

@@ -72,10 +72,11 @@ describe("US-080: reglas del tablero", () => {
 
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/features/auth/sesion", () => ({ requerirRol: vi.fn() }));
-vi.mock("../../src/features/cocina/pedidos-cocina", () => ({ listarPedidosCocina: vi.fn() }));
+vi.mock("../../src/features/cocina/pedidos-cocina", () => ({ listarPedidosCocina: vi.fn(), contarPedidosEsperandoPago: vi.fn() }));
 vi.mock("../../src/features/pedidos/estado-actions", () => ({ cambiarEstadoPedido: vi.fn() }));
+vi.mock("../../src/features/pedidos/vencimiento-datos", () => ({ vencerPedidosSinPago: vi.fn().mockResolvedValue(undefined) }));
 import { requerirRol } from "../../src/features/auth/sesion";
-import { listarPedidosCocina } from "../../src/features/cocina/pedidos-cocina";
+import { contarPedidosEsperandoPago, listarPedidosCocina } from "../../src/features/cocina/pedidos-cocina";
 import { cambiarEstadoPedido } from "../../src/features/pedidos/estado-actions";
 import { cambiarEstadoKds, obtenerKds } from "../../src/features/cocina/kds-actions";
 
@@ -83,6 +84,7 @@ beforeEach(() => {
   vi.resetAllMocks(); vi.useFakeTimers(); vi.setSystemTime(ahora);
   vi.mocked(requerirRol).mockResolvedValue({ usuario: { id: "cocinero" }, membresias: [{ restaurantId: "restaurante", branchId: null, rol: "KITCHEN" }] } as Awaited<ReturnType<typeof requerirRol>>);
   vi.mocked(listarPedidosCocina).mockResolvedValue([pedido]);
+  vi.mocked(contarPedidosEsperandoPago).mockResolvedValue(3);
   vi.mocked(cambiarEstadoPedido).mockResolvedValue({ ok: true });
 });
 afterEach(() => vi.useRealTimers());
@@ -92,6 +94,8 @@ describe("US-080: autorización y acciones", () => {
     expect((await obtenerKds()).ok).toBe(true);
     expect(requerirRol).toHaveBeenCalledWith(["KITCHEN", "OWNER", "ADMIN"]);
     expect(listarPedidosCocina).toHaveBeenCalledWith("restaurante", ahora);
+    expect(contarPedidosEsperandoPago).toHaveBeenCalledWith("restaurante");
+    expect(await obtenerKds()).toMatchObject({ pedidosEsperandoPago: 3 });
   });
   it("no lee ni escribe sin autorización", async () => {
     vi.mocked(requerirRol).mockRejectedValue(new Error("Sin permiso"));

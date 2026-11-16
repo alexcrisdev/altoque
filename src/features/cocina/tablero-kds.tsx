@@ -1,5 +1,6 @@
 "use client";
 
+import { AvisoAlergia } from "../pedidos/aviso-alergia";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { obtenerKds, cambiarEstadoKds } from "./kds-actions";
 import { minutosDesde } from "./cocina-logica";
@@ -9,6 +10,7 @@ import { ReportarIncidencia, MarcarIncidenciaResuelta } from "./reportar-inciden
 import { describirDestino } from "../pedidos/modalidad";
 import { ETIQUETA_TIPO_INCIDENCIA } from "../pedidos/incidencias";
 import type { PedidoCocina } from "./tipos";
+import { Insignia } from "../../components/ui";
 
 type Panel = Awaited<ReturnType<typeof obtenerKds>>;
 type Vista = { datos: Panel; cancelados: Record<string, number>; atajos: Record<string, number> };
@@ -173,6 +175,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
       <span className="mt-2 block font-semibold">{describirDestino({ modalidad: pedido.modalidad, mesaNumero: pedido.mesaNumero, nombre: pedido.nombreCliente, telefono: null })}</span>
       <span className="mt-1 block">Llegó a las <time dateTime={pedido.creadoEn}>{horaLima.format(new Date(pedido.creadoEn))}</time> · Espera: {minutosDesde(pedido.creadoEn, ahora)} min</span>
       <span className="mt-1 block font-semibold">{ETIQUETA_ESPERA[colorEspera(pedido.creadoEn, ahora)]}</span>
+      <AvisoAlergia alergia={pedido.alergia} />
       {pedido.items.map((item, i) => <span key={i} className="mt-4 block">
         <span className="block font-bold">{item.cantidad} × {item.nombre}</span>
         {item.observacion && <span className="mt-1 block rounded-lg bg-aviso-fondo p-2 font-bold text-aviso-texto">Observación: {item.observacion}</span>}
@@ -221,6 +224,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
       {resumen.length ? <ul className="flex flex-wrap gap-x-8 gap-y-2">{resumen.map((item) => <li key={item.nombre}><strong>{item.cantidad}×</strong> {item.nombre}</li>)}</ul> : <p>Nada pendiente de preparar</p>}
     </section>
     <div role="status" aria-live="polite">{preparacion.length} en preparación · {listos.length} listos</div>
+    {panel.ok && <p><Insignia tono="aviso">{panel.pedidosEsperandoPago} pedidos esperando pago</Insignia></p>}
     {pedidos.filter((p) => p.estado === "CANCELLED" && (vista.cancelados[p.id] ?? 0) > ahora).map((p) => <p key={p.id} role="alert"
       className="motion-safe:animate-pulse rounded-xl border-2 border-peligro-borde bg-peligro-fondo p-5 font-bold text-peligro-texto">Pedido N.º {p.numero} cancelado — no preparar</p>)}
     <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">

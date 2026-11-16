@@ -5,6 +5,7 @@ import { validarModalidad } from "./modalidad";
 import { obtenerConfigParaLlevar } from "./para-llevar";
 import { buscarPedidoIdempotente, guardarPedidoQr } from "./registro";
 import { validarPedido } from "./validar-pedido";
+import { validarAlergia } from "./alergias";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -18,6 +19,7 @@ export async function registrarPedidoQrAction(
   entrada: unknown,
   // US-002: { modalidad, nombre, telefono }. Si no llega, se usa la modalidad del QR.
   opciones?: unknown,
+  declaracionAlergia?: unknown,
 ): Promise<ResultadoRegistroPedido> {
   if (typeof token !== "string" || !uuid.test(clave)) {
     return { ok: false, mensaje: "No se pudo validar la solicitud. Recarga la carta e inténtalo otra vez." };
@@ -31,6 +33,9 @@ export async function registrarPedidoQrAction(
   if (acceso.modalidad === "DINE_IN" && acceso.mesa === null) {
     return { ok: false, mensaje: "No se pudo identificar la mesa de este código QR." };
   }
+
+  const alergia = validarAlergia(declaracionAlergia);
+  if (!alergia.ok) return { ok: false, mensaje: alergia.mensaje };
 
   let config;
   try {
@@ -56,16 +61,16 @@ export async function registrarPedidoQrAction(
   }
 
   try {
-    const pedido = await guardarPedidoQr(acceso.qrId, clave, validacion.lineas, {
+    const pedido = await guardarPedidoQr(acceso.qrId, acceso.restauranteId, clave, validacion.lineas, {
       modalidad: modalidad.modalidad,
       nombre: modalidad.nombre,
       telefono: modalidad.telefono,
-    });
+    }, alergia.alergia);
     return { ok: true, numero: pedido.numero };
   } catch (error) {
     return {
       ok: false,
-      mensaje: error instanceof Error && error.message.startsWith("Ya no hay")
+      mensaje: error instanceof Error && (error.message.startsWith("Ya no hay") || error.message === "Tienes 2 pedidos sin pagar. Págalos o espera a que venzan para pedir otro.")
         ? error.message
         : "No se pudo registrar el pedido. Revisa tu conexión e inténtalo otra vez.",
     };

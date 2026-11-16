@@ -1,11 +1,12 @@
 "use client";
 
+import { leerAlergia, type FilaAlergia } from "../pedidos/alergias";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import type { EstadoPedido } from "../pedidos/estados";
 import type { Modalidad } from "../pedidos/modalidad";
 import type { PedidoActivo } from "./pedidos-activos";
 
-type FilaPedidoRealtime = {
+type FilaPedidoRealtime = FilaAlergia & {
   id: string;
   restaurant_id: string;
   order_number: number;
@@ -36,6 +37,7 @@ export function suscribirPedidosRestaurante(
       if (!fila.id || fila.restaurant_id !== restauranteId) return;
       alCambiar({
         id: fila.id,
+        alergia: leerAlergia(fila),
         numero: Number(fila.order_number),
         creadoEn: "",
         estado: fila.status,

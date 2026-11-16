@@ -2,6 +2,7 @@
 // para poder probarlas. Todo en céntimos. La base vuelve a validar todo en
 // registrar_pago_stripe.
 
+import { leerCorreoBoleta } from "./comprobante-logica";
 import type { CuentaACobrar } from "./pago-logica";
 
 export const MONEDA_STRIPE = "pen";
@@ -41,20 +42,22 @@ export function nombreLineaCheckout(cuenta: CuentaACobrar, mesaNumero: number | 
 
 // Lo que viaja a Stripe y vuelve en el webhook para saber qué cuenta se pagó.
 // Solo IDs internos: nunca datos del cliente.
-export function metadatosCheckout(cuenta: CuentaACobrar, restauranteId: string): Record<string, string> {
-  return { tipo: cuenta.tipo, cuenta_id: cuenta.id, restaurante_id: restauranteId };
+export function metadatosCheckout(cuenta: CuentaACobrar, restauranteId: string, checkoutId: string): Record<string, string> {
+  return { tipo: cuenta.tipo, cuenta_id: cuenta.id, restaurante_id: restauranteId, checkout_id: checkoutId };
 }
 
 export function leerMetadatosCheckout(
   metadatos: Record<string, string> | null | undefined,
-): { cuenta: CuentaACobrar; restauranteId: string } | null {
+): { cuenta: CuentaACobrar; restauranteId: string; checkoutId: string } | null {
   const tipo = metadatos?.tipo;
   const id = metadatos?.cuenta_id;
   const restauranteId = metadatos?.restaurante_id;
-  if ((tipo !== "MESA" && tipo !== "PARA_LLEVAR") || !UUID.test(id ?? "") || !UUID.test(restauranteId ?? "")) {
+  const checkoutId = metadatos?.checkout_id;
+  if ((tipo !== "MESA" && tipo !== "PARA_LLEVAR") || !UUID.test(id ?? "")
+    || !UUID.test(restauranteId ?? "") || !UUID.test(checkoutId ?? "")) {
     return null;
   }
-  return { cuenta: { tipo, id: id as string }, restauranteId: restauranteId as string };
+  return { cuenta: { tipo, id: id as string }, restauranteId: restauranteId as string, checkoutId: checkoutId as string };
 }
 
 // Solo los campos de la sesión de Checkout que usa el webhook.
@@ -73,7 +76,9 @@ export type PagoStripeAceptado = {
   intentoPago: string;
   cuenta: CuentaACobrar;
   restauranteId: string;
+  checkoutId: string;
   montoCentimos: number;
+  correoBoleta?: string | null;
 };
 
 export type MotivoRechazoStripe = "SESION_INVALIDA" | "NO_PAGADA" | "MONEDA" | "MONTO" | "SIN_INTENTO" | "METADATOS";
@@ -92,7 +97,9 @@ export function interpretarSesionPagada(
   if (!intento || !INTENTO_STRIPE.test(intento)) return { ok: false, motivo: "SIN_INTENTO" };
   const datos = leerMetadatosCheckout(sesion.metadata);
   if (!datos) return { ok: false, motivo: "METADATOS" };
-  return { ok: true, sesionStripe: sesion.id, intentoPago: intento, ...datos, montoCentimos: monto };
+  const correo = leerCorreoBoleta(sesion.metadata?.receipt_email);
+  // Stripe ya cobró: un correo opcional alterado no puede hacer perder el pago.
+  return { ...(correo.ok && correo.correo ? { correoBoleta: correo.correo } : {}), ok: true, sesionStripe: sesion.id, intentoPago: intento, ...datos, montoCentimos: monto };
 }
 
 // A dónde vuelve el cliente desde Stripe: la carta de la mesa o la página de su

@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { centimosATexto } from "./pago-logica";
 
 // US-086: aviso a n8n cuando un pago queda CONFIRMADO. Lógica pura (sin red ni
@@ -44,15 +44,20 @@ export type DatosPagoConfirmado = {
   enLinea: boolean; // true = pagado con Stripe por el cliente
   montoCentimos: number;
   confirmadoEn: string;
+  saldoRestanteCentimos: number;
+  correoBoleta: string | null;
+  comprobante: { id: string; serie: string; numero: number; is_test: true; estado: "PENDIENTE" | "EMITIDO" | "ERROR" } | null;
   platos: { nombre: string; cantidad: number; precioUnitarioCentimos: number; subtotalCentimos: number }[];
 };
 
 export type AvisoPagoConfirmado = {
   evento: typeof EVENTO_PAGO_CONFIRMADO;
-  version: 1;
+  version: 2;
   id: string; // id del pago: n8n lo usa para ignorar avisos repetidos
   restaurante: { id: string; nombre: string };
-  cuenta: { tipo: "MESA" | "PARA_LLEVAR"; id: string; mesa: number | null; pedido: number | null };
+  cuenta: { tipo: "MESA" | "PARA_LLEVAR"; id: string; mesa: number | null; pedido: number | null; saldo_restante: string };
+  cliente?: { correo: string };
+  comprobante: DatosPagoConfirmado["comprobante"];
   pago: { metodo: "CASH" | "YAPE" | "CARD"; canal: "CAJA" | "ONLINE"; monto: string; moneda: "PEN"; confirmado_en: string };
   platos: { nombre: string; cantidad: number; precio_unitario: string; subtotal: string }[];
 };
@@ -84,7 +89,7 @@ export function agruparPlatos(lineas: LineaPedido[]): DatosPagoConfirmado["plato
 export function construirAvisoPago(datos: DatosPagoConfirmado): AvisoPagoConfirmado {
   return {
     evento: EVENTO_PAGO_CONFIRMADO,
-    version: 1,
+    version: 2,
     id: datos.pagoId,
     restaurante: { id: datos.restauranteId, nombre: datos.restauranteNombre },
     cuenta: {
@@ -92,7 +97,10 @@ export function construirAvisoPago(datos: DatosPagoConfirmado): AvisoPagoConfirm
       id: datos.cuenta.id,
       mesa: datos.cuenta.tipo === "MESA" ? datos.cuenta.mesa : null,
       pedido: datos.cuenta.tipo === "PARA_LLEVAR" ? datos.cuenta.pedido : null,
+      saldo_restante: centimosATexto(datos.saldoRestanteCentimos),
     },
+    ...(datos.correoBoleta ? { cliente: { correo: datos.correoBoleta } } : {}),
+    comprobante: datos.comprobante,
     pago: {
       metodo: datos.metodo,
       canal: datos.enLinea ? "ONLINE" : "CAJA",
@@ -122,4 +130,12 @@ export function cabecerasAviso(cuerpo: string, secreto: string, timestamp: numbe
     [CABECERA_TIEMPO]: String(timestamp),
     [CABECERA_FIRMA]: `sha256=${firmarAviso(cuerpo, secreto, timestamp)}`,
   };
+}
+
+// Verifica el cuerpo ORIGINAL antes de interpretar JSON. Ventana de cinco minutos.
+export function verificarFirmaAviso(cuerpo: string, secreto: string, timestamp: string | null, firma: string | null, ahora = Date.now()): boolean {
+  if (secreto.length < 32 || !timestamp || !/^\d{10}$/.test(timestamp) || !firma || !/^sha256=[a-f0-9]{64}$/.test(firma)) return false;
+  const segundos = Number(timestamp);
+  if (Math.abs(Math.floor(ahora / 1000) - segundos) > 300) return false;
+  return timingSafeEqual(Buffer.from(firma.slice(7), "hex"), Buffer.from(firmarAviso(cuerpo, secreto, segundos), "hex"));
 }

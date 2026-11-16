@@ -17,6 +17,10 @@ vi.mock("@/features/acceso-qr/acceso", () => ({
   resolverAccesoQr: vi.fn(),
 }));
 
+vi.mock("../../src/features/pedidos/vencimiento-datos", () => ({
+  vencerPedidosSinPago: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { consultarPedidoCliente } from "../../src/features/pedidos/estado-cliente-servidor";
@@ -43,6 +47,7 @@ const filaPedido = {
   order_number: 42,
   status: "PENDING",
   created_at: "2026-11-01T18:00:00.000Z",
+  table_session_id: null,
   modality: "DINE_IN",
   dining_tables: { number: 1 },
   order_items: [
@@ -129,11 +134,14 @@ function simularSupabase(
 ) {
   const consultaPedidos = crearConsulta(pedidos, errorPedido);
   const consultaHistorial = crearConsulta(historial, errorHistorial);
+  const consultaPagos = crearConsulta([]);
 
   const cliente = {
+    rpc: vi.fn().mockResolvedValue({ error: null }),
     from: vi.fn((tabla: string) => {
       if (tabla === "orders") return consultaPedidos;
       if (tabla === "order_status_history") return consultaHistorial;
+      if (tabla === "payments") return consultaPagos;
 
       throw new Error(`Consulta no permitida en esta prueba: ${tabla}`);
     }),
@@ -199,6 +207,8 @@ describe("consulta del estado del pedido del cliente", () => {
       mesaNumero: 1,
       items: [{ nombre: "Ceviche clásico", cantidad: 2 }],
       motivo: null,
+      limitePago: "2026-11-01T18:15:00.000Z",
+      pagoPendiente: false,
     });
 
     expect(consultaPedidos.eq).toHaveBeenCalledWith(
@@ -218,12 +228,13 @@ describe("consulta del estado del pedido del cliente", () => {
     const seleccion = consultaPedidos.select.mock.calls[0][0];
 
     expect(seleccion.replace(/\s+/g, "")).toBe(
-      "id,order_number,status,created_at,modality," +
+      "id,order_number,status,created_at,table_session_id,modality," +
       "dining_tables(number)," +
       "order_items(product_name,quantity)",
     );
 
-    expect(cliente.from).toHaveBeenCalledExactlyOnceWith("orders");
+    expect(cliente.from).toHaveBeenCalledWith("orders");
+    expect(cliente.from).toHaveBeenCalledWith("payments");
   });
 
   it.each([

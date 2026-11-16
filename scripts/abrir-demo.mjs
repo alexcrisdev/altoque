@@ -42,7 +42,9 @@ export async function abrirDemo({ config = configuracionDemo(), lanzar = chromiu
       try { navegador = await lanzar({ headless: false }); }
       catch { throw new Error("No se pudo abrir Chromium. Ejecuta npx playwright install chromium y comprueba que puedes abrir ventanas en esta computadora."); }
       navegadores.push(navegador);
-      const contexto = await navegador.newContext({ baseURL: config.baseURL, viewport: { width: 1100, height: 800 } });
+      // viewport null: la página usa el tamaño real de la ventana, así se adapta al
+      // maximizar, reducir o dividir la pantalla, y muestra barras de desplazamiento.
+      const contexto = await navegador.newContext({ baseURL: config.baseURL, viewport: null });
       const page = await contexto.newPage();
       page.setDefaultTimeout(20_000);
       page.setDefaultNavigationTimeout(30_000);

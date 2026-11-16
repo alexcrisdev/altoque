@@ -10,7 +10,11 @@ import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { buscarPedidoIdempotente, guardarPedidoQr } from "../../src/features/pedidos/registro";
 import { validarPedido } from "../../src/features/pedidos/validar-pedido";
 import { obtenerConfigParaLlevar } from "../../src/features/pedidos/para-llevar";
-import { registrarPedidoQrAction } from "../../src/features/pedidos/actions";
+import { registrarPedidoQrAction as registrarReal } from "../../src/features/pedidos/actions";
+
+
+const sinAlergia = { respuesta: "NONE", alergenos: [], detalle: "", aceptada: false };
+const registrarPedidoQrAction = (token: string, clave: string, entrada: unknown, opciones?: unknown) => registrarReal(token, clave, entrada, opciones, sinAlergia);
 
 const acceso = {
   estado: "VALIDO" as const, qrId: "qr", modalidad: "TAKEAWAY" as const,
@@ -26,6 +30,28 @@ beforeEach(() => {
 });
 
 describe("registro de pedidos desde QR", () => {
+  it("US-091: rechaza respuesta ausente antes de guardar o devolver un reintento", async () => {
+    vi.mocked(resolverAccesoQr).mockResolvedValue(acceso);
+    expect(await registrarReal("token-qr-largo", clave, [], undefined)).toMatchObject({ ok: false });
+    // La base acepta respuesta null por compatibilidad; la obligación vive aquí.
+    expect(await registrarReal("token-qr-largo", clave, [], undefined,
+      { respuesta: null, alergenos: [], detalle: "", aceptada: false })).toMatchObject({ ok: false });
+    expect(buscarPedidoIdempotente).not.toHaveBeenCalled();
+    expect(guardarPedidoQr).not.toHaveBeenCalled();
+  });
+  it("US-091: valida aceptación y lleva la alergia junto con las líneas", async () => {
+    vi.mocked(resolverAccesoQr).mockResolvedValue(acceso);
+    vi.mocked(buscarPedidoIdempotente).mockResolvedValue(null);
+    vi.mocked(validarPedido).mockResolvedValue({ ok: true, lineas, totalCentimos: 6580 });
+    vi.mocked(guardarPedidoQr).mockResolvedValue({ id: "pedido", numero: 42, repetido: false });
+    const alergia = { respuesta: "YES", alergenos: ["PESCADO"], detalle: "Sin contacto", aceptada: false };
+    expect((await registrarReal("token-qr-largo", clave, [], undefined, alergia)).ok).toBe(false);
+    expect(guardarPedidoQr).not.toHaveBeenCalled();
+    expect((await registrarReal("token-qr-largo", clave, [], undefined, { ...alergia, aceptada: true })).ok).toBe(true);
+    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", "restaurante", clave, lineas, expect.anything(), {
+      respuesta: "YES", alergenos: ["PESCADO"], detalle: "Sin contacto",
+    });
+  });
   it("registra con el QR y restaurante resueltos en servidor y devuelve el número", async () => {
     vi.mocked(resolverAccesoQr).mockResolvedValue(acceso);
     vi.mocked(buscarPedidoIdempotente).mockResolvedValue(null);
@@ -35,7 +61,7 @@ describe("registro de pedidos desde QR", () => {
     const entrada = [{ productoId: "producto", cantidad: 2, observacion: null, precioMostradoCentimos: 3290 }];
     await expect(registrarPedidoQrAction("token-qr-largo", clave, entrada)).resolves.toEqual({ ok: true, numero: 42 });
     expect(validarPedido).toHaveBeenCalledWith("restaurante", entrada);
-    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", clave, lineas, { modalidad: "TAKEAWAY", nombre: null, telefono: null });
+    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", "restaurante", clave, lineas, { modalidad: "TAKEAWAY", nombre: null, telefono: null }, { respuesta: "NONE", alergenos: [], detalle: null });
   });
 
   it("rechaza una clave inválida sin consultar el QR", async () => {
@@ -65,6 +91,16 @@ describe("registro de pedidos desde QR", () => {
     expect(guardarPedidoQr).not.toHaveBeenCalled();
   });
 
+  it("explica con claridad cuando el QR ya tiene dos pedidos sin pagar", async () => {
+    vi.mocked(resolverAccesoQr).mockResolvedValue(acceso);
+    vi.mocked(buscarPedidoIdempotente).mockResolvedValue(null);
+    vi.mocked(validarPedido).mockResolvedValue({ ok: true, lineas, totalCentimos: 6580 });
+    vi.mocked(guardarPedidoQr).mockRejectedValue(new Error("Tienes 2 pedidos sin pagar. Págalos o espera a que venzan para pedir otro."));
+
+    await expect(registrarPedidoQrAction("token-qr-largo", clave, []))
+      .resolves.toEqual({ ok: false, mensaje: "Tienes 2 pedidos sin pagar. Págalos o espera a que venzan para pedir otro." });
+  });
+
   it("US-002: desde una mesa el cliente puede pedir para llevar con sus datos", async () => {
     const mesa = { ...acceso, modalidad: "DINE_IN" as const, mesa: { id: "mesa", numero: 3 } };
     vi.mocked(resolverAccesoQr).mockResolvedValue(mesa);
@@ -75,7 +111,7 @@ describe("registro de pedidos desde QR", () => {
 
     await expect(registrarPedidoQrAction("token-qr-largo", clave, [{}], { modalidad: "TAKEAWAY", nombre: " Ana ", telefono: "987 654-321" }))
       .resolves.toEqual({ ok: true, numero: 43 });
-    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", clave, lineas, { modalidad: "TAKEAWAY", nombre: "Ana", telefono: "987654321" });
+    expect(guardarPedidoQr).toHaveBeenCalledWith("qr", "restaurante", clave, lineas, { modalidad: "TAKEAWAY", nombre: "Ana", telefono: "987654321" }, { respuesta: "NONE", alergenos: [], detalle: null });
   });
 
   it("US-002: no registra para llevar sin los datos que pide el restaurante", async () => {

@@ -2,12 +2,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // US-020: cerrar la cuenta contra la base real (RPC cerrar_cuenta, triggers y RLS).
+// US-063: la mesa no se cierra con pedidos sin entregar y, cerrada, sus pedidos no cambian.
 // Crea una mesa con un pedido y un pedido para llevar, ambos con el producto más
 // barato. Usa la primera mesa libre, igual que pagos.test.ts, y la deja cerrada al
 // terminar; en CI no choca con las E2E porque comparten grupo de concurrencia.
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const password = process.env.DEMO_PASSWORD;
 const restaurantId = "10000000-0000-0000-0000-000000000001";
 const motivo = "Prueba automática US-020: cortesía autorizada";
@@ -102,8 +104,11 @@ afterAll(async () => {
   const errores: string[] = [];
   try {
     // Se cancelan para que no queden en cocina; pagos y cierres se conservan como registro.
+    // Un pedido ya entregado (o ya cancelado) se deja como está: su mesa quedó cerrada (US-063).
     for (const pedidoId of [pedidoMesaId, pedidoLlevarId]) {
       if (!mesero || !pedidoId) continue;
+      const { data: actual } = await mesero.from("orders").select("status").eq("id", pedidoId).maybeSingle();
+      if (actual && ["DELIVERED", "CANCELLED"].includes(actual.status)) continue;
       const { error } = await mesero.rpc("cambiar_estado_pedido", {
         p_pedido_id: pedidoId, p_estado: "CANCELLED", p_motivo: "Prueba automática",
       });
@@ -155,8 +160,30 @@ describe("US-020: cierre de una mesa", () => {
     expect((await cerrar(caja!, { sesion: sessionId })).error?.message).toContain("SALDO_PENDIENTE");
   });
 
-  it("pagada completa: cierre ordinario con quién, cuándo e importe final", async () => {
+  it("US-063: con un pedido sin entregar tampoco hay excepción, y no queda cierre a medias", async () => {
+    expect((await cerrar(admin!, { sesion: sessionId }, motivo)).error?.message).toContain("PEDIDOS_SIN_ENTREGAR");
+    const { data } = await caja!.from("account_closures").select("id").eq("table_session_id", sessionId!);
+    expect(data).toEqual([]);
+  });
+
+  it("US-063: pagada pero con el pedido en cocina o listo no se cierra, ni desde caja ni con el botón del mesero", async () => {
     expect((await pagar({ sesion: sessionId }, "CASH", totalCentimos)).error).toBeNull();
+    const cerrarComoMesero = () => mesero!.from("table_sessions")
+      .update({ closed_at: new Date().toISOString(), closed_by: meseroId }).eq("id", sessionId!);
+
+    expect((await cerrar(caja!, { sesion: sessionId })).error?.message).toContain("PEDIDOS_SIN_ENTREGAR");
+    expect((await cerrarComoMesero()).error?.message).toContain("PEDIDOS_SIN_ENTREGAR");
+
+    const listo = await cocina!.rpc("cambiar_estado_pedido", { p_pedido_id: pedidoMesaId!, p_estado: "READY", p_motivo: null });
+    expect(listo.error).toBeNull();
+    expect((await cerrar(caja!, { sesion: sessionId })).error?.message).toContain("PEDIDOS_SIN_ENTREGAR");
+    expect((await cerrarComoMesero()).error?.message).toContain("PEDIDOS_SIN_ENTREGAR");
+
+    const entregado = await mesero!.rpc("cambiar_estado_pedido", { p_pedido_id: pedidoMesaId!, p_estado: "DELIVERED", p_motivo: null });
+    expect(entregado.error).toBeNull();
+  });
+
+  it("pagada completa y entregada: cierre ordinario con quién, cuándo e importe final", async () => {
     const { data, error } = await cerrar(caja!, { sesion: sessionId });
     expect(error).toBeNull();
     expect(data!.tipo).toBe("ORDINARY");
@@ -174,9 +201,30 @@ describe("US-020: cierre de una mesa", () => {
     expect(sesion!.closed_at).toBe(cierre!.closed_at);
   });
 
-  it("el cierre no cambia el estado de preparación del pedido", async () => {
+  it("el cierre no cambia el estado del pedido entregado", async () => {
     const { data } = await caja!.from("orders").select("status").eq("id", pedidoMesaId!).single();
-    expect(data!.status).toBe("IN_PROGRESS");
+    expect(data!.status).toBe("DELIVERED");
+  });
+
+  it("US-063: un pedido de la mesa cerrada no se cancela ni se modifica", async () => {
+    const cancelar = await mesero!.rpc("cambiar_estado_pedido", {
+      p_pedido_id: pedidoMesaId!, p_estado: "CANCELLED", p_motivo: "Prueba US-063",
+    });
+    expect(cancelar.error).not.toBeNull();
+    const { data } = await caja!.from("orders").select("status").eq("id", pedidoMesaId!).single();
+    expect(data!.status).toBe("DELIVERED");
+  });
+
+  // Con la clave de servicio (salta RLS) se prueba el trigger en sí. Los cambios dejan los
+  // mismos valores: si faltara la migración, no se altera ningún dato de la base compartida.
+  it.skipIf(!serviceKey)("US-063: la base rechaza cambiar el pedido o sus productos aunque se salte RLS", async () => {
+    const servicio = createClient(url!, serviceKey!, { auth: { persistSession: false, autoRefreshToken: false } });
+    const pedido = await servicio.from("orders").update({ status: "DELIVERED" }).eq("id", pedidoMesaId!).select("id");
+    expect(pedido.error?.message).toContain("ACCOUNT_CLOSED");
+
+    const { data: linea } = await servicio.from("order_items").select("id, quantity").eq("order_id", pedidoMesaId!).limit(1).single();
+    const producto = await servicio.from("order_items").update({ quantity: linea!.quantity }).eq("id", linea!.id).select("id");
+    expect(producto.error?.message).toContain("ACCOUNT_CLOSED");
   });
 
   it("una mesa cerrada no se vuelve a cerrar ni recibe pagos", async () => {

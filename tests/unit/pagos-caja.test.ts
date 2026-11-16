@@ -109,7 +109,7 @@ describe("acción de cobro en efectivo US-022", () => {
     expect(resultado).toEqual({ ok: true, vueltoCentimos: 450 });
     expect(cliente.rpc).toHaveBeenCalledWith("registrar_pago", {
       p_sesion_id: sesionId, p_pedido_id: null, p_metodo: "CASH", p_monto: "45.50", p_recibido: "50.00",
-      p_referencia: null, p_aprobado: null, p_clave: clave,
+      p_referencia: null, p_aprobado: null, p_clave: clave, p_receipt_email: null,
     });
   });
 
@@ -272,7 +272,7 @@ describe("acción de pago con tarjeta US-024", () => {
     expect(await registrarPagoTarjetaAction(mesa, "45.50", " aut-123 ", true, clave)).toEqual({ ok: true, aprobado: true });
     expect(cliente.rpc).toHaveBeenCalledWith("registrar_pago", {
       p_sesion_id: sesionId, p_pedido_id: null, p_metodo: "CARD", p_monto: "45.50", p_recibido: null,
-      p_referencia: "AUT-123", p_aprobado: true, p_clave: clave,
+      p_referencia: "AUT-123", p_aprobado: true, p_clave: clave, p_receipt_email: null,
     });
   });
 

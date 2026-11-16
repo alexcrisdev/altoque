@@ -59,6 +59,7 @@ export function mensajeErrorModificacion(codigo: string): string {
     INVALID_CHANGES: "Los cambios no son válidos. Revisa productos, cantidades y observaciones.",
     ORDER_EMPTY: "El pedido debe conservar al menos un producto. Para quitar todos, cancélalo.",
     ORDER_NOT_FOUND: "No encontramos ese pedido.",
+    ACCOUNT_CLOSED: "La cuenta de esta mesa ya se cerró: el pedido no se puede modificar.",
   };
   return mensajes[codigo] ?? "No se pudo modificar el pedido. Intenta de nuevo.";
 }

@@ -7,7 +7,7 @@ import type { Rol } from "../auth/permisos";
 import { mensajeErrorEstado, type EstadoPedido } from "./estados";
 
 const estados: EstadoPedido[] = ["PENDING", "ACCEPTED", "IN_PROGRESS", "READY", "DELIVERED", "CANCELLED"];
-const codigos = ["ORDER_NOT_FOUND", "INVALID_TRANSITION", "FORBIDDEN", "REASON_REQUIRED", "INVALID_REASON", "UNDO_EXPIRED"];
+const codigos = ["ORDER_NOT_FOUND", "INVALID_TRANSITION", "FORBIDDEN", "REASON_REQUIRED", "INVALID_REASON", "UNDO_EXPIRED", "ACCOUNT_CLOSED"];
 
 export async function cambiarEstadoPedido(
   pedidoId: string,

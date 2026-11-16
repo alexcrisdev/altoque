@@ -2,6 +2,26 @@ import { expect } from "@playwright/test";
 import { test, prepararCarrito, confirmarYVerificar, pedidosPropios, MESA_NUMERO, TOKEN_MESA } from "./ayuda";
 import { aceptarDialogoDeAccion } from "./dialogos";
 
+test("US-091: alergia declarada aparece en cocina y mesero", async ({ page, pedido }) => {
+  await pedido.abrirMesa();
+  const carrito = await prepararCarrito(page, TOKEN_MESA, pedido.marca);
+  await carrito.getByRole("button", { name: "Sí", exact: true }).click();
+  const confirmar = carrito.getByRole("button", { name: "Confirmar pedido", exact: true });
+  await expect(confirmar).toBeDisabled();
+  await carrito.getByLabel("Maní", { exact: true }).check();
+  await carrito.getByLabel("Detalle (opcional, máx. 120)", { exact: true }).fill("Evitar contacto");
+  await expect(confirmar).toBeDisabled();
+  await carrito.getByLabel("Entiendo que la cocina hará lo posible por evitar el alérgeno, pero puede haber trazas.", { exact: true }).check();
+  await confirmarYVerificar(page, pedido);
+  const [propio] = await pedidosPropios(pedido.admin, pedido.marca);
+  const cocina = await pedido.staff("cocina");
+  const tarjeta = cocina.getByRole("button", { name: `Marcar listo el pedido N.º ${propio.order_number}`, exact: true });
+  await expect(tarjeta.getByText("Alergia: Maní — Evitar contacto")).toBeVisible();
+  const mesero = await pedido.staff("mesero");
+  await mesero.goto("/mesero");
+  await expect(mesero.getByText("Alergia: Maní — Evitar contacto")).toBeVisible();
+});
+
 test(`Mesa ${MESA_NUMERO} → abrir sesión → pedido en cocina y mesero → limpiar`, async ({ page, pedido }) => {
   await pedido.abrirMesa();
   await prepararCarrito(page, TOKEN_MESA, pedido.marca);
