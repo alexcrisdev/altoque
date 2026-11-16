@@ -288,8 +288,8 @@ describe("US-089: mensaje y flujo n8n", () => {
       fuente.indexOf("export function") +
       "export ".length;
 
-    expect(codigo).toContain(
-      fuente.slice(inicio).trim(),
+    expect(codigo.replace(/\r\n/g, "\n")).toContain(
+        fuente.slice(inicio).trim().replace(/\r\n/g, "\n"),
     );
 
     const ejecutar = new Function(

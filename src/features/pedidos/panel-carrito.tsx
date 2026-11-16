@@ -11,12 +11,15 @@ import { Carrito } from "./carrito";
 import { calcularTotalCentimos } from "./carrito-logica";
 import { formatearPrecio } from "../carta/formato";
 import type { ResultadoRegistroPedido } from "./actions";
+import { ALERGENOS, DECLARACION_ALERGIA, validarAlergia, type AlergiaFormulario, type Alergeno } from "./alergias";
 
 type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
   pedidosHabilitados: boolean;
   enviando: boolean;
   resultado: ResultadoRegistroPedido | null;
   onConfirmar: () => void;
+  alergia: AlergiaFormulario;
+  onAlergia: (alergia: AlergiaFormulario) => void;
   // US-002: selector de modalidad y datos para llevar.
   opciones?: ReactNode;
   // Qué dato falta para poder confirmar (null si está completo).
@@ -25,6 +28,7 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
 
 export function PanelCarrito(props: Props) {
   const dialogo = useRef<HTMLDialogElement>(null);
+  const validacionAlergia = validarAlergia(props.alergia);
 
   const unidades = props.items.reduce(
     (total, item) => total + item.cantidad,
@@ -136,7 +140,7 @@ export function PanelCarrito(props: Props) {
             </fieldset>
           </div>
 
-          <footer className="max-h-[min(50dvh,calc(60dvh-5rem))] shrink-0 space-y-4 overflow-y-auto overscroll-contain border-t border-borde bg-superficie px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:max-h-none md:overflow-visible">
+          <footer className="max-h-[min(50dvh,calc(60dvh-5rem))] shrink-0 space-y-4 overflow-y-auto overscroll-contain border-t border-borde bg-superficie px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:max-h-[60dvh] md:overflow-y-auto">
             <p className="text-sm text-texto-suave">
               {unidades} {unidades === 1 ? "unidad" : "unidades"}
               {" · "}
@@ -248,6 +252,52 @@ export function PanelCarrito(props: Props) {
               )
             )}
 
+            <fieldset disabled={props.enviando} className="space-y-3 rounded-xl border border-borde p-4 disabled:opacity-60">
+              <legend className="px-1 font-semibold">¿Alguien tiene alergias?</legend>
+              <div className="flex gap-3">
+                {([ ["NONE", "No"], ["YES", "Sí"] ] as const).map(([respuesta, etiqueta]) => (
+                  <Boton key={respuesta} type="button" variante="secundario"
+                    aria-pressed={props.alergia.respuesta === respuesta}
+                    className="flex-1 aria-pressed:border-info-borde aria-pressed:bg-info-fondo aria-pressed:text-info-texto"
+                    onClick={() => {
+                      if (props.alergia.respuesta !== respuesta) {
+                        props.onAlergia({ respuesta, alergenos: [], detalle: "", aceptada: false });
+                      }
+                    }}>
+                    {props.alergia.respuesta === respuesta && <span aria-hidden="true">✓</span>}
+                    {etiqueta}
+                  </Boton>
+                ))}
+              </div>
+              {props.alergia.respuesta === "YES" && <div className="space-y-3 rounded-lg bg-peligro-fondo p-3 text-peligro-texto">
+                <p className="font-semibold">⚠ Indica la alergia para avisar a cocina.</p>
+                <div className="grid gap-2">
+                  {(Object.entries(ALERGENOS) as [Alergeno, string][]).map(([codigo, etiqueta]) => (
+                    <label key={codigo} className="flex min-h-11 items-center gap-3">
+                      <input type="checkbox" checked={props.alergia.alergenos.includes(codigo)}
+                        onChange={(e) => props.onAlergia({ ...props.alergia, alergenos: e.target.checked
+                          ? [...props.alergia.alergenos, codigo] : props.alergia.alergenos.filter(a => a !== codigo) })} />
+                      {etiqueta}
+                    </label>
+                  ))}
+                </div>
+                <label className="grid gap-2">Detalle (opcional, máx. 120)
+                  <textarea maxLength={120} rows={2} value={props.alergia.detalle}
+                    className="w-full rounded-lg border border-borde bg-superficie p-3 text-texto"
+                    onChange={(e) => props.onAlergia({ ...props.alergia, detalle: e.target.value })} />
+                </label>
+                <p className="text-sm">Escribe solo información de la alergia, sin nombres, teléfonos ni otros datos personales.</p>
+                <label className="flex min-h-11 items-start gap-3">
+                  <input type="checkbox" checked={props.alergia.aceptada}
+                    onChange={(e) => props.onAlergia({ ...props.alergia, aceptada: e.target.checked })} />
+                  <span>{DECLARACION_ALERGIA}</span>
+                </label>
+              </div>}
+              {!validacionAlergia.ok && <p className="text-sm text-texto-suave" aria-live="polite">
+                {!validacionAlergia.ok && validacionAlergia.mensaje}
+              </p>}
+            </fieldset>
+
             <Boton
               type="button"
               variante="primario"
@@ -258,7 +308,7 @@ export function PanelCarrito(props: Props) {
                 !props.pedidosHabilitados ||
                 unidades === 0 ||
                 hayProductosAusentes ||
-                Boolean(props.faltaDato)
+                Boolean(props.faltaDato) || !validacionAlergia.ok
               }
               className="w-full"
             >

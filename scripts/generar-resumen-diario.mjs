@@ -57,7 +57,7 @@ return [{
 `;
 
 const mensaje = `
-const crearMensaje = ${crearMensajeResumenDiario.toString()};
+const crearMensaje = ${crearMensajeResumenDiario.toString().replace(/\r\n/g, "\n")};
 const configuracion = $('Validar configuración').first().json;
 const resumen = $input.first().json;
 

@@ -1,5 +1,6 @@
-import { formatearPrecio } from "@/features/carta/formato";
-import { ETIQUETA_ESTADO } from "@/features/pedidos/estados";
+import { AvisoAlergia } from "../pedidos/aviso-alergia";
+import { formatearPrecio } from "../carta/formato";
+import { ETIQUETA_ESTADO } from "../pedidos/estados";
 import {
   ETIQUETA_ESTADO_PAGO,
   etiquetaMetodoPago,
@@ -108,6 +109,7 @@ export function DetalleCuenta({
                     ))}
                   </tbody>
                 </table>
+      <AvisoAlergia alergia={pedido.alergia} />
                 <p className="mt-2 text-right font-semibold">Subtotal {soles(pedido.totalCentimos)}</p>
               </li>
             ))}

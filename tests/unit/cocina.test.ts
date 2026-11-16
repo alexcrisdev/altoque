@@ -169,7 +169,7 @@ describe("lectura de cocina", () => {
   it("usa sesión, filtra restaurante, excluye pendientes de pago y ordena por llegada", async () => {
     const cliente = consulta();
     expect(await listarPedidosCocina(restauranteId)).toEqual([{
-      id: "pedido-1", numero: 42, creadoEn: base.created_at, estado: "IN_PROGRESS", modalidad: "DINE_IN",
+      alergia: null, id: "pedido-1", numero: 42, creadoEn: base.created_at, estado: "IN_PROGRESS", modalidad: "DINE_IN",
       asistido: false, mesaNumero: 3, nombreCliente: null,
       items: [{ nombre: "Ceviche", cantidad: 2, observacion: "Sin ají" }],
       incidenciasAbiertas: [],
@@ -179,7 +179,7 @@ describe("lectura de cocina", () => {
     expect(cliente.in).toHaveBeenCalledExactlyOnceWith("status", ["IN_PROGRESS", "READY"]);
     expect(cliente.order).toHaveBeenCalledWith("created_at", { ascending: true });
     expect(cliente.order).toHaveBeenCalledWith("order_number", { ascending: true });
-    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, ready_at, modality, source, customer_name, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)");
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, ready_at, modality, source, customer_name, allergy_answer, allergens, allergy_note, dining_tables(number), order_items(product_name, quantity, observation), order_incidents(id, type, description, status, created_at)");
   });
 
   it("un error no se confunde con una lista vacía y registra únicamente el código", async () => {

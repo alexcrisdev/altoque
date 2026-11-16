@@ -3,6 +3,7 @@ import { crearClienteAdmin } from "@/lib/supabase/admin";
 import type { OpcionesPedido } from "./modalidad";
 import type { LineaValidada } from "./validacion";
 import { mensajeStockInsuficiente } from "./stock-mensaje";
+import type { AlergiaPedido } from "./alergias";
 
 export const MENSAJE_LIMITE_PEDIDOS_QR = "Tienes 2 pedidos sin pagar. Págalos o espera a que venzan para pedir otro.";
 
@@ -29,6 +30,7 @@ export async function guardarPedidoQr(
   clave: string,
   lineas: LineaValidada[],
   opciones: OpcionesPedido,
+  alergia: AlergiaPedido,
 ): Promise<PedidoRegistrado> {
   try {
     const supabase = crearClienteAdmin();
@@ -44,6 +46,9 @@ export async function guardarPedidoQr(
       p_modality: opciones.modalidad,
       p_customer_name: opciones.nombre,
       p_customer_phone: opciones.telefono,
+      p_alergia_respuesta: alergia.respuesta,
+      p_alergenos: alergia.alergenos,
+      p_alergia_detalle: alergia.detalle,
     }).single();
 
     if (error || !data) {

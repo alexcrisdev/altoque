@@ -1,5 +1,6 @@
 "use client";
 
+import { AvisoAlergia } from "../pedidos/aviso-alergia";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { obtenerKds, cambiarEstadoKds } from "./kds-actions";
 import { minutosDesde } from "./cocina-logica";
@@ -174,6 +175,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
       <span className="mt-2 block font-semibold">{describirDestino({ modalidad: pedido.modalidad, mesaNumero: pedido.mesaNumero, nombre: pedido.nombreCliente, telefono: null })}</span>
       <span className="mt-1 block">Llegó a las <time dateTime={pedido.creadoEn}>{horaLima.format(new Date(pedido.creadoEn))}</time> · Espera: {minutosDesde(pedido.creadoEn, ahora)} min</span>
       <span className="mt-1 block font-semibold">{ETIQUETA_ESPERA[colorEspera(pedido.creadoEn, ahora)]}</span>
+      <AvisoAlergia alergia={pedido.alergia} />
       {pedido.items.map((item, i) => <span key={i} className="mt-4 block">
         <span className="block font-bold">{item.cantidad} × {item.nombre}</span>
         {item.observacion && <span className="mt-1 block rounded-lg bg-aviso-fondo p-2 font-bold text-aviso-texto">Observación: {item.observacion}</span>}

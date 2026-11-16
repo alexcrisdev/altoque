@@ -667,6 +667,8 @@ export async function prepararCarrito(
       .fill("999999999");
   }
 
+  await expect(carrito.getByRole("button", { name: "Confirmar pedido", exact: true })).toBeDisabled();
+  await carrito.getByRole("button", { name: "No", exact: true }).click();
   await expect(
     carrito.getByRole("button", {
       name: "Confirmar pedido",

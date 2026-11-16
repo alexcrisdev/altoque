@@ -1,3 +1,4 @@
+import type { AlergiaPedido } from "../pedidos/alergias";
 // US-021: reglas puras de la cuenta (sin base de datos), para poder probarlas.
 // Todo en céntimos para no arrastrar errores de decimales.
 // Debe dar lo mismo que private.saldo_pendiente_sesion en la base.
@@ -33,6 +34,7 @@ export type LineaCuenta = {
 };
 
 export type PedidoCuenta = {
+  alergia?: AlergiaPedido | null;
   id: string;
   numero: number;
   estado: EstadoPedido;

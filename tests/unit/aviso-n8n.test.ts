@@ -36,6 +36,11 @@ const DATOS: DatosPagoConfirmado = {
   platos: [{ nombre: "Ceviche clásico", cantidad: 2, precioUnitarioCentimos: 3125, subtotalCentimos: 6250 }],
 };
 
+it("US-091: n8n no recibe la declaración de alergias", () => {
+  const datos = { ...DATOS, allergy_answer: "YES", allergens: ["MANI"], allergy_note: "DETALLE_SALUD_PRIVADO" };
+  expect(JSON.stringify(construirAvisoPago(datos))).not.toMatch(/allerg|MANI|DETALLE_SALUD_PRIVADO/);
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(console, "error").mockImplementation(() => {});

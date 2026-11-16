@@ -1,3 +1,4 @@
+import { AvisoAlergia } from "../../features/pedidos/aviso-alergia";
 import { Suspense } from "react";
 import { Boton, BotonEnlace, EncabezadoPantalla, Insignia, MensajeEstado, Tarjeta } from "@/components/ui";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
@@ -30,6 +31,7 @@ function DatosPedido({ pedido, ahora }: { pedido: PedidoActivo; ahora: string })
       {` · ${textoAntiguedad(minutosDesde(pedido.creadoEn, ahora))}`}
       {pedido.asistido ? " · Registrado por mesero" : " · Desde QR"}
     </p>
+      <AvisoAlergia alergia={pedido.alergia} />
     {pedido.estado === "READY" && <p className="font-bold text-exito-texto">Listo para entregar</p>}
     <BotonEnlace href={`/mesero/pedidos/${pedido.id}`} variante="secundario" aria-label={`Ver pedido N.º ${pedido.numero}`}>
       Ver pedido

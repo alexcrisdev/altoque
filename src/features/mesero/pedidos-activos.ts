@@ -1,9 +1,12 @@
+import type { AlergiaPedido } from "../pedidos/alergias";
 import "server-only";
+import { leerAlergia, type FilaAlergia } from "../pedidos/alergias";
 import { crearClienteServidor } from "../../lib/supabase/server";
 import { ESTADOS_ACTIVOS, type EstadoPedido } from "../pedidos/estados";
 import type { Modalidad } from "../pedidos/modalidad";
 
 export type PedidoActivo = {
+  alergia?: AlergiaPedido | null;
   id: string;
   numero: number;
   creadoEn: string;
@@ -16,7 +19,7 @@ export type PedidoActivo = {
   asistido: boolean;
 };
 
-type FilaPedido = {
+type FilaPedido = FilaAlergia & {
   id: string;
   order_number: number;
   created_at: string;
@@ -32,7 +35,7 @@ type FilaPedido = {
 export async function listarPedidosActivos(restauranteId: string): Promise<PedidoActivo[]> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from("orders")
-    .select("id, order_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, source")
+    .select("id, order_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, allergy_answer, allergens, allergy_note, source")
     .eq("restaurant_id", restauranteId)
     .in("status", ESTADOS_ACTIVOS)
     .order("created_at", { ascending: true })
@@ -45,6 +48,7 @@ export async function listarPedidosActivos(restauranteId: string): Promise<Pedid
 
   return (data ?? []).map((fila) => ({
     id: fila.id,
+    alergia: leerAlergia(fila),
     numero: Number(fila.order_number),
     creadoEn: fila.created_at,
     estado: fila.status,
