@@ -1,8 +1,10 @@
+import type { AlergiaPedido } from "../pedidos/alergias";
 import type { EstadoPedido } from "@/features/pedidos/estados";
 import type { Modalidad } from "@/features/pedidos/modalidad";
 import type { TipoIncidencia } from "../pedidos/incidencias";
 
 export type PedidoCocina = {
+  alergia?: AlergiaPedido | null;
   id: string;
   numero: number;
   creadoEn: string;

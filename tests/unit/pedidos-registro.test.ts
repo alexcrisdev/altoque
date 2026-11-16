@@ -29,6 +29,7 @@ describe("guardarPedidoQr", () => {
 
     await expect(guardarPedidoQr(
       "qr", "restaurante", "clave", [] as never, {} as never,
+      { respuesta: "NONE", alergenos: [], detalle: null },
     )).rejects.toThrow(MENSAJE_LIMITE_PEDIDOS_QR);
   });
 });

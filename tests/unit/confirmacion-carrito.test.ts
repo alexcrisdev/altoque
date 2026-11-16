@@ -10,6 +10,8 @@ const producto = {
   ingredients: null, allergens: [],
 };
 const props = {
+  alergia: { respuesta: "NONE", alergenos: [], detalle: "", aceptada: false } as import("../../src/features/pedidos/alergias").AlergiaFormulario,
+  onAlergia() {},
   items: [{ productoId: producto.id, cantidad: 2, observacion: "Sin hielo" }],
   productos: [producto], cantidadMaxima: 20, observacionesHabilitadas: true,
   observacionMaxima: 140, pedidosHabilitados: true, enviando: false,
@@ -22,6 +24,16 @@ function render(cambios: Partial<typeof props> = {}) {
 }
 
 describe("revisión y confirmación del carrito", () => {
+  it("US-091: sin responder no se puede confirmar", () => {
+    const html = render({ alergia: { respuesta: null, alergenos: [], detalle: "", aceptada: false } });
+    expect(html).toContain("¿Alguien tiene alergias?");
+    expect(html).toMatch(/<button[^>]* disabled=""[^>]*>Confirmar pedido<\/button>/);
+  });
+  it("US-091: Sí exige un dato y la aceptación informativa", () => {
+    const alergia = { respuesta: "YES" as const, alergenos: ["MANI" as const], detalle: "", aceptada: false };
+    expect(render({ alergia })).toMatch(/<button[^>]* disabled=""[^>]*>Confirmar pedido<\/button>/);
+    expect(render({ alergia: { ...alergia, aceptada: true } })).not.toMatch(/<button[^>]* disabled=""[^>]*>Confirmar pedido<\/button>/);
+  });
   it("muestra cantidades, observaciones, total y confirmación disponible", () => {
     const html = render();
     expect(html).toContain("Sin hielo");
