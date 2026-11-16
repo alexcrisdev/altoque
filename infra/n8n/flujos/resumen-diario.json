@@ -1,0 +1,235 @@
+{
+  "name": "US-089: resumen diario al dueño",
+  "active": false,
+  "nodes": [
+    {
+      "id": "horario",
+      "name": "Cada noche a las 23",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 23 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "manual",
+      "name": "Ejecutar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "configuracion",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "url_altoque",
+              "name": "url_altoque",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "restaurante",
+              "name": "restaurante",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "destinatario",
+              "name": "destinatario",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "validar",
+      "name": "Validar configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        100
+      ],
+      "parameters": {
+        "jsCode": "\nconst c = $input.first().json;\n\nif (\n  typeof c.url_altoque !== 'string' ||\n  (\n    !/^https:\\/\\/[a-z0-9.-]+(?::443)?$/i.test(c.url_altoque) &&\n    !/^http:\\/\\/(?:host\\.docker\\.internal|localhost|127\\.0\\.0\\.1):[0-9]{2,5}$/i.test(c.url_altoque)\n  )\n) {\n  throw new Error('Configura la URL base de AlToque, sin barra final ni ruta');\n}\n\nif (\n  typeof c.restaurante !== 'string' ||\n  !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(c.restaurante)\n) {\n  throw new Error('Configura el UUID del restaurante');\n}\n\nif (\n  typeof c.destinatario !== 'string' ||\n  !/^[^\\s@,;<>]+@[^\\s@,;<>]+\\.[^\\s@,;<>]+$/.test(c.destinatario)\n) {\n  throw new Error('Configura un único destinatario autorizado');\n}\n\nreturn [{\n  json: {\n    url_altoque: c.url_altoque,\n    restaurante: c.restaurante,\n    destinatario: c.destinatario,\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "consultar",
+      "name": "Consultar resumen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url_altoque + '/api/n8n/resumen-diario' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "restaurante",
+              "value": "={{ $json.restaurante }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "mensaje",
+      "name": "Preparar correo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        100
+      ],
+      "parameters": {
+        "jsCode": "\nconst crearMensaje = function crearMensajeResumenDiario(resumen) {\r\n  const texto = valor => {\r\n    if (typeof valor !== \"string\" || !valor.trim()) {\r\n      throw new Error(\"Texto del resumen inválido.\");\r\n    }\r\n    return valor;\r\n  };\r\n\r\n  const entero = valor => {\r\n    if (!Number.isSafeInteger(valor) || valor < 0) {\r\n      throw new Error(\"Cantidad del resumen inválida.\");\r\n    }\r\n    return valor;\r\n  };\r\n\r\n  const centimos = valor => {\r\n    if (\r\n      typeof valor !== \"number\" ||\r\n      !Number.isFinite(valor) ||\r\n      valor < 0 ||\r\n      !Number.isSafeInteger(Math.round(valor * 100)) ||\r\n      Math.abs(valor * 100 - Math.round(valor * 100)) > 0.000001\r\n    ) {\r\n      throw new Error(\"Importe del resumen inválido.\");\r\n    }\r\n    return Math.round(valor * 100);\r\n  };\r\n\r\n  const moneda = valor =>\r\n    `S/ ${(centimos(valor) / 100).toLocaleString(\"es-PE\", {\r\n      minimumFractionDigits: 2,\r\n      maximumFractionDigits: 2,\r\n    })}`;\r\n\r\n  const escapar = valor =>\r\n    texto(valor).replace(/[&<>\"']/g, caracter => ({\r\n      \"&\": \"&amp;\",\r\n      \"<\": \"&lt;\",\r\n      \">\": \"&gt;\",\r\n      '\"': \"&quot;\",\r\n      \"'\": \"&#39;\",\r\n    })[caracter]);\r\n\r\n  const fechaValida = valor => {\r\n    if (\r\n      typeof valor !== \"string\" ||\r\n      !/^\\d{4}-\\d{2}-\\d{2}$/.test(valor) ||\r\n      valor.startsWith(\"0000-\")\r\n    ) {\r\n      throw new Error(\"Fecha del resumen inválida.\");\r\n    }\r\n\r\n    const fecha = new Date(`${valor}T12:00:00Z`);\r\n\r\n    if (\r\n      !Number.isFinite(fecha.getTime()) ||\r\n      fecha.toISOString().slice(0, 10) !== valor\r\n    ) {\r\n      throw new Error(\"Fecha del resumen inválida.\");\r\n    }\r\n\r\n    return valor;\r\n  };\r\n\r\n  const nombre = texto(resumen?.restaurante?.nombre);\r\n  const fecha = fechaValida(resumen.fecha);\r\n  const pedidos = entero(resumen.pedidos);\r\n  const metodos = resumen.ventas_por_metodo;\r\n\r\n  const filas = [\r\n    [\"Efectivo\", metodos?.efectivo],\r\n    [\"Yape\", metodos?.yape],\r\n    [\"Tarjeta en caja\", metodos?.tarjeta_caja],\r\n    [\"Tarjeta en línea\", metodos?.tarjeta_en_linea],\r\n  ];\r\n\r\n  const total = moneda(resumen.total_vendido);\r\n\r\n  if (\r\n    filas.reduce(\r\n      (suma, [, monto]) => suma + centimos(monto),\r\n      0,\r\n    ) !== centimos(resumen.total_vendido)\r\n  ) {\r\n    throw new Error(\r\n      \"El desglose no coincide con el total vendido.\",\r\n    );\r\n  }\r\n\r\n  const plato = resumen.plato_mas_vendido;\r\n\r\n  const masVendido = plato === null\r\n    ? \"Sin pedidos no cancelados.\"\r\n    : `${texto(plato?.nombre)} · ${entero(plato?.cantidad)} unidades`;\r\n\r\n  const cierres = resumen.cierres_con_excepcion;\r\n  const cantidadCierres = entero(cierres?.cantidad);\r\n\r\n  if (\r\n    !Array.isArray(cierres.motivos) ||\r\n    cierres.motivos.length !== cantidadCierres\r\n  ) {\r\n    throw new Error(\"Cierres del resumen inválidos.\");\r\n  }\r\n\r\n  const motivos = cierres.motivos.map(texto);\r\n\r\n  if (\r\n    !Array.isArray(resumen.manana_prepara) ||\r\n    resumen.manana_prepara.length > 3\r\n  ) {\r\n    throw new Error(\"Predicciones del resumen inválidas.\");\r\n  }\r\n\r\n  const manana = new Date(`${fecha}T12:00:00Z`);\r\n  manana.setUTCDate(manana.getUTCDate() + 1);\r\n\r\n  const fechaManana = manana.toISOString().slice(0, 10);\r\n\r\n  const dia = new Intl.DateTimeFormat(\"es-PE\", {\r\n    timeZone: \"America/Lima\",\r\n    weekday: \"long\",\r\n  }).format(manana);\r\n\r\n  const previstos = resumen.manana_prepara.map(plato => {\r\n    if (\r\n      plato.fecha !== fechaManana ||\r\n      plato.dia !== dia\r\n    ) {\r\n      throw new Error(\r\n        \"La predicción no corresponde a mañana.\",\r\n      );\r\n    }\r\n\r\n    texto(plato.modelo);\r\n\r\n    return `~${entero(plato.cantidad)} ${texto(plato.nombre)}`;\r\n  });\r\n\r\n  const preparacion = previstos.length\r\n    ? `Mañana ${dia}: prepara ${previstos.join(\", \")}`\r\n    : \"\";\r\n\r\n  const demo = resumen.manana_prepara.some(\r\n    plato => plato.modelo.endsWith(\"-demo\"),\r\n  );\r\n\r\n  const lineas = [\r\n    `${nombre} · Resumen del ${fecha} (hora de Lima)`,\r\n    `Total vendido: ${total}`,\r\n    `Pedidos no cancelados: ${pedidos}`,\r\n    ...filas.map(\r\n      ([metodo, monto]) => `${metodo}: ${moneda(monto)}`,\r\n    ),\r\n    `Plato más vendido: ${masVendido}`,\r\n    `Cierres con excepción: ${cantidadCierres}`,\r\n    ...motivos.map(motivo => `- ${motivo}`),\r\n    \"Corte: datos disponibles al ejecutar el resumen. Ventas por confirmación; pedidos por creación.\",\r\n    ...(demo\r\n      ? [\"Preparación basada en predicciones de demostración con fechas desplazadas.\"]\r\n      : []),\r\n    ...(preparacion ? [preparacion] : []),\r\n  ];\r\n\r\n  const html =\r\n    `<html lang=\"es\"><body style=\"margin:0;background:#FAF8F5;color:#1E2A3B;font-family:Arial,sans-serif;padding:20px\">`\r\n    + `<div style=\"max-width:600px;margin:auto\">`\r\n    + `<h1 style=\"font-size:24px;color:#1E2A3B\">${escapar(nombre)}</h1>`\r\n    + `<p>Resumen del ${fecha} · hora de Lima</p>`\r\n    + `<p>Total vendido</p>`\r\n    + `<p style=\"font-size:30px;font-weight:bold;color:#E5634D\">${total}</p>`\r\n    + `<p>Pedidos no cancelados: <strong>${pedidos}</strong></p>`\r\n    + `<table style=\"width:100%;border-collapse:collapse\">`\r\n    + filas.map(([metodo, monto]) =>\r\n      `<tr><th scope=\"row\" style=\"text-align:left;padding:8px 0\">${metodo}</th>`\r\n      + `<td style=\"text-align:right\">${moneda(monto)}</td></tr>`,\r\n    ).join(\"\")\r\n    + `</table>`\r\n    + `<p><strong>Plato más vendido:</strong> ${escapar(masVendido)}</p>`\r\n    + `<p><strong>Cierres con excepción:</strong> ${cantidadCierres}</p>`\r\n    + (motivos.length\r\n      ? `<ul>${motivos.map(\r\n          motivo => `<li>${escapar(motivo)}</li>`,\r\n        ).join(\"\")}</ul>`\r\n      : \"\")\r\n    + `<p style=\"font-size:12px\">Corte: datos disponibles al ejecutar el resumen. Ventas por confirmación; pedidos por creación.</p>`\r\n    + (demo\r\n      ? \"<p>Preparación basada en predicciones de demostración con fechas desplazadas.</p>\"\r\n      : \"\")\r\n    + (preparacion\r\n      ? `<p style=\"font-weight:bold\">${escapar(preparacion)}</p>`\r\n      : \"\")\r\n    + \"</div></body></html>\";\r\n\r\n  return {\r\n    asunto: `AlToque · ${nombre.replace(/[\\r\\n]/g, \" \")} · ${fecha}`,\r\n    texto: lineas.join(\"\\n\"),\r\n    html,\r\n  };\r\n};\nconst configuracion = $('Validar configuración').first().json;\nconst resumen = $input.first().json;\n\nif (\n  resumen?.restaurante?.id !==\n  configuracion.restaurante.toLowerCase()\n) {\n  throw new Error('El resumen no corresponde al restaurante configurado');\n}\n\nreturn [{\n  json: {\n    ...crearMensaje(resumen),\n    destinatario: configuracion.destinatario,\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "correo",
+      "name": "Enviar resumen al dueño",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        100
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.destinatario }}",
+        "subject": "={{ $json.asunto }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cada noche a las 23": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Validar configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar configuración": {
+      "main": [
+        [
+          {
+            "node": "Consultar resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar resumen": {
+      "main": [
+        [
+          {
+            "node": "Preparar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar correo": {
+      "main": [
+        [
+          {
+            "node": "Enviar resumen al dueño",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Lima",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false
+  },
+  "pinData": {},
+  "tags": []
+}
