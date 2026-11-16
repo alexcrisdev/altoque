@@ -55,14 +55,14 @@ Pruebas nuevas:
 
 | Criterio | Estado y comprobación |
 | --- | --- |
-| 1. Monto, Copiar monto y titular | Implementado; titular configurado para la demostración. Recorrido de navegador pendiente. |
-| 2. Cámara/galería y monto editable | Implementado con `accept="image/*"` sin `capture`. Recorrido de navegador y celular real pendientes. |
-| 3. Compresión, recodificación y solo imágenes | Pruebas unitarias aprobadas con archivos reales generados en memoria (incluida eliminación de EXIF). Recorrido en dispositivo pendiente. |
+| 1. Monto, Copiar monto y titular | Comprobado en navegador (16/11, preview del PR, Mesa 2): se muestra «Paga a: Cevichería AlToque (demo)», el saldo y Copiar monto. |
+| 2. Cámara/galería y monto editable | Comprobado en navegador con vista de celular 390 × 844: monto prellenado con el saldo (S/ 63.00) y selección de archivo. Celular real pendiente. |
+| 3. Compresión, recodificación y solo imágenes | Pruebas unitarias aprobadas con archivos reales generados en memoria (incluida eliminación de EXIF). En el recorrido, el archivo guardado pesó unos 60 KB (límite 400 KB). Celular real pendiente. |
 | 4. Bucket privado, tabla y RLS | Migración aplicada; bucket privado comprobado; pruebas RLS/Storage 10/10 en Supabase local. |
-| 5. Caja en tiempo real | Implementado con Realtime, respaldo y temporizador. Recorrido con dos navegadores pendiente. |
-| 6. Confirmación humana, única, deshacer y auditoría | Confirmación única, concurrencia y registro de quién verificó probados en integración; Deshacer probado en unitarias. |
+| 5. Caja en tiempo real | Comprobado con cliente y caja en ventanas separadas: la captura apareció en «Por verificar» con mesa, billetera, montos esperado y declarado, hora, cronómetro y foto. |
+| 6. Confirmación humana, única, deshacer y auditoría | Confirmación única, concurrencia y registro de quién verificó probados en integración. En navegador: el pago quedó PENDING hasta que caja pulsó «Llegó completo»; se mostró «Confirmando en 10 s» con Deshacer y luego se registró verified_at. |
 | 7. Huella y alerta de 3 minutos | Hash, umbral y duplicados en SQL probados. Alerta entre pantallas pendiente de recorrido. |
-| 8. Borrado y total diario | Borrado al cerrar y día de Lima probados con dobles de prueba. Trabajo programado cada hora, pendiente de configurar secreto y URL. |
+| 8. Borrado y total diario | En navegador: «Yape/Plin confirmado hoy» pasó de S/ 5.00 a S/ 68.00; al cerrar la cuenta de la Mesa 2 la foto se eliminó del bucket (1,5 s después del cierre) y se marcó deleted_at. Trabajo programado cada hora, pendiente de configurar secreto y URL. |
 | 9. Aislamiento, pago parcial, rechazo y no duplicación | Probados en integración contra Supabase local (10/10). |
 
 ## Activación de limpieza programada
@@ -76,15 +76,25 @@ Pruebas nuevas:
 
 La huella original es una advertencia, no una prueba de autenticidad: viene del navegador. La foto tampoco prueba la recepción del dinero; caja debe comprobar siempre el ingreso real en su billetera. No se presenta esta implementación como certificación de cumplimiento legal.
 
-## Recorrido de navegador pendiente
+## Recorrido en navegador (16/11/2026)
 
-En staging o en el preview del PR, con la Mesa 2 de la Cevichería demo (nunca la Mesa 5 ni el mostrador, reservados para el E2E):
+Preview de Vercel del PR #88, Cevichería demo, Mesa 2 (no se usaron la Mesa 5 ni el mostrador, reservados para el E2E):
 
-1. Cliente (vista de celular 390 × 844): pedir, elegir Yape, comprobar titular y Copiar monto, y subir una captura ficticia sin datos reales.
-2. Caja: ver la captura en «Por verificar» y probar «Llegó otro monto» (queda saldo), «No llegó» (con motivo) y «Llegó completo».
-3. Mesero: comprobar el aviso a los 3 minutos sin verificar.
-4. Cerrar la cuenta desde caja y comprobar que la captura deja de mostrarse.
+1. Cliente con vista de celular 390 × 844: pedido N.º 1410, respuesta a la pregunta de alergias, «Pagar con Yape o Plin», titular y saldo visibles, envío de una captura ficticia sin datos personales. Mensaje: «Captura enviada. Caja verificará el ingreso en su Yape/Plin; tu pago aún no está confirmado».
+2. Base de datos: comprobante YAPE por S/ 63.00 en PENDING y pago YAPE en PENDING; archivo de unos 60 KB en el bucket privado.
+3. Caja: la captura apareció en «Por verificar»; «Llegó completo» mostró la espera de 10 s con Deshacer y luego confirmó el pago; la Mesa 2 quedó «Pagada · por cerrar».
+4. Cierre de la cuenta: el archivo se eliminó del bucket y el comprobante quedó con deleted_at.
+
+Pendiente: celular Android/iOS real, aviso al mesero a los 3 minutos, «Llegó otro monto» y «No llegó» en navegador (estos dos sí están cubiertos por las pruebas de integración).
 
 ## Capturas de pantalla
 
-**Pendientes:** cliente y caja con datos de demostración, y prueba en celular real. No se generaron ni inventaron imágenes de evidencia.
+| Archivo | Qué muestra |
+| --- | --- |
+| `us102-cliente-titular-monto.png` | Cliente: titular, saldo, Copiar monto, billetera y subida de captura |
+| `us102-cliente-captura-enviada.png` | Cliente: captura enviada, pago aún no confirmado |
+| `us102-caja-por-verificar.png` | Caja: tarjeta «Por verificar» con montos, hora, cronómetro y foto |
+| `us102-caja-deshacer.png` | Caja: «Confirmando en 4 s» con Deshacer |
+| `us102-caja-confirmado.png` | Caja: sin capturas pendientes, Yape/Plin confirmado hoy S/ 68.00 y Mesa 2 pagada |
+
+Todas son capturas reales del preview con datos de demostración. La imagen subida como comprobante es una captura de la propia aplicación, sin datos personales.
