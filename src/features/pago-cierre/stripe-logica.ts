@@ -2,6 +2,7 @@
 // para poder probarlas. Todo en céntimos. La base vuelve a validar todo en
 // registrar_pago_stripe.
 
+import { leerCorreoBoleta } from "./comprobante-logica";
 import type { CuentaACobrar } from "./pago-logica";
 
 export const MONEDA_STRIPE = "pen";
@@ -77,6 +78,7 @@ export type PagoStripeAceptado = {
   restauranteId: string;
   checkoutId: string;
   montoCentimos: number;
+  correoBoleta?: string | null;
 };
 
 export type MotivoRechazoStripe = "SESION_INVALIDA" | "NO_PAGADA" | "MONEDA" | "MONTO" | "SIN_INTENTO" | "METADATOS";
@@ -95,7 +97,9 @@ export function interpretarSesionPagada(
   if (!intento || !INTENTO_STRIPE.test(intento)) return { ok: false, motivo: "SIN_INTENTO" };
   const datos = leerMetadatosCheckout(sesion.metadata);
   if (!datos) return { ok: false, motivo: "METADATOS" };
-  return { ok: true, sesionStripe: sesion.id, intentoPago: intento, ...datos, montoCentimos: monto };
+  const correo = leerCorreoBoleta(sesion.metadata?.receipt_email);
+  // Stripe ya cobró: un correo opcional alterado no puede hacer perder el pago.
+  return { ...(correo.ok && correo.correo ? { correoBoleta: correo.correo } : {}), ok: true, sesionStripe: sesion.id, intentoPago: intento, ...datos, montoCentimos: monto };
 }
 
 // A dónde vuelve el cliente desde Stripe: la carta de la mesa o la página de su

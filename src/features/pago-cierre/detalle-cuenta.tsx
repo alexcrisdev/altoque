@@ -10,6 +10,8 @@ import {
 } from "./cuenta-logica";
 import type { CuentaACobrar } from "./pago-logica";
 import { VerificarPago } from "./verificar-pago";
+import { Insignia } from "../../components/ui";
+import type { ComprobanteCuenta } from "./comprobante-logica";
 
 // US-021: detalle de la cuenta (lo mismo para mesa y para llevar).
 
@@ -63,7 +65,7 @@ export function DetalleCuenta({
   cerrada = false,
   verificacion,
 }: {
-  cuenta: ResumenCuenta;
+  cuenta: ResumenCuenta & { comprobante?: ComprobanteCuenta | null };
   cerrada?: boolean;
   verificacion?: Verificacion;
 }) {
@@ -71,6 +73,13 @@ export function DetalleCuenta({
 
   return (
     <div className="mt-6 grid gap-6">
+      {cuenta.comprobante?.is_test && <section aria-label="Boleta de prueba" className="rounded-xl border border-info-borde bg-info-fondo p-4 text-texto">
+        <Insignia tono="info">Boleta {cuenta.comprobante.series}-{cuenta.comprobante.number} (prueba)</Insignia>
+        {cuenta.comprobante.status === "EMITIDO" && cuenta.comprobante.pdf_url
+          ? <a className="ml-2 inline-flex min-h-11 items-center font-semibold underline" href={cuenta.comprobante.pdf_url} target="_blank" rel="noopener noreferrer">Ver PDF</a>
+          : <p className="mt-2">{cuenta.comprobante.status === "ERROR" ? "No se pudo emitir. El pago sigue registrado; avisa al administrador." : "Emisión pendiente."}</p>}
+        <p className="mt-2 text-sm">Comprobante de prueba, sin valor tributario</p>
+      </section>}
       <section aria-labelledby="consumos">
         <h2 id="consumos" className="text-xl font-semibold">Consumos</h2>
         {cuenta.pedidos.length === 0 ? (

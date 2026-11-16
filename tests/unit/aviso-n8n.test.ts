@@ -29,6 +29,9 @@ const DATOS: DatosPagoConfirmado = {
   metodo: "CASH",
   enLinea: false,
   montoCentimos: 6250,
+  saldoRestanteCentimos: 0,
+  correoBoleta: null,
+  comprobante: null,
   confirmadoEn: "2026-11-11T15:30:00.000Z",
   platos: [{ nombre: "Ceviche clásico", cantidad: 2, precioUnitarioCentimos: 3125, subtotalCentimos: 6250 }],
 };
@@ -87,13 +90,24 @@ describe("firma HMAC", () => {
 });
 
 describe("contenido del aviso", () => {
+  it("v2 incluye saldo, reserva estable y solo el correo escrito voluntariamente", () => {
+    const comprobante = { id: "reserva", serie: "BBB1", numero: 7, is_test: true as const, estado: "PENDIENTE" as const };
+    const conCorreo = construirAvisoPago({ ...DATOS, correoBoleta: "cliente@example.test", comprobante });
+    expect(conCorreo.version).toBe(2);
+    expect(conCorreo.cuenta.saldo_restante).toBe("0.00");
+    expect(conCorreo.cliente).toEqual({ correo: "cliente@example.test" });
+    expect(conCorreo.comprobante).toEqual(comprobante);
+    expect(construirAvisoPago(DATOS)).not.toHaveProperty("cliente");
+    expect(construirAvisoPago({ ...DATOS, saldoRestanteCentimos: 1250 }).cuenta.saldo_restante).toBe("12.50");
+  });
   it("lleva restaurante, cuenta, monto, método, fecha y platos con montos en texto", () => {
     expect(construirAvisoPago(DATOS)).toEqual({
       evento: "pago_confirmado",
-      version: 1,
+      version: 2,
       id: PAGO,
       restaurante: { id: DATOS.restauranteId, nombre: "Cevichería Demo" },
-      cuenta: { tipo: "MESA", id: DATOS.cuenta.id, mesa: 3, pedido: null },
+      cuenta: { tipo: "MESA", id: DATOS.cuenta.id, mesa: 3, pedido: null, saldo_restante: "0.00" },
+      comprobante: null,
       pago: { metodo: "CASH", canal: "CAJA", monto: "62.50", moneda: "PEN", confirmado_en: "2026-11-11T15:30:00.000Z" },
       platos: [{ nombre: "Ceviche clásico", cantidad: 2, precio_unitario: "31.25", subtotal: "62.50" }],
     });

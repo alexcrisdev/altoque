@@ -323,7 +323,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
 
     const pago = exigir(await servicio.rpc("registrar_pago_stripe", {
       p_stripe_session_id: sesion,
-      p_payment_intent: `pi_${crypto.randomUUID().replaceAll("-", "")}`,
+      p_payment_intent: `pi_${crypto.randomUUID().replaceAll("-", "x")}`,
       p_sesion_id: null, p_pedido_id: pedido, p_monto: 1,
     }).single<{ pago_id: string; duplicado: boolean }>());
     pagos.push(pago.pago_id);
@@ -337,7 +337,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
     }).single<{ checkout_id: string }>());
     checkouts.push(inicio.checkout_id);
     const sesion = `cs_test_${crypto.randomUUID().replaceAll("-", "")}`;
-    const intento = `pi_${crypto.randomUUID().replaceAll("-", "")}`;
+    const intento = `pi_${crypto.randomUUID().replaceAll("-", "x")}`;
     exigir(await servicio.rpc("vincular_checkout_stripe", { p_checkout_id: inicio.checkout_id, p_session_id: sesion }));
     const resultados = await Promise.all([1, 2].map(() => servicio.rpc("registrar_pago_stripe", {
       p_stripe_session_id: sesion, p_payment_intent: intento,
@@ -412,7 +412,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
 
     const pago = exigir(await servicio.rpc("registrar_pago_stripe", {
       p_stripe_session_id: sesionStripe,
-      p_payment_intent: `pi_${crypto.randomUUID().replaceAll("-", "")}`,
+      p_payment_intent: `pi_${crypto.randomUUID().replaceAll("-", "x")}`,
       p_sesion_id: sesionMesaId, p_pedido_id: null, p_monto: inicio.amount,
     }).single<{ pago_id: string }>()).pago_id;
     pagos.push(pago);

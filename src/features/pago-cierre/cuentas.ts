@@ -14,11 +14,13 @@ import {
 } from "./cuenta-logica";
 import type { CierreCuenta } from "./cierre-logica";
 import { aCierreCuenta, COLUMNAS_CIERRE, type FilaCierre } from "./cierres";
+import type { ComprobanteCuenta } from "./comprobante-logica";
 
 // US-021: capa de datos de la cuenta. Usa la sesión del usuario, así RLS
 // solo deja ver pedidos y pagos de su propio restaurante.
 
 export type CuentaMesa = ResumenCuenta & {
+  comprobante: ComprobanteCuenta | null;
   tipo: "MESA";
   sesionId: string;
   mesaNumero: number;
@@ -28,6 +30,7 @@ export type CuentaMesa = ResumenCuenta & {
 };
 
 export type CuentaParaLlevar = ResumenCuenta & {
+  comprobante: ComprobanteCuenta | null;
   tipo: "PARA_LLEVAR";
   pedidoId: string;
   numero: number;
@@ -139,21 +142,25 @@ export async function obtenerCuentaMesa(restauranteId: string, sesionId: string)
   if (error) fallar("obtenerCuentaMesa", error);
   if (!sesion) return null;
 
-  const [pedidos, pagos, cierre] = await Promise.all([
+  const [pedidos, pagos, cierre, comprobante] = await Promise.all([
     supabase.from("orders").select(COLUMNAS_PEDIDO).eq("restaurant_id", restauranteId)
       .eq("table_session_id", sesionId).overrideTypes<FilaPedido[], { merge: false }>(),
     supabase.from("payments").select(COLUMNAS_PAGO).eq("restaurant_id", restauranteId)
       .eq("table_session_id", sesionId).order("created_at").overrideTypes<FilaPago[], { merge: false }>(),
     supabase.from("account_closures").select(COLUMNAS_CIERRE).eq("restaurant_id", restauranteId)
       .eq("table_session_id", sesionId).maybeSingle().overrideTypes<FilaCierre | null, { merge: false }>(),
+    supabase.from("receipts").select("series, number, status, pdf_url, xml_url, is_test").eq("restaurant_id", restauranteId)
+      .eq("table_session_id", sesionId).maybeSingle().overrideTypes<ComprobanteCuenta | null, { merge: false }>(),
   ]);
   if (pedidos.error) fallar("obtenerCuentaMesa.pedidos", pedidos.error);
   if (pagos.error) fallar("obtenerCuentaMesa.pagos", pagos.error);
   if (cierre.error) fallar("obtenerCuentaMesa.cierre", cierre.error);
+  if (comprobante.error) fallar("obtenerCuentaMesa.comprobante", comprobante.error);
 
   return {
     ...calcularCuenta(pedidos.data.map(aPedidoCuenta), pagos.data.map(aPagoCuenta)),
     tipo: "MESA",
+    comprobante: comprobante.data,
     sesionId: sesion.id,
     mesaNumero: sesion.dining_tables?.number ?? 0,
     abiertaDesde: sesion.opened_at,
@@ -167,7 +174,7 @@ export async function obtenerCuentaParaLlevar(
   pedidoId: string,
 ): Promise<CuentaParaLlevar | null> {
   const supabase = await crearClienteServidor();
-  const [pedido, pagos, cierre] = await Promise.all([
+  const [pedido, pagos, cierre, comprobante] = await Promise.all([
     supabase.from("orders").select(COLUMNAS_PEDIDO).eq("restaurant_id", restauranteId)
       .eq("id", pedidoId).eq("modality", "TAKEAWAY").maybeSingle()
       .overrideTypes<FilaPedido | null, { merge: false }>(),
@@ -175,15 +182,19 @@ export async function obtenerCuentaParaLlevar(
       .eq("order_id", pedidoId).order("created_at").overrideTypes<FilaPago[], { merge: false }>(),
     supabase.from("account_closures").select(COLUMNAS_CIERRE).eq("restaurant_id", restauranteId)
       .eq("order_id", pedidoId).maybeSingle().overrideTypes<FilaCierre | null, { merge: false }>(),
+    supabase.from("receipts").select("series, number, status, pdf_url, xml_url, is_test").eq("restaurant_id", restauranteId)
+      .eq("order_id", pedidoId).maybeSingle().overrideTypes<ComprobanteCuenta | null, { merge: false }>(),
   ]);
   if (pedido.error) fallar("obtenerCuentaParaLlevar", pedido.error);
   if (pagos.error) fallar("obtenerCuentaParaLlevar.pagos", pagos.error);
   if (cierre.error) fallar("obtenerCuentaParaLlevar.cierre", cierre.error);
+  if (comprobante.error) fallar("obtenerCuentaParaLlevar.comprobante", comprobante.error);
   if (!pedido.data) return null;
 
   return {
     ...calcularCuenta([aPedidoCuenta(pedido.data)], pagos.data.map(aPagoCuenta)),
     tipo: "PARA_LLEVAR",
+    comprobante: comprobante.data,
     pedidoId: pedido.data.id,
     numero: Number(pedido.data.order_number),
     nombre: pedido.data.customer_name,
