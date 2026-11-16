@@ -81,8 +81,6 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
   });
 
   it.each([
-    // Sin respuesta solo se acepta si tampoco hay alérgenos ni detalle.
-    { p_alergia_respuesta: null }, { p_alergia_respuesta: null, p_alergenos: [] },
     { p_alergenos: ["OTRO"] },
     { p_alergenos: [], p_alergia_detalle: " " }, { p_alergia_detalle: "x".repeat(121) },
   ])("rechaza declaración inválida: %j", async cambios => {
@@ -93,17 +91,32 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
     expect(filas).toEqual([]);
   });
 
-  it("compatibilidad: la llamada antigua de seis parámetros registra el pedido sin declaración", async () => {
-    const entrada = parametros();
-    const creado = exigir(await servicio.rpc("registrar_pedido_cliente", {
-      p_qr_code_id: entrada.p_qr_code_id, p_idempotency_key: entrada.p_idempotency_key,
-      p_items: entrada.p_items, p_modality: entrada.p_modality,
-      p_customer_name: entrada.p_customer_name, p_customer_phone: entrada.p_customer_phone,
-    }).single<{ pedido_id: string | null }>());
-    expect(creado.pedido_id).not.toBeNull();
-    pedidos.push(creado.pedido_id!);
-    const fila = exigir(await servicio.from("orders").select("allergy_answer, allergens, allergy_note")
-      .eq("id", creado.pedido_id!).single());
-    expect(fila).toEqual({ allergy_answer: null, allergens: [], allergy_note: null });
+  // El código anterior no envía la respuesta: la base lo acepta (default null) para no
+  // cortar los pedidos QR durante el despliegue. La obligación de responder está en actions.ts.
+  describe("sin respuesta (compatibilidad)", () => {
+    it("sin los parámetros de alergia: se crea con allergy_answer null", async () => {
+      const entrada = parametros();
+      const creado = exigir(await servicio.rpc("registrar_pedido_cliente", {
+        p_qr_code_id: entrada.p_qr_code_id, p_idempotency_key: entrada.p_idempotency_key,
+        p_items: entrada.p_items, p_modality: entrada.p_modality,
+        p_customer_name: entrada.p_customer_name, p_customer_phone: entrada.p_customer_phone,
+      }).single<{ pedido_id: string | null }>());
+      expect(creado.pedido_id).not.toBeNull();
+      pedidos.push(creado.pedido_id!);
+      const fila = exigir(await servicio.from("orders").select("allergy_answer, allergens, allergy_note")
+        .eq("id", creado.pedido_id!).single());
+      expect(fila).toEqual({ allergy_answer: null, allergens: [], allergy_note: null });
+    });
+
+    it.each([
+      { caso: "con alérgenos", cambios: { p_alergia_respuesta: null } },
+      { caso: "solo con detalle", cambios: { p_alergia_respuesta: null, p_alergenos: [] } },
+    ])("respuesta null $caso: se rechaza y no crea el pedido", async ({ cambios }) => {
+      const entrada = { ...parametros(), ...cambios };
+      const resultado = await servicio.rpc("registrar_pedido_cliente", entrada);
+      expect(resultado.error?.message).toContain("INVALID_ALLERGY");
+      const filas = exigir(await servicio.from("orders").select("id").eq("idempotency_key", entrada.p_idempotency_key));
+      expect(filas).toEqual([]);
+    });
   });
 });

@@ -53,10 +53,13 @@ separado de los alérgenos de cada producto.
   de parámetros al RPC, reintentos, lectura de cocina, KDS normal/TV, caja, y
   exclusión de los campos en CSV y n8n.
 - Integración preparada `tests/rls/alergias.test.ts` (7 casos, solo Supabase local,
-  con sucursal y QR propios que se borran en `afterAll`): pedido con alergia → el
-  rol KITCHEN la lee; repetir la clave no cambia la declaración; respuesta null con
-  alérgenos o con detalle, o datos inválidos → `INVALID_ALLERGY`; la llamada antigua
-  de 6 parámetros registra el pedido con `allergy_answer` null.
+  con sucursal y QR propios que se borran en `afterAll`):
+  - pedido con alergia → el rol KITCHEN la lee; repetir la clave no cambia la declaración;
+  - datos inválidos (alérgeno fuera de la lista, detalle vacío, más de 120 caracteres)
+    → `INVALID_ALLERGY`;
+  - grupo «sin respuesta (compatibilidad)»: sin los parámetros de alergia el pedido
+    se crea con `allergy_answer` null; respuesta null con alérgenos o solo con detalle
+    → `INVALID_ALLERGY` y no se crea el pedido.
 - Unitaria `registrar-pedido.test.ts`: `actions.ts` rechaza un pedido sin respuesta
   (ausente o null) sin consultar ni guardar.
 - `tests/rls/vencimiento-pedidos.test.ts` (US-097) y `tests/rls/espera-pago.test.ts`
