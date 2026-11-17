@@ -21,6 +21,8 @@ import {
 import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
 import { AvisoEstadoCliente } from "@/features/pedidos/aviso-estado-cliente";
 import { TemporizadorPagoCliente } from "@/features/pedidos/temporizador-pago-cliente";
+import { consultarCalificacionAction } from "@/features/pedidos/calificacion-actions";
+import { CalificacionPedido } from "@/features/pedidos/calificacion-pedido";
 
 export const metadata: Metadata = {
   title: "Estado de mi pedido | AlToque",
@@ -73,6 +75,11 @@ async function ContenidoPedido({ params, searchParams }: Props) {
     falloConsulta = true;
   }
 
+  // La opinión no debe interrumpir la línea de tiempo si su consulta falla.
+  const calificacion = pedido
+    ? await consultarCalificacionAction(token, clave).catch(() => null)
+    : null;
+
   return (
     <section className="space-y-4">
       {/* También reintenta cuando falla la consulta al servidor. */}
@@ -95,6 +102,9 @@ async function ContenidoPedido({ params, searchParams }: Props) {
       ) : pedido ? (
         <>
           <ResumenPedido key={clave} pedido={pedido} />
+          {calificacion?.disponible && !calificacion.calificada && (
+            <CalificacionPedido key={`calificacion-${clave}`} token={token} clave={clave} />
+          )}
           {/* US-094: una mesa usa su sesión; para llevar, su clave de pedido. */}
           <CuentaCliente
             token={token}
