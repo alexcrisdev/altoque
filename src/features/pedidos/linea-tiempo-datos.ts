@@ -21,6 +21,7 @@ function esEstado(valor: string | null): valor is EstadoPedido {
 /**
  * US-092: historial de estados de UN pedido ya validado por QR + clave.
  * Solo devuelve estado anterior, nuevo y hora: nunca quién lo cambió ni motivos.
+ * Si la consulta falla devuelve [] (sin horas), igual que el promedio de cocina.
  */
 export async function leerEventosPedido(
   supabase: ClienteAdmin,
@@ -40,9 +41,10 @@ export async function leerEventosPedido(
       { merge: false }
     >();
 
+  // Si falla, el seguimiento se muestra sin horas en vez de caerse.
   if (error) {
     console.error("leerEventosPedido", error.code);
-    throw new Error("No se pudo consultar la línea de tiempo del pedido.");
+    return [];
   }
 
   return data.flatMap((fila) =>

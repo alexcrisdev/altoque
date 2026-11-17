@@ -47,9 +47,9 @@ export function TicketPedido({
         </span>
       </div>
 
-      <p className="text-5xl font-bold leading-tight tracking-tight">
+      <h2 className="text-5xl font-bold leading-tight tracking-tight">
         N.º {numero}
-      </p>
+      </h2>
 
       <p className="mt-1 text-sm opacity-95">{mensaje}</p>
 

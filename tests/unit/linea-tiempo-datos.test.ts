@@ -48,12 +48,13 @@ describe("US-092: datos de la línea de tiempo", () => {
     expect(consultas[0].eq).toHaveBeenCalledWith("event", "STATUS");
   });
 
-  it("lanza un error genérico si falla el historial", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+  it("si falla el historial registra solo el código y devuelve una lista vacía", async () => {
+    const registro = vi.spyOn(console, "error").mockImplementation(() => {});
     const { supabase } = cliente({ data: null, error: { code: "XX001" } });
 
-    await expect(leerEventosPedido(supabase, "rest-1", "pedido-1"))
-      .rejects.toThrow("No se pudo consultar la línea de tiempo del pedido.");
+    expect(await leerEventosPedido(supabase, "rest-1", "pedido-1")).toEqual([]);
+    expect(registro).toHaveBeenCalledExactlyOnceWith("leerEventosPedido", "XX001");
+    registro.mockRestore();
   });
 
   it("calcula el promedio de cocina del restaurante con la lógica de US-081", async () => {
