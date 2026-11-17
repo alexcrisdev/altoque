@@ -126,21 +126,12 @@ export function rellenarStockConPrediccion(
     campos: estado.campos.map(campo => {
       const sugerencia = porProducto.get(campo.productoId);
 
-      if (sugerencia) {
-        return {
-          ...campo,
-          valor: String(sugerencia.cantidad),
-          origen: "prediccion",
-        };
-      }
-
-      // No quitar el límite a productos que ya registraron ventas.
-      if (campo.vendidos > 0) return { ...campo };
+      if (!sugerencia) return { ...campo };
 
       return {
         ...campo,
-        valor: "",
-        origen: "sin_prediccion",
+        valor: String(sugerencia.cantidad),
+        origen: "prediccion",
       };
     }),
   };

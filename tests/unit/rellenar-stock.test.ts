@@ -70,16 +70,79 @@ describe("US-104: relleno de stock", () => {
     expect(resultado.anteriores?.[0].valor).toBe("30");
   });
 
-  it("sin predicción queda vacío si no tiene ventas", () => {
-    const resultado = rellenarStockConPrediccion(
+  it.each([0, 3])(
+    "conserva valor y origen sin predicción con %s ventas",
+    vendidos => {
+      const inicial = crearEstadoStock([
+        { id: "p1", name: "Ceviche", cantidad: 30, vendidos: 0 },
+        { id: "p2", name: "Bebida", cantidad: 12, vendidos },
+      ]);
+
+      const resultado = rellenarStockConPrediccion(
+        inicial,
+        sugerencias(),
+      );
+
+      expect(resultado.campos[0]).toMatchObject({
+        valor: "46",
+        origen: "prediccion",
+      });
+      expect(resultado.campos[1]).toEqual(inicial.campos[1]);
+      expect(resultado.campos[1]).toMatchObject({
+        valor: "12",
+        origen: "registrado",
+      });
+    },
+  );
+
+  it("conserva una edición manual de un producto sin predicción", () => {
+    const inicial = editarCantidadStock(
       estado(),
+      "p2",
+      "25",
+    );
+
+    const resultado = rellenarStockConPrediccion(
+      inicial,
       sugerencias(),
     );
 
+    expect(resultado.campos[1]).toEqual(inicial.campos[1]);
     expect(resultado.campos[1]).toMatchObject({
-      valor: "",
-      origen: "sin_prediccion",
+      valor: "25",
+      origen: "editado",
     });
+    expect(deshacerRellenoStock(resultado)).toEqual(inicial);
+  });
+
+  it("conserva el stock cero de un producto sin predicción", () => {
+    const inicial = crearEstadoStock([
+      { id: "p1", name: "Ceviche", cantidad: 30, vendidos: 0 },
+      { id: "p2", name: "Bebida", cantidad: 0, vendidos: 0 },
+    ]);
+
+    const resultado = rellenarStockConPrediccion(
+      inicial,
+      sugerencias(),
+    );
+
+    expect(resultado.campos[1]).toEqual(inicial.campos[1]);
+    expect(resultado.campos[1].valor).toBe("0");
+  });
+
+  it("conserva vacío un producto sin límite y sin predicción", () => {
+    const inicial = crearEstadoStock([
+      { id: "p1", name: "Ceviche", cantidad: 30, vendidos: 0 },
+      { id: "p2", name: "Bebida", cantidad: null, vendidos: 0 },
+    ]);
+
+    const resultado = rellenarStockConPrediccion(
+      inicial,
+      sugerencias(),
+    );
+
+    expect(resultado.campos[1]).toEqual(inicial.campos[1]);
+    expect(resultado.campos[1].valor).toBe("");
   });
 
   it("sin predicciones no altera campos ni habilita deshacer", () => {
@@ -219,23 +282,6 @@ describe("US-104: relleno de stock", () => {
       .toEqual(editado.campos);
   });
 
-  it("conserva el stock sin predicción cuando ya hay ventas", () => {
-    const inicial = crearEstadoStock([
-      { id: "p1", name: "Ceviche", cantidad: 30, vendidos: 0 },
-      { id: "p2", name: "Bebida", cantidad: 12, vendidos: 3 },
-    ]);
-
-    const resultado = rellenarStockConPrediccion(
-      inicial,
-      sugerencias(),
-    );
-
-    expect(resultado.campos[1]).toMatchObject({
-      valor: "12",
-      origen: "registrado",
-    });
-  });
-
   it("no infla una predicción inferior a lo vendido", () => {
     const inicial = crearEstadoStock([
       { id: "p1", name: "Ceviche", cantidad: 30, vendidos: 10 },
@@ -246,7 +292,7 @@ describe("US-104: relleno de stock", () => {
       sugerencias(5),
     );
 
-    // Debe ajustarse antes de guardar; se mantiene la validación existente.
+    // Debe ajustarse antes de guardar; conserva la validación existente.
     expect(resultado.campos[0].valor).toBe("5");
   });
 
