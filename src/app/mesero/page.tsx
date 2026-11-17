@@ -86,7 +86,7 @@ async function MeseroPanel() {
       <section aria-labelledby="mesero-mesas" className="mt-8">
         <h2 id="mesero-mesas" className="mb-4 text-xl font-semibold">Mesas</h2>
         {mesas.length === 0 ? <MensajeEstado tipo="vacio" titulo="No hay mesas activas en este restaurante." /> :
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{mesas.map((mesa) => {
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{mesas.map((mesa) => {
             const pedidosMesa = grupos.get(mesa.id) ?? [];
             const resumen = resumenMesa(pedidosMesa);
             return <li key={mesa.id}>

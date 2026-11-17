@@ -19,12 +19,23 @@
   --v2-marfil: #FAF8F5;
   --v2-gris-frio: #F4F6F9;
   --v2-borde: #E4E8EE;
+
+  /* Superficies de la cocina en tema oscuro. */
+  --kds-fondo: #111923;
+  --kds-superficie: #1e293b;
+  --kds-borde: #475569;
+  --kds-texto: #f1f5f9;
+  --kds-texto-suave: #cbd5e1;
 }
 
 @theme inline {
   /* Compatibilidad con las pantallas existentes. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-kds-fondo: var(--kds-fondo);
+  --color-kds-superficie: var(--kds-superficie);
+  --color-kds-borde: var(--kds-borde);
+  --color-kds-texto: var(--kds-texto);
 
   /* Fuentes configuradas en layout.tsx. */
   --font-sans: "Segoe UI", Inter, Arial, sans-serif;
@@ -95,13 +106,17 @@ body {
 }
 
 [data-kds] .bg-superficie {
-  background-color: #1e293b;
+  background-color: var(--kds-superficie);
 }
 
 [data-kds] .border-borde {
-  border-color: #475569;
+  border-color: var(--kds-borde);
+}
+
+[data-kds] .text-texto {
+  color: var(--kds-texto);
 }
 
 [data-kds] .text-texto-suave {
-  color: #cbd5e1;
+  color: var(--kds-texto-suave);
 }
