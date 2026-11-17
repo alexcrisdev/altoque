@@ -2,8 +2,23 @@
 
 :root {
   color-scheme: light;
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #FAF8F5;
+  --foreground: #1E2A3B;
+
+  /* Paleta v2: coral reservado para las acciones principales. */
+  --v2-coral: #E5634D;
+  --v2-coral-suave: #FDEEEA;
+  --v2-coral-oscuro: #B9442F;
+  --v2-pizarra: #1E2A3B;
+  --v2-azul: #3B6EA5;
+  --v2-azul-suave: #EAF1F8;
+  --v2-salvia: #2F8F83;
+  --v2-salvia-suave: #E7F4F1;
+  --v2-rojo: #D64545;
+  --v2-ambar: #D9902F;
+  --v2-marfil: #FAF8F5;
+  --v2-gris-frio: #F4F6F9;
+  --v2-borde: #E4E8EE;
 }
 
 @theme inline {
@@ -12,51 +27,52 @@
   --color-foreground: var(--foreground);
 
   /* Fuentes configuradas en layout.tsx. */
-  --font-sans: var(--font-geist-sans), sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
+  --font-sans: "Segoe UI", Inter, Arial, sans-serif;
+  --font-mono: ui-monospace, monospace;
 
   /* Marca y superficies. */
-  --color-marca: var(--color-teal-700);
-  --color-marca-hover: var(--color-teal-800);
+  --color-marca: var(--v2-coral);
+  --color-marca-hover: var(--v2-coral-oscuro);
+  --color-marca-suave: var(--v2-coral-suave);
   --color-superficie: #ffffff;
-  --color-superficie-suave: var(--color-slate-100);
-  --color-borde: var(--color-slate-300);
+  --color-superficie-suave: var(--v2-gris-frio);
+  --color-borde: var(--v2-borde);
   --color-texto: var(--foreground);
-  --color-texto-suave: var(--color-slate-600);
+  --color-texto-suave: #526174;
 
   /* Botones de acciones destructivas. */
-  --color-peligro: var(--color-red-700);
-  --color-peligro-hover: var(--color-red-800);
+  --color-peligro: var(--v2-rojo);
+  --color-peligro-hover: #A92F35;
 
   /* Entregado y estados generales. */
-  --color-neutro-fondo: var(--color-slate-100);
-  --color-neutro-borde: var(--color-slate-300);
-  --color-neutro-texto: var(--color-slate-700);
+  --color-neutro-fondo: var(--v2-gris-frio);
+  --color-neutro-borde: var(--v2-borde);
+  --color-neutro-texto: #435064;
 
   /* Aceptado. */
-  --color-info-fondo: var(--color-blue-50);
-  --color-info-borde: var(--color-blue-300);
-  --color-info-texto: var(--color-blue-800);
+  --color-info-fondo: var(--v2-azul-suave);
+  --color-info-borde: #A9C3DD;
+  --color-info-texto: #244F7D;
 
   /* Pendiente. */
-  --color-aviso-fondo: var(--color-amber-50);
-  --color-aviso-borde: var(--color-amber-300);
-  --color-aviso-texto: var(--color-amber-900);
+  --color-aviso-fondo: #FBF1E1;
+  --color-aviso-borde: #E7BD7D;
+  --color-aviso-texto: #70470F;
 
   /* En preparación. */
-  --color-progreso-fondo: var(--color-violet-50);
-  --color-progreso-borde: var(--color-violet-300);
-  --color-progreso-texto: var(--color-violet-800);
+  --color-progreso-fondo: var(--v2-azul-suave);
+  --color-progreso-borde: #A9C3DD;
+  --color-progreso-texto: #244F7D;
 
   /* Listo. */
-  --color-exito-fondo: var(--color-emerald-50);
-  --color-exito-borde: var(--color-emerald-300);
-  --color-exito-texto: var(--color-emerald-800);
+  --color-exito-fondo: var(--v2-salvia-suave);
+  --color-exito-borde: #9CCFC6;
+  --color-exito-texto: #17695F;
 
   /* Cancelado y errores. */
-  --color-peligro-fondo: var(--color-red-50);
-  --color-peligro-borde: var(--color-red-300);
-  --color-peligro-texto: var(--color-red-800);
+  --color-peligro-fondo: #FCECEC;
+  --color-peligro-borde: #E7A4A4;
+  --color-peligro-texto: #A92F35;
 }
 
 @theme {
@@ -71,5 +87,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: "Segoe UI", Inter, Arial, sans-serif;
 }
