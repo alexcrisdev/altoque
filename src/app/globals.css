@@ -89,3 +89,19 @@ body {
   color: var(--foreground);
   font-family: "Segoe UI", Inter, Arial, sans-serif;
 }
+
+[data-kds] {
+  color-scheme: dark;
+}
+
+[data-kds] .bg-superficie {
+  background-color: #1e293b;
+}
+
+[data-kds] .border-borde {
+  border-color: #475569;
+}
+
+[data-kds] .text-texto-suave {
+  color: #cbd5e1;
+}
