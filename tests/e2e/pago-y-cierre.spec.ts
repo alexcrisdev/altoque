@@ -1,19 +1,20 @@
 import { expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { test, MESA_NUMERO, TOKEN_MESA, TOKEN_MOSTRADOR, prepararCarrito, confirmarYVerificar, RESTAURANTE } from "./ayuda";
-import { saldoVisible, cuentaPropia, entregarPropio, pagarEfectivo, pagarParaLlevarEnCaja, cerrarOrdinaria, prepararRecuperacion, textoSoles } from "./pago-ayuda";
+import { saldoVisible, cuentaPropia, entregarPropio, pagarEfectivo, pagarParaLlevarEnCaja, cerrarOrdinaria, prepararRecuperacion, registrarPedidoMeseroPropio, textoSoles } from "./pago-ayuda";
 
 test.setTimeout(180_000);
 test.use({ actionTimeout: 20_000 });
 
-test("CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 5", async ({ page, pedido }) => {
+test("CP-030-07 a 11: Yape, tarjeta, efectivo parcial, entrega y cierre de Mesa 5", async ({ page, pedido }) => {
   expect(MESA_NUMERO, "US-030 solo usa Mesa 5").toBe(5);
   prepararRecuperacion(pedido);
   await pedido.abrirMesa();
   await prepararCarrito(page, TOKEN_MESA, pedido.marca);
+  // Pago previo obligatorio: el pedido espera pago; se entrega después de cobrar todo.
   await confirmarYVerificar(page, pedido);
-  await entregarPropio(pedido);
   const p = await cuentaPropia(pedido);
+  expect(p.status).toBe("PENDING");
   const caja = await pedido.staff("caja");
   await expect(caja.getByRole("region", { name: "Mesas", exact: true })
     .getByRole("listitem").filter({ has: caja.getByRole("heading", { name: "Mesa 5", exact: true }) })
@@ -67,6 +68,12 @@ test("CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 
     await expect(caja.getByText(/Recibido .*vuelto S\/\s*1\.00/)).toBeVisible();
   });
 
+  await test.step("Pago previo: con la cuenta pagada el pedido entra a cocina y se entrega", async () => {
+    await expect.poll(async () => (await cuentaPropia(pedido)).status).toBe("IN_PROGRESS");
+    await entregarPropio(pedido);
+    await caja.goto(p.ruta);
+  });
+
   await test.step("CP-030-11: cierre persistido y mesa libre", async () => {
     await cerrarOrdinaria(caja);
     const resumen = caja.getByRole("region", { name: "Cuenta cerrada", exact: true });
@@ -85,12 +92,12 @@ test("CP-030-07 a 11: entrega, Yape, tarjeta, efectivo parcial y cierre de Mesa 
   });
 });
 
-test("CP-030-12: caja no autoriza excepción; admin cierra con motivo", async ({ page, pedido }) => {
+test("CP-030-12: caja no autoriza excepción; admin cierra con motivo", async ({ pedido }) => {
   expect(MESA_NUMERO).toBe(5);
   prepararRecuperacion(pedido);
   await pedido.abrirMesa();
-  await prepararCarrito(page, TOKEN_MESA, pedido.marca);
-  await confirmarYVerificar(page, pedido);
+  // Con pago previo en QR, la cortesía con saldo pendiente solo ocurre en un pedido del mesero.
+  await registrarPedidoMeseroPropio(pedido);
   await entregarPropio(pedido);
   const p = await cuentaPropia(pedido);
   const caja = await pedido.staff("caja");
