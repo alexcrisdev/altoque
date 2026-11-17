@@ -204,7 +204,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
     </li>;
   }
 
-  return <div className={tv ? "space-y-6 text-2xl lg:text-3xl" : "space-y-5 text-lg"}>
+  return <div data-kds className={`rounded-2xl px-4 py-5 sm:px-6 ${tv ? "space-y-6 text-2xl lg:text-3xl" : "space-y-5 text-lg"}`}>
     {error && <p role="alert" className="rounded-lg bg-peligro-fondo p-3 text-peligro-texto">{error}</p>}
     {!tv ? <div className="flex flex-wrap items-center gap-4">
       <button type="button" onClick={habilitarSonido} className="rounded-lg border border-borde px-4 py-2">{sonido ? "Sonido activado" : "Activar sonido"}</button>
