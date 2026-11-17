@@ -2,6 +2,73 @@
 
 Fecha: **14/11/2026**, America/Lima. Rama de trabajo: `dev/erick`.
 
+## Reserva solo con correo — 16/11/2026
+
+**Regla:** la boleta de prueba se reserva solo si la cuenta tiene correo para
+la boleta en al menos un pago `CONFIRMED`, del mismo restaurante y de la misma
+`table_session_id` o `order_id`. Se ignoran correos nulos, vacíos o con espacios.
+Sin correo, el pago se registra normalmente y no consume un número de boleta.
+Un pago parcial con correo no reserva todavía; el pago final sin correo sí
+puede reservar porque la cuenta ya tiene un correo confirmado.
+
+Migración nueva: `20261116220801_us088_boleta_solo_con_correo.sql`.
+Se comparó con la definición de `20261115221935_us088_boletas_prueba.sql`:
+solo añade la condición `if not exists` antes de leer la serie y usa
+`create or replace`. Conserva `security definer`, `set search_path = ''`,
+el `revoke`, los bloqueos y las validaciones anteriores. No redefine el trigger
+ni otras funciones. La migración ya aplicada no se editó.
+
+Pruebas realizadas en Supabase **LOCAL**, reconstruido con
+`npx supabase db reset --local` y todas las migraciones, incluida la nueva:
+
+- Usuarios demo preparados con `node --env-file=.env.local scripts/usuarios-demo.mjs`,
+  con URL y claves locales establecidas en el proceso antes de cargar el archivo.
+  Se comprobó loopback y el puerto local; esas variables prevalecen sobre el
+  archivo. `.env.local` se conservó intacto y no se ejecutaron pruebas remotas.
+- `tests/rls/boletas-local.test.ts`: **11/11**, incluido el SQL previo de
+  snapshot, RLS e idempotencia y diez regresiones de reserva: cinco por modalidad
+  (mesa y para llevar). Sin correo null/vacío/espacios no hay reserva ni avance;
+  con correo se reserva el siguiente número; parcial con correo + final sin
+  correo reserva únicamente al completar el saldo. Cada caso usa ROLLBACK.
+- Integración completa: **136/136 en dos vueltas consecutivas**, 17 archivos.
+  Se ejecutó `node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/rls --no-file-parallelism`
+  con el destino local fijado en el proceso, nunca con el destino compartido.
+- `npm test`: **1320/1320**, 80 archivos.
+- `npm run lint` y `npm run typecheck`: aprobados.
+- Build de producción con variables locales: aprobado. El primer intento no
+  completó la compilación; el segundo compiló correctamente.
+- `npm run build` con la configuración habitual: aprobado al repetirlo.
+  Next.js 16.4.3 mostró una advertencia de vulnerabilidad conocida; la primera
+  ejecución terminó con `SecurityFatalError` después de compilar y la repetición
+  terminó con código 0 conservando la advertencia. No se actualizaron dependencias
+  en este ajuste; el aviso requiere seguimiento separado por el equipo.
+- `tests/e2e/boleta.spec.ts`: **1/1 aprobado**, con correo, reserva, rechazo del
+  callback sin firma, callback firmado repetido y PDF simulado visible en caja.
+  Se reutilizó el archivo sin modificarlo. El primer recorrido se detuvo porque
+  la configuración temporal usaba el mismo token para mesa y para llevar; se
+  corrigió esa configuración y se repitió satisfactoriamente.
+
+Los casos nuevos usan un local de prueba propio, Mesa 88 y QR de transacción.
+La prueba SQL heredada usa un QR para llevar propio en otro local temporal.
+No se usó Mesa 5 ni se regeneraron los QR del equipo. La suite completa se
+ejecutó sobre copias del seed exclusivamente locales.
+La E2E usó un QR propio para llevar en un local de prueba separado, servidor
+aislado en puerto 3118 y HMAC efímero; no usó el mostrador del equipo.
+
+No se aplicó la migración a la base compartida, no se borraron ni modificaron
+BBB1-3 a BBB1-32 y no se cambió el correlativo compartido. No se contactó a
+Nubefact ni Gmail: los números de las aserciones son fixtures de la base local.
+
+Límite de alcance: la reserva considera correos de pagos confirmados anteriores,
+pero el aviso n8n sigue leyendo el correo del pago actual. Este ajuste no agrega
+recuperación del correo anterior al aviso ni reenvío de avisos históricos.
+
+Pendiente de Alexander: revisar la migración en su entorno local, aplicarla y
+configurar `receipt_series` con el siguiente número acordado (33) antes de
+una única prueba DEMO que incluya correo en el pago final.
+
+---
+
 ## Revisión sobre US-097 — 15/11/2026
 
 La migración vigente para aplicar es

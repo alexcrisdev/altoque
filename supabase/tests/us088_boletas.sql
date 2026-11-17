@@ -111,9 +111,14 @@ do $$ begin
 end $$;
 reset role;
 -- Otra cuenta para llevar pagada por Stripe, sin tomar correos de Stripe Checkout.
+-- QR propio de esta transacción: no usar el mostrador reservado para E2E.
+insert into public.branches(id, restaurant_id, name) values
+ ('88000000-0000-4000-8000-000000000080', '10000000-0000-0000-0000-000000000001', 'US-088 Stripe local');
+insert into public.qr_codes(restaurant_id, branch_id, purpose, token_hash) values
+ ('10000000-0000-0000-0000-000000000001', '88000000-0000-4000-8000-000000000080', 'TAKEAWAY', repeat('d', 64));
 insert into public.orders(id, restaurant_id, branch_id, qr_code_id, modality, total, idempotency_key)
  select '88000000-0000-4000-8000-000000000012', restaurant_id, branch_id, id, 'TAKEAWAY', 32, gen_random_uuid()
- from public.qr_codes where restaurant_id = '10000000-0000-0000-0000-000000000001' and purpose = 'TAKEAWAY' and active;
+ from public.qr_codes where branch_id = '88000000-0000-4000-8000-000000000080' and purpose = 'TAKEAWAY' and active;
 insert into public.order_items(order_id, product_id, product_name, quantity, unit_price, subtotal)
  select '88000000-0000-4000-8000-000000000012', id, name, 1, 32, 32 from public.products
  where restaurant_id = '10000000-0000-0000-0000-000000000001' and name = 'Ceviche clásico';
