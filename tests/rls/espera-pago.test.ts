@@ -30,8 +30,6 @@ let sesionId: string | undefined;
 let qrMostradorId: string;
 let qrMesaId: string;
 let fechaStock: string;
-let cobroAnticipadoOriginal: boolean | undefined;
-let cobroAnticipadoRestaurar = false;
 
 function exigir<T>(respuesta: { data: T | null; error: { message: string } | null }): NonNullable<T> {
   if (respuesta.error) throw new Error(respuesta.error.message);
@@ -108,23 +106,6 @@ async function comprobarIngreso(id: string, autor: string | null = cajaId) {
     from_status: "PENDING", to_status: "IN_PROGRESS",
     reason: "US-085: pago confirmado", changed_by: autor,
   }]);
-}
-
-async function configurarCobroAnticipado(activo: boolean) {
-  if (cobroAnticipadoOriginal === undefined) {
-    throw new Error("No se puede cambiar el cobro anticipado sin guardar su valor original.");
-  }
-  cobroAnticipadoRestaurar = true;
-  const { error } = await servicio.from("restaurants")
-    .update({ prepay_dine_in: activo }).eq("id", restauranteId);
-  if (error) throw new Error(error.message);
-}
-
-async function guardarCobroAnticipadoOriginal() {
-  const restaurante = exigir(await servicio.from("restaurants")
-    .select("prepay_dine_in").eq("id", restauranteId)
-    .single<{ prepay_dine_in: boolean }>());
-  cobroAnticipadoOriginal = restaurante.prepay_dine_in;
 }
 
 async function comprobarIngresoMesa(
@@ -225,8 +206,6 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
   beforeAll(async () => {
     if (!anonKey || !serviceKey || !password) throw new Error("Faltan las variables del Supabase local.");
     servicio = cliente(serviceKey);
-    // Capturar antes de cualquier escritura; si falla la lectura, no se modifica la base.
-    await guardarCobroAnticipadoOriginal();
     const [usuarioCaja, usuarioMesero] = await Promise.all([
       iniciar("caja@demo.altoque.pe"), iniciar("mesero@demo.altoque.pe"),
     ]);
@@ -240,9 +219,6 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     qrMesaId = exigir(await servicio.from("qr_codes").select("id")
       .eq("restaurant_id", restauranteId).eq("dining_table_id", mesaId)
       .eq("active", true).limit(1).single<{ id: string }>()).id;
-
-    // Este grupo nunca se conecta a una URL remota; afterAll restaura el valor capturado.
-    await configurarCobroAnticipado(false);
 
     // Producto propio: las pruebas no cambian el stock de los productos del seed.
     productoId = exigir(await servicio.from("products").insert({
@@ -285,15 +261,8 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
         }
       }
     } finally {
-      try {
-        if (servicio && cobroAnticipadoRestaurar && cobroAnticipadoOriginal !== undefined) {
-          comprobar((await servicio.from("restaurants")
-            .update({ prepay_dine_in: cobroAnticipadoOriginal }).eq("id", restauranteId)).error);
-        }
-      } finally {
-        await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-        await Promise.all(clientes.map((actual) => actual.auth.signOut()));
-      }
+      await stockPrueba.restaurar().catch(error => errores.push(String(error)));
+      await Promise.all(clientes.map((actual) => actual.auth.signOut()));
     }
     if (errores.length) throw new Error(`Limpieza US-085: ${errores.join("; ")}`);
   }, 30_000);
@@ -390,14 +359,13 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     expect(await historial(id)).toHaveLength(2);
   });
 
-  it("el pedido QR en mesa sigue naciendo IN_PROGRESS sin pagar", async () => {
+  it("pago previo obligatorio: el pedido QR en mesa nace esperando pago sin configurar nada", async () => {
     const id = await crearPedido("MESA");
-    expect(await estado(id)).toMatchObject({ status: "IN_PROGRESS", modality: "DINE_IN", table_session_id: sesionId });
-    expect((await historial(id)).map((fila) => fila.to_status)).toEqual(["IN_PROGRESS"]);
+    expect(await estado(id)).toMatchObject({ status: "PENDING", modality: "DINE_IN", table_session_id: sesionId });
+    expect((await historial(id)).map((fila) => fila.to_status)).toEqual(["PENDING"]);
   });
 
   it("US-094: el QR de mesa nace esperando pago; el pago parcial no lo libera y el total sí", async () => {
-    await configurarCobroAnticipado(true);
     const id = await crearPedido("MESA");
     expect(await estado(id)).toMatchObject({ status: "PENDING", modality: "DINE_IN", table_session_id: sesionId });
     expect((await historial(id)).map((fila) => fila.to_status)).toEqual(["PENDING"]);
@@ -411,7 +379,6 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
   });
 
   it("US-094: todos los pendientes de la sesión entran al pagar; un pedido posterior vuelve a esperar", async () => {
-    await configurarCobroAnticipado(true);
     const primero = await crearPedido("MESA");
     const segundo = await crearPedido("MESA");
     await pagarSesion("CASH", 2000);
@@ -425,7 +392,6 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
   });
 
   it.each(["CARD", "YAPE"] as const)("US-094: el pago de mesa por %s inicia al quedar confirmado", async (metodo) => {
-    await configurarCobroAnticipado(true);
     const id = await crearPedido("MESA");
     const pago = await pagarSesion(metodo);
     if (metodo === "YAPE") {
@@ -439,7 +405,6 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
   });
 
   it("US-094: Stripe registra pago de sesión y libera sus pedidos con autor nulo", async () => {
-    await configurarCobroAnticipado(true);
     const id = await crearPedido("MESA");
     const checkout = await crearCheckoutStripe({ sesionId: sesionId!, pedidoId: null });
     expect(checkout.orderIds).toContain(id);
@@ -454,24 +419,25 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
   });
 
   it("US-094: los pedidos tomados por el mesero no esperan aunque el ajuste esté activo", async () => {
-    await configurarCobroAnticipado(true);
     const id = await crearPedido("MESERO_MESA");
     expect(await estado(id)).toMatchObject({ status: "IN_PROGRESS", source: "WAITER", modality: "DINE_IN" });
   });
 
   it("US-094: dos pagos parciales simultáneos solo crean una transición a cocina", async () => {
-    await configurarCobroAnticipado(true);
     const id = await crearPedido("MESA");
     await Promise.all([pagarSesion("CASH", 500), pagarSesion("CASH", 500)]);
     await comprobarIngresoMesa(id);
     expect((await historial(id)).filter((fila) => fila.reason === "US-094: pago confirmado")).toHaveLength(1);
   });
 
-  it("US-094: una mesa con el ajuste apagado mantiene el ingreso directo a cocina", async () => {
-    await configurarCobroAnticipado(false);
-    const id = await crearPedido("MESA");
-    expect(await estado(id)).toMatchObject({ status: "IN_PROGRESS", modality: "DINE_IN" });
-    expect((await historial(id)).map((fila) => fila.to_status)).toEqual(["IN_PROGRESS"]);
+  it("pago previo obligatorio: el ajuste ya no se puede apagar", async () => {
+    const { error } = await servicio.from("restaurants")
+      .update({ prepay_dine_in: false }).eq("id", restauranteId);
+    expect(error?.code).toBe("23514");
+    const restaurante = exigir(await servicio.from("restaurants")
+      .select("prepay_dine_in").eq("id", restauranteId)
+      .single<{ prepay_dine_in: boolean }>());
+    expect(restaurante.prepay_dine_in).toBe(true);
   });
 
   it("el pedido para llevar del mesero sigue naciendo IN_PROGRESS", async () => {

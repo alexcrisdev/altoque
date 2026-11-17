@@ -719,9 +719,8 @@ export async function confirmarYVerificar(
     Number(registros[0].order_number),
   ).toBe(numero);
 
-  const esperaPago =
-    registros[0].modality === "TAKEAWAY" &&
-    registros[0].source === "QR";
+  // Pago previo obligatorio: todo pedido QR (mesa o para llevar) espera pago.
+  const esperaPago = registros[0].source === "QR";
 
   const estadoInicial = esperaPago
     ? "PENDING"
