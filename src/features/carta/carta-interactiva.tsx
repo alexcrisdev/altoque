@@ -315,7 +315,7 @@ export function CartaInteractiva({
     <div className="pt-4 pb-28">
       <nav
         aria-label="Categorías de la carta"
-        className="sticky top-0 z-10 -mx-1 mb-6 flex gap-2 overflow-x-auto border-b border-borde bg-background px-1 py-3"
+        className="sticky top-0 z-20 -mx-4 mb-6 flex gap-2 overflow-x-auto border-b border-borde bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6"
       >
         {categorias.map((categoria) => (
           <a
@@ -343,7 +343,7 @@ export function CartaInteractiva({
               {categoria.name}
             </h2>
 
-            <ul className="grid gap-3">
+            <ul className="grid gap-3 md:grid-cols-2">
               {categoria.productos.map((producto) => (
                 <li key={producto.id}>
                   <Boton
