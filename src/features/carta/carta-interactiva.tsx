@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Boton,
   BotonEnlace,
@@ -30,12 +30,26 @@ import { SelectorModalidad } from "../pedidos/selector-modalidad";
 import {
   agregarAlCarrito,
   aItemsPedido,
+  ajustarADisponible,
+  aplicarDisponibilidad,
   cambiarCantidad as actualizarCantidad,
+  estaAgotado,
+  hayLineasConProblema,
+  POCAS_UNIDADES,
   quitarDelCarrito,
   cambiarObservacion as actualizarObservacion,
 } from "../pedidos/carrito-logica";
 import { LIMITES, type ItemCarrito } from "../pedidos/tipos";
-import type { CategoriaConProductos, Producto } from "./tipos";
+import { IconoCandado } from "../../components/icono-candado";
+import { consultarDisponibilidadAction } from "./disponibilidad-actions";
+import type {
+  CategoriaConProductos,
+  DisponibilidadProducto,
+  Producto,
+} from "./tipos";
+
+// US-103: cada cuánto la carta vuelve a mirar el stock (criterio: 10–15 s).
+const SEGUNDOS_STOCK = 12;
 
 // US-002: de dónde viene el cliente y qué datos pide el restaurante para llevar.
 export type DatosPedidoCliente = {
@@ -95,10 +109,62 @@ export function CartaInteractiva({
   const [aviso, setAviso] = useState("");
   const itemsAnteriores = useRef<ItemCarrito[]>([]);
 
-  const productos = useMemo(
-    () => categorias.flatMap((categoria) => categoria.productos),
-    [categorias],
+  // US-103: última foto del stock que devolvió el servidor.
+  const [disponibilidad, setDisponibilidad] = useState<
+    ReadonlyMap<string, DisponibilidadProducto>
+  >(new Map());
+  const consultandoStock = useRef(false);
+
+  const categoriasVivas = useMemo(
+    () =>
+      categorias.map((categoria) => ({
+        ...categoria,
+        productos: aplicarDisponibilidad(categoria.productos, disponibilidad),
+      })),
+    [categorias, disponibilidad],
   );
+
+  const productos = useMemo(
+    () => categoriasVivas.flatMap((categoria) => categoria.productos),
+    [categoriasVivas],
+  );
+
+  const consultarStock = useCallback(async () => {
+    if (consultandoStock.current) return;
+    consultandoStock.current = true;
+    try {
+      const respuesta = await consultarDisponibilidadAction(token);
+      if (respuesta.ok) {
+        setDisponibilidad(
+          new Map(respuesta.productos.map((producto) => [producto.id, producto])),
+        );
+      }
+    } catch {
+      // Sin red: se reintenta en la siguiente vuelta.
+    } finally {
+      consultandoStock.current = false;
+    }
+  }, [token]);
+
+  useEffect(() => {
+    function siVisible() {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        void consultarStock();
+      }
+    }
+    const intervalo = window.setInterval(siVisible, SEGUNDOS_STOCK * 1000);
+    document.addEventListener("visibilitychange", siVisible);
+    window.addEventListener("online", siVisible);
+    return () => {
+      window.clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", siVisible);
+      window.removeEventListener("online", siVisible);
+    };
+  }, [consultarStock]);
+
+  const productoSeleccionado = seleccionado
+    ? productos.find((producto) => producto.id === seleccionado.id) ?? seleccionado
+    : null;
 
   // Notifica únicamente los aumentos efectivos del carrito.
   useEffect(() => {
@@ -182,6 +248,7 @@ export function CartaInteractiva({
       envioEnCurso.current ||
       !pedidosHabilitados ||
       items.length === 0 ||
+      hayLineasConProblema(items, productos) ||
       faltaDato || !validarAlergia(alergia).ok
     ) {
       return;
@@ -271,7 +338,15 @@ export function CartaInteractiva({
     } finally {
       envioEnCurso.current = false;
       setEnviando(false);
+      // US-103: si se agotó en el mismo segundo, el stock nuevo marca solo esa línea.
+      void consultarStock();
     }
+  }
+
+  function dejarDisponible(productoId: string) {
+    const producto = productos.find((producto) => producto.id === productoId);
+    if (!producto) return;
+    actualizarCarrito((actuales) => ajustarADisponible(actuales, producto));
   }
 
   function cambiarCantidad(
@@ -329,7 +404,7 @@ export function CartaInteractiva({
       </nav>
 
       <div className="space-y-8">
-        {categorias.map((categoria) => (
+        {categoriasVivas.map((categoria) => (
           <section
             key={categoria.id}
             id={`categoria-${categoria.id}`}
@@ -344,15 +419,30 @@ export function CartaInteractiva({
             </h2>
 
             <ul className="grid gap-3 md:grid-cols-2">
-              {categoria.productos.map((producto) => (
-                <li key={producto.id}>
+              {categoria.productos.map((producto) => {
+                const agotado = estaAgotado(producto);
+                const enCarrito =
+                  items.find((item) => item.productoId === producto.id)?.cantidad ?? 0;
+                const sinMas =
+                  agotado ||
+                  enCarrito >= LIMITES.cantidadMax ||
+                  (typeof producto.quedan === "number" && enCarrito >= producto.quedan);
+                const pocas =
+                  !agotado &&
+                  typeof producto.quedan === "number" &&
+                  producto.quedan <= POCAS_UNIDADES;
+
+                return (
+                <li key={producto.id} className="relative">
                   <Boton
                     type="button"
                     variante="secundario"
                     tamano="lg"
                     onClick={() => abrirDetalle(producto)}
                     aria-haspopup="dialog"
-                    className="w-full gap-4 text-left"
+                    className={`w-full gap-4 pr-16 text-left ${
+                      agotado ? "opacity-60 grayscale" : ""
+                    }`}
                   >
                     {producto.image_url && (
                       <Image
@@ -380,15 +470,35 @@ export function CartaInteractiva({
                         {formatearPrecio(producto.price)}
                       </span>
 
-                      {!producto.available && (
-                        <Insignia tono="neutro">
+                      {agotado && (
+                        <Insignia tono="neutro" className="gap-1">
+                          <IconoCandado />
                           Agotado
+                        </Insignia>
+                      )}
+
+                      {pocas && (
+                        <Insignia tono="aviso">
+                          ¡Quedan {producto.quedan}!
                         </Insignia>
                       )}
                     </span>
                   </Boton>
+
+                  {/* US-103: agregar rápido; se bloquea si está agotado o no queda más. */}
+                  <Boton
+                    type="button"
+                    variante="primario"
+                    aria-label={`Agregar ${producto.name} al carrito`}
+                    disabled={!pedidosHabilitados || sinMas}
+                    onClick={() => agregarProducto(producto)}
+                    className="absolute right-3 top-3 min-w-11 px-0 text-xl"
+                  >
+                    {agotado ? <IconoCandado className="h-5 w-5" /> : "+"}
+                  </Boton>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </section>
         ))}
@@ -402,6 +512,7 @@ export function CartaInteractiva({
         observacionMaxima={LIMITES.observacionMax}
         onCambiarCantidad={cambiarCantidad}
         onEliminar={eliminarProducto}
+        onDejarDisponible={dejarDisponible}
         onCambiarObservacion={cambiarObservacion}
         pedidosHabilitados={pedidosHabilitados}
         enviando={enviando}
@@ -454,7 +565,7 @@ export function CartaInteractiva({
       )}
 
       <DetalleProducto
-        producto={seleccionado}
+        producto={productoSeleccionado}
         dialogoRef={dialogo}
         onAgregar={agregarProducto}
         aviso={aviso}

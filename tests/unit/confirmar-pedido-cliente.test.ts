@@ -30,6 +30,9 @@ vi.mock("../../src/features/pedidos/panel-carrito", () => ({
   },
 }));
 vi.mock("../../src/features/carta/detalle-producto", () => ({ DetalleProducto: () => null }));
+vi.mock("../../src/features/carta/disponibilidad-actions", () => ({
+  consultarDisponibilidadAction: vi.fn().mockResolvedValue({ ok: false }),
+}));
 
 import { registrarPedidoQrAction } from "../../src/features/pedidos/actions";
 import { CartaInteractiva } from "../../src/features/carta/carta-interactiva";

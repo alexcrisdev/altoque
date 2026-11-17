@@ -80,7 +80,14 @@ export function BotonQr({
         />
       )}
 
-      {resultado.estado === "listo" && (
+      {/* US-096: si quedó guardado, la pantalla ya lo muestra arriba; no repetirlo. */}
+      {resultado.estado === "listo" && resultado.guardado && (
+        <p role="status" className="text-sm font-semibold text-exito-texto">
+          QR nuevo listo. El anterior ya no funciona.
+        </p>
+      )}
+
+      {resultado.estado === "listo" && !resultado.guardado && (
         <Tarjeta className="grid justify-items-start gap-3">
           <Image
             src={resultado.imagen}
