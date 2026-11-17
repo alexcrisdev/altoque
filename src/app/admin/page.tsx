@@ -3,20 +3,14 @@ import {
   Boton,
   BotonEnlace,
   EncabezadoPantalla,
-  Insignia,
   MensajeEstado,
   Tarjeta,
 } from "@/components/ui";
 import { cerrarSesion } from "@/features/auth/actions";
 import { requerirRol } from "@/features/auth/sesion";
-import {
-  actualizarCobroAnticipadoAction,
-  consultarCobroAnticipadoAction,
-} from "@/features/dashboard/configuracion-actions";
 
 async function AdminPanel() {
   await requerirRol(["OWNER", "ADMIN"]);
-  const cobroAnticipado = await consultarCobroAnticipadoAction();
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
@@ -30,24 +24,6 @@ async function AdminPanel() {
           </form>
         }
       />
-
-      <Tarjeta className="my-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h2 className="font-semibold text-texto">Cobro anticipado en mesa</h2>
-          <p className="mt-1 text-sm text-texto-suave">
-            Si está activo, los pedidos por QR esperan el pago completo de la mesa antes de entrar a cocina.
-          </p>
-          <Insignia tono={cobroAnticipado ? "exito" : "neutro"} className="mt-2">
-            {cobroAnticipado ? "Activo" : "Apagado"}
-          </Insignia>
-        </div>
-        <form action={actualizarCobroAnticipadoAction}>
-          <input type="hidden" name="activo" value={String(!cobroAnticipado)} />
-          <Boton type="submit" variante="secundario">
-            {cobroAnticipado ? "Apagar" : "Activar"} cobro anticipado
-          </Boton>
-        </form>
-      </Tarjeta>
 
       <nav aria-label="Administración">
         <ul className="grid gap-4 sm:grid-cols-2">
