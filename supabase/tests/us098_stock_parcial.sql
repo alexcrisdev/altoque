@@ -1,7 +1,7 @@
 -- US-098: ejecutar únicamente en Supabase local. Todos los cambios se revierten.
 begin;
 insert into public.products(id, restaurant_id, category_id, name, price, active, available)
-select id_producto, '10000000-0000-0000-0000-000000000001', c.id, 'Stock US-098', 1, true, true
+select id_producto, '10000000-0000-0000-0000-000000000001', c.id, 'Stock US-098 ' || right(id_producto::text, 1), 1, true, true
 from (values ('98000000-0000-4000-8000-000000000001'::uuid),
              ('98000000-0000-4000-8000-000000000002'::uuid)) p(id_producto)
 cross join lateral (select id from public.categories
