@@ -21,7 +21,17 @@ vi.mock("../../src/features/pedidos/vencimiento-datos", () => ({
   vencerPedidosSinPago: vi.fn().mockResolvedValue(undefined),
 }));
 
+// US-092: la línea de tiempo tiene su propia capa de datos (se prueba aparte).
+vi.mock("../../src/features/pedidos/linea-tiempo-datos", () => ({
+  leerEventosPedido: vi.fn(),
+  leerPromedioCocinaMs: vi.fn(),
+}));
+
 import { crearClienteAdmin } from "@/lib/supabase/admin";
+import {
+  leerEventosPedido,
+  leerPromedioCocinaMs,
+} from "../../src/features/pedidos/linea-tiempo-datos";
 import { resolverAccesoQr } from "@/features/acceso-qr/acceso";
 import { consultarPedidoCliente } from "../../src/features/pedidos/estado-cliente-servidor";
 
@@ -161,6 +171,10 @@ function simularSupabase(
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(resolverAccesoQr).mockResolvedValue(acceso);
+  vi.mocked(leerEventosPedido).mockResolvedValue([
+    { desde: null, hacia: "PENDING", creadoEn: "2026-11-01T18:00:00.000Z" },
+  ]);
+  vi.mocked(leerPromedioCocinaMs).mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -209,7 +223,27 @@ describe("consulta del estado del pedido del cliente", () => {
       motivo: null,
       limitePago: "2026-11-01T18:15:00.000Z",
       pagoPendiente: false,
+      lineaTiempo: [
+        { clave: "ENVIADO", etiqueta: "Pedido enviado", hora: "13:00", estado: "actual" },
+        { clave: "PAGADO", etiqueta: "Pago confirmado", hora: null, estado: "pendiente" },
+        { clave: "EN_COCINA", etiqueta: "En cocina", hora: null, estado: "pendiente" },
+        { clave: "LISTO", etiqueta: "Listo", hora: null, estado: "pendiente" },
+        { clave: "ENTREGADO", etiqueta: "Entregado", hora: null, estado: "pendiente" },
+      ],
+      estimado: { minutos: 15, porDefecto: true, despuesDelPago: true },
     });
+
+    // La línea de tiempo se lee solo para este pedido y este restaurante.
+    expect(leerEventosPedido).toHaveBeenCalledExactlyOnceWith(
+      cliente,
+      acceso.restauranteId,
+      filaPedido.id,
+    );
+    expect(leerPromedioCocinaMs).toHaveBeenCalledWith(
+      cliente,
+      acceso.restauranteId,
+      expect.any(Number),
+    );
 
     expect(consultaPedidos.eq).toHaveBeenCalledWith(
       "restaurant_id",
@@ -333,6 +367,16 @@ describe("consulta del estado del pedido del cliente", () => {
       "orders",
       "order_status_history",
     ]);
+  });
+
+  it("no calcula el promedio de cocina cuando el pedido ya está listo", async () => {
+    simularSupabase([{ ...filaPedido, status: "READY" }]);
+
+    expect(await consultarPedidoCliente(token, clave)).toMatchObject({
+      estado: "READY",
+      estimado: null,
+    });
+    expect(leerPromedioCocinaMs).not.toHaveBeenCalled();
   });
 
   it("no inventa un motivo cuando no hay uno registrado", async () => {
