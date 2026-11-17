@@ -4,7 +4,7 @@ import { pagarParaLlevarEnCaja, prepararRecuperacion } from "./pago-ayuda";
 
 test("CP-030-05: sin conexión conserva el carrito y reintenta sin duplicar", async ({ page, pedido }) => {
   prepararRecuperacion(pedido);
-  await prepararCarrito(page, TOKEN_MOSTRADOR, pedido.marca);
+  await prepararCarrito(page, TOKEN_MOSTRADOR, pedido);
   try {
     await page.context().setOffline(true);
     await page.getByRole("button", { name: "Confirmar pedido", exact: true }).click();

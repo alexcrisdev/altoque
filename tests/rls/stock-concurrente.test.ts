@@ -1,3 +1,4 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -25,8 +26,7 @@ let waiter: SupabaseClient;
 let branchId: string;
 let productoId: string;
 let vendidosOriginal = 0;
-let productosActivos: { id: string }[] = [];
-let cantidadesOriginales = new Map<string, number | null>();
+const stockPrueba = new StockPrueba(restaurantId);
 let pedidosCreados: string[] = [];
 
 async function iniciar(email: string) {
@@ -47,51 +47,29 @@ beforeAll(async () => {
   owner = dueno.cliente;
   waiter = mesero.cliente;
 
-  const [productos, locales, stocks] = await Promise.all([
-    owner.from("products").select("id").eq("restaurant_id", restaurantId).eq("active", true),
+  const [productos, locales] = await Promise.all([
+    owner.from("products").select("id").eq("restaurant_id", restaurantId).eq("active", true).eq("available", true).order("id").limit(1).single(),
     owner.from("branches").select("id").eq("restaurant_id", restaurantId).eq("active", true).limit(1).single(),
-    owner.from("product_daily_stock").select("product_id, quantity, sold").eq("restaurant_id", restaurantId).eq("stock_date", fecha),
   ]);
-  if (productos.error || locales.error || stocks.error || !locales.data) throw new Error("No se pudo preparar la prueba de stock.");
-  productosActivos = productos.data ?? [];
+  if (productos.error || locales.error || !productos.data || !locales.data) throw new Error("No se pudo preparar la prueba de stock.");
   branchId = locales.data.id;
-  const porProducto = new Map((stocks.data ?? []).map((fila) => [fila.product_id, fila]));
-  const elegido = productosActivos.find((p) => {
-    const fila = porProducto.get(p.id);
-    return !fila || fila.sold < fila.quantity;
-  });
-  if (!elegido) throw new Error("No hay un producto con stock modificable para la prueba.");
-  productoId = elegido.id;
-  vendidosOriginal = porProducto.get(productoId)?.sold ?? 0;
-  cantidadesOriginales = new Map(productosActivos.map((p) => [p.id, porProducto.get(p.id)?.quantity ?? null]));
-
-  const items = productosActivos.map((p) => ({
-    productoId: p.id,
-    cantidad: p.id === productoId ? vendidosOriginal + 1 : cantidadesOriginales.get(p.id) ?? null,
-  }));
-  const { error } = await owner.rpc("guardar_stock_diario", {
-    p_restaurant_id: restaurantId, p_stock_date: fecha, p_items: items,
-  });
-  if (error) throw new Error(`No se pudo preparar el límite de stock: ${error.message}`);
+  productoId = productos.data.id;
+  vendidosOriginal = (await stockPrueba.preparar(productoId, 1, { exacto: true })).vendidos;
 }, 30_000);
 
 afterAll(async () => {
   const errores: string[] = [];
-  for (const pedidoId of pedidosCreados) {
-    const { error } = await waiter.rpc("cambiar_estado_pedido", {
-      p_pedido_id: pedidoId, p_estado: "CANCELLED", p_motivo: "Prueba automática US-078",
-    });
-    if (error && !error.message.includes("INVALID_TRANSITION")) errores.push("No se pudo cancelar el pedido de prueba.");
+  try {
+    for (const pedidoId of pedidosCreados) {
+      const { error } = await waiter.rpc("cambiar_estado_pedido", {
+        p_pedido_id: pedidoId, p_estado: "CANCELLED", p_motivo: "Prueba automática US-078",
+      });
+      if (error && !error.message.includes("INVALID_TRANSITION")) errores.push("No se pudo cancelar el pedido de prueba.");
+    }
+  } finally {
+    await stockPrueba.restaurar().catch(error => errores.push(String(error)));
+    await Promise.all([owner?.auth.signOut(), waiter?.auth.signOut()]);
   }
-  if (owner && productosActivos.length) {
-    const { error } = await owner.rpc("guardar_stock_diario", {
-      p_restaurant_id: restaurantId,
-      p_stock_date: fecha,
-      p_items: productosActivos.map((p) => ({ productoId: p.id, cantidad: cantidadesOriginales.get(p.id) ?? null })),
-    });
-    if (error) errores.push("No se pudo restaurar el stock de prueba.");
-  }
-  await Promise.all([owner?.auth.signOut(), waiter?.auth.signOut()]);
   if (errores.length) throw new Error(errores.join(" "));
 }, 30_000);
 
@@ -129,15 +107,7 @@ afterAll(async () => {
       .select("sold").eq("restaurant_id", restaurantId).eq("product_id", productoId).eq("stock_date", fecha).single();
     expect(stockDevuelto?.sold).toBe(vendidosOriginal);
 
-    const { error: ampliarStock } = await owner.rpc("guardar_stock_diario", {
-      p_restaurant_id: restaurantId,
-      p_stock_date: fecha,
-      p_items: productosActivos.map((p) => ({
-        productoId: p.id,
-        cantidad: p.id === productoId ? vendidosOriginal + 2 : cantidadesOriginales.get(p.id) ?? null,
-      })),
-    });
-    expect(ampliarStock).toBeNull();
+    await stockPrueba.preparar(productoId, 2, { exacto: true });
 
     const { data: pedidoDoble, error: errorPedidoDoble } = await waiter.rpc("registrar_pedido_mesero", {
       p_restaurant_id: restaurantId,

@@ -1,9 +1,11 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const local = (() => { try { return !!url && ["localhost", "127.0.0.1"].includes(new URL(url).hostname); } catch { return false; } })();
 const restaurante = "10000000-0000-0000-0000-000000000001";
+const stockPrueba = new StockPrueba(restaurante);
 let admin: SupabaseClient, caja: SupabaseClient, ajeno: SupabaseClient, anon: SupabaseClient, mesero: SupabaseClient;
 let usuario: string, sucursal: string, producto: string;
 let original: { wallet_holder_name: string | null; prepay_dine_in: boolean } | undefined;
@@ -54,31 +56,33 @@ describe.skipIf(!local)("US-102: capturas, RLS y US-094 (solo Supabase local)", 
     sucursal = exigir(await admin.from("branches").insert({ restaurant_id: restaurante, name: `US-102 ${crypto.randomUUID()}`, active: true }).select("id").single<{ id: string }>()).id;
     const categoria = exigir(await admin.from("categories").select("id").eq("restaurant_id",restaurante).limit(1).single<{ id: string }>()).id;
     producto = exigir(await admin.from("products").insert({ restaurant_id: restaurante, category_id: categoria, name: `US-102 ${crypto.randomUUID()}`, price: 10, active: true, available: true }).select("id").single<{ id: string }>()).id;
-    const fecha = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-    const stock = await admin.from("product_daily_stock").insert({ restaurant_id: restaurante, product_id: producto, stock_date: fecha, quantity: 100, sold: 0 });
-    if (stock.error) throw stock.error;
+    await stockPrueba.preparar(producto!, 100, { limitar: true });
   }, 30000);
   afterAll(async () => {
     if (!admin) return;
     const errores: string[] = [];
     const revisar = (r: { error: { message: string } | null }) => { if (r.error) errores.push(r.error.message); };
-    if (rutas.length) revisar(await admin.storage.from("capturas-pago").remove(rutas));
-    for (const c of cuentas) {
-      revisar(await admin.from("receipts").delete().eq("table_session_id",c.sesion));
-      revisar(await admin.from("payments").delete().eq("table_session_id",c.sesion));
-      revisar(await admin.from("order_items").delete().eq("order_id",c.pedido));
-      revisar(await admin.from("orders").delete().eq("id",c.pedido));
-      revisar(await admin.from("qr_codes").delete().eq("id",c.qr));
-      revisar(await admin.from("table_sessions").delete().eq("id",c.sesion));
-      revisar(await admin.from("dining_tables").delete().eq("id",c.mesa));
+    try {
+      if (rutas.length) revisar(await admin.storage.from("capturas-pago").remove(rutas));
+      for (const c of cuentas) {
+        revisar(await admin.from("receipts").delete().eq("table_session_id",c.sesion));
+        revisar(await admin.from("payments").delete().eq("table_session_id",c.sesion));
+        revisar(await admin.from("order_items").delete().eq("order_id",c.pedido));
+        revisar(await admin.from("orders").delete().eq("id",c.pedido));
+        revisar(await admin.from("qr_codes").delete().eq("id",c.qr));
+        revisar(await admin.from("table_sessions").delete().eq("id",c.sesion));
+        revisar(await admin.from("dining_tables").delete().eq("id",c.mesa));
+      }
+      if (producto) {
+        revisar(await admin.from("product_daily_stock").delete().eq("product_id",producto));
+        revisar(await admin.from("products").delete().eq("id",producto));
+      }
+      if (sucursal) revisar(await admin.from("branches").delete().eq("id",sucursal));
+      if (original) revisar(await admin.from("restaurants").update(original).eq("id",restaurante));
+    } finally {
+      await stockPrueba.restaurar().catch(error => errores.push(String(error)));
+      await Promise.all([caja,ajeno,mesero].filter(Boolean).map(c => c.auth.signOut()));
     }
-    if (producto) {
-      revisar(await admin.from("product_daily_stock").delete().eq("product_id",producto));
-      revisar(await admin.from("products").delete().eq("id",producto));
-    }
-    if (sucursal) revisar(await admin.from("branches").delete().eq("id",sucursal));
-    if (original) revisar(await admin.from("restaurants").update(original).eq("id",restaurante));
-    await Promise.all([caja,ajeno,mesero].filter(Boolean).map(c => c.auth.signOut()));
     if (errores.length) throw new Error(errores.join("\n"));
   }, 30000);
 

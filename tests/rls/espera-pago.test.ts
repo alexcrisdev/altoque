@@ -1,3 +1,4 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -12,6 +13,7 @@ const esLocal = (() => {
 })();
 
 const restauranteId = "10000000-0000-0000-0000-000000000001";
+const stockPrueba = new StockPrueba(restauranteId);
 const localId = "20000000-0000-0000-0000-000000000001";
 const mesaId = "30000000-0000-0000-0000-000000000001";
 const clientes: SupabaseClient[] = [];
@@ -228,11 +230,7 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     fechaStock = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit",
     }).format(new Date());
-    const stock = await servicio.from("product_daily_stock").insert({
-      restaurant_id: restauranteId, product_id: productoId,
-      stock_date: fechaStock, quantity: 100, sold: 0,
-    });
-    if (stock.error) throw new Error(stock.error.message);
+    await stockPrueba.preparar(productoId!, 100, { limitar: true });
 
     sesionId = exigir(await mesero.from("table_sessions").insert({
       restaurant_id: restauranteId, branch_id: localId,
@@ -263,6 +261,7 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
         }
       }
     } finally {
+      await stockPrueba.restaurar().catch(error => errores.push(String(error)));
       await Promise.all(clientes.map((actual) => actual.auth.signOut()));
     }
     if (errores.length) throw new Error(`Limpieza US-085: ${errores.join("; ")}`);

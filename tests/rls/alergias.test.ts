@@ -1,9 +1,11 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const local = (() => { try { return !!url && ["localhost", "127.0.0.1"].includes(new URL(url).hostname); } catch { return false; } })();
 const restaurante = "10000000-0000-0000-0000-000000000001";
+const stockPrueba = new StockPrueba(restaurante);
 let servicio: SupabaseClient;
 let cocina: SupabaseClient;
 let producto: string | undefined;
@@ -42,9 +44,7 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
     producto = exigir(await servicio.from("products").insert({ restaurant_id: restaurante,
       category_id: categoria, name: `US-091 ${crypto.randomUUID().slice(0, 8)}`,
       price: 10, active: true, available: true }).select("id").single<{ id: string }>()).id;
-    const fecha = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-    const stock = await servicio.from("product_daily_stock").insert({ restaurant_id: restaurante, product_id: producto, stock_date: fecha, quantity: 20, sold: 0 });
-    if (stock.error) throw stock.error;
+    await stockPrueba.preparar(producto!, 20, { limitar: true });
   }, 30_000);
 
   afterAll(async () => {
@@ -61,6 +61,7 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
         if (rama) anotar((await servicio.from("branches").delete().eq("id", rama)).error);
       }
     } finally {
+      await stockPrueba.restaurar().catch(error => errores.push(String(error)));
       await cocina?.auth.signOut();
     }
     if (errores.length) throw new Error(`Limpieza US-091: ${errores.join("; ")}`);

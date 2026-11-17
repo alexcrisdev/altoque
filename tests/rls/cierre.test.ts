@@ -1,3 +1,4 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -12,6 +13,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const password = process.env.DEMO_PASSWORD;
 const restaurantId = "10000000-0000-0000-0000-000000000001";
+const stockPrueba = new StockPrueba(restaurantId);
 const motivo = "Prueba automática US-020: cortesía autorizada";
 
 let mesero: SupabaseClient | undefined;
@@ -76,6 +78,8 @@ beforeAll(async () => {
   if (!mesa || !producto) throw new Error("Se requiere una mesa libre y un producto activo en Cevichería demo");
   totalCentimos = Math.round(Number(producto.price) * 100);
 
+  await stockPrueba.preparar(producto.id, 2);
+
   const { data: sesion, error: errorApertura } = await mesero.from("table_sessions").insert({
     restaurant_id: restaurantId, branch_id: mesa.branch_id, dining_table_id: mesa.id, opened_by: meseroId,
   }).select("id").single();
@@ -93,6 +97,8 @@ beforeAll(async () => {
       p_branch_id: mesa.branch_id, p_idempotency_key: crypto.randomUUID(), p_items: items,
     }).single<{ pedido_id: string }>(),
   ]);
+  pedidoMesaId = enMesa.data?.pedido_id;
+  pedidoLlevarId = paraLlevar.data?.pedido_id;
   if (enMesa.error || !enMesa.data || paraLlevar.error || !paraLlevar.data) {
     throw new Error("No se pudieron crear los pedidos demo para la prueba");
   }
@@ -125,6 +131,7 @@ afterAll(async () => {
       }
     }
   } finally {
+    await stockPrueba.restaurar().catch(error => errores.push(String(error)));
     await Promise.all([mesero, caja, admin, cocina, duenoPolleria].map((c) => c?.auth.signOut()));
   }
   if (errores.length) throw new Error(errores.join("; "));

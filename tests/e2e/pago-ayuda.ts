@@ -105,14 +105,13 @@ export async function registrarPedidoMeseroPropio(pedido: EntornoPedido) {
     .eq("dining_tables.number", MESA_NUMERO).is("closed_at", null);
   expect(sesiones.error).toBeNull();
   expect(sesiones.data).toHaveLength(1);
-  const producto = await pedido.admin.from("products").select("id")
-    .eq("restaurant_id", RESTAURANTE).eq("active", true).eq("available", true).order("price").limit(1).single();
-  expect(producto.error).toBeNull();
+  // US-098: el producto tiene stock preparado y se restaura al terminar.
+  const producto = await pedido.prepararStock();
   const registro = await pedido.admin.rpc("registrar_pedido_mesero", {
     p_restaurant_id: RESTAURANTE, p_modality: "DINE_IN",
     p_dining_table_id: sesiones.data![0].dining_table_id, p_branch_id: sesiones.data![0].branch_id,
     p_idempotency_key: randomUUID(),
-    p_items: [{ productoId: producto.data!.id, cantidad: 1, observacion: pedido.marca }],
+    p_items: [{ productoId: producto.id, cantidad: 1, observacion: pedido.marca }],
   });
   expect(registro.error).toBeNull();
   await expect.poll(async () => (await cuentaPropia(pedido)).status).toBe("IN_PROGRESS");

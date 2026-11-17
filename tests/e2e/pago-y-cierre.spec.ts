@@ -10,7 +10,7 @@ test("CP-030-07 a 11: Yape, tarjeta, efectivo parcial, entrega y cierre de Mesa 
   expect(MESA_NUMERO, "US-030 solo usa Mesa 5").toBe(5);
   prepararRecuperacion(pedido);
   await pedido.abrirMesa();
-  await prepararCarrito(page, TOKEN_MESA, pedido.marca);
+  await prepararCarrito(page, TOKEN_MESA, pedido);
   // Pago previo obligatorio: el pedido espera pago; se entrega después de cobrar todo.
   await confirmarYVerificar(page, pedido);
   const p = await cuentaPropia(pedido);
@@ -114,7 +114,7 @@ test("CP-030-12: caja no autoriza excepción; admin cierra con motivo", async ({
 
 test("CP-030-13: para llevar pagado y cerrado rechaza nuevos pagos", async ({ page, pedido }) => {
   prepararRecuperacion(pedido);
-  await prepararCarrito(page, TOKEN_MOSTRADOR, pedido.marca);
+  await prepararCarrito(page, TOKEN_MOSTRADOR, pedido);
   await confirmarYVerificar(page, pedido);
   const caja = await pagarParaLlevarEnCaja(pedido);
   await entregarPropio(pedido);
