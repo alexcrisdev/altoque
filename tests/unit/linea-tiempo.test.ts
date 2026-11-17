@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { textoTiempoEstimado } from "../../src/features/pedidos/linea-tiempo-cliente";
 import {
   construirLineaTiempo,
   estimarTiempoRestante,
@@ -138,7 +139,15 @@ describe("US-092: tiempo estimado restante", () => {
   });
 
   it("si ya pasó el promedio muestra 1 minuto, nunca negativo", () => {
-    expect(estimarTiempoRestante("IN_PROGRESS", 60_000, pagado.creadoEn, ahora)?.minutos).toBe(1);
+    expect(estimarTiempoRestante("IN_PROGRESS", 4 * 60_000, pagado.creadoEn, ahora)).toEqual({
+      minutos: 1, porDefecto: false, despuesDelPago: false,
+    });
+  });
+
+  it("un promedio menor a 3 min (datos de pruebas) no es confiable y usa el valor fijo", () => {
+    expect(estimarTiempoRestante("PENDING", 40_000, null, ahora)).toEqual({
+      minutos: MINUTOS_PREPARACION_POR_DEFECTO, porDefecto: true, despuesDelPago: true,
+    });
   });
 
   it("esperando pago: el tiempo completo empieza después de pagar", () => {
@@ -155,5 +164,16 @@ describe("US-092: tiempo estimado restante", () => {
     const deshecho: EventoEstado = { desde: "READY", hacia: "IN_PROGRESS", creadoEn: "2026-11-17T17:59:00.000Z" };
     expect(inicioEnCocina([deshecho, listo, pagado, enviado])).toBe(pagado.creadoEn);
     expect(inicioEnCocina([enviado])).toBeNull();
+  });
+});
+
+describe("US-092: texto del tiempo estimado", () => {
+  it.each([
+    [{ minutos: 15, porDefecto: true, despuesDelPago: true }, "Estará listo aprox. 15 min después de pagar"],
+    [{ minutos: 10, porDefecto: true, despuesDelPago: false }, "Faltan aprox. 10 min"],
+    [{ minutos: 7, porDefecto: false, despuesDelPago: false }, "Faltan unos 7 min (promedio de la cocina)"],
+    [{ minutos: 1, porDefecto: false, despuesDelPago: false }, "Ya casi está"],
+  ])("%o → %s", (estimado, texto) => {
+    expect(textoTiempoEstimado(estimado)).toBe(texto);
   });
 });

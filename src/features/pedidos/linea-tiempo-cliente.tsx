@@ -11,6 +11,7 @@ export function textoTiempoEstimado(estimado: TiempoEstimado): string {
   if (estimado.despuesDelPago) {
     return `Estará listo aprox. ${minutos} después de pagar`;
   }
+  if (estimado.minutos <= 1) return "Ya casi está";
   return estimado.porDefecto
     ? `Faltan aprox. ${minutos}`
     : `Faltan unos ${minutos} (promedio de la cocina)`;

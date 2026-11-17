@@ -145,6 +145,9 @@ export function porcentajeAvance(pasos: readonly PasoLineaTiempo[]): number {
 // Si el restaurante aún no tiene pedidos medidos, usamos un valor fijo.
 export const MINUTOS_PREPARACION_POR_DEFECTO = 15;
 export const PEDIDOS_MINIMOS_PROMEDIO = 3;
+// Un promedio menor a 3 min no es real (p. ej. pruebas automáticas que marcan
+// "Listo" en segundos): en ese caso también usamos el valor fijo.
+export const PROMEDIO_MINIMO_CONFIABLE_MS = 3 * 60_000;
 
 export type TiempoEstimado = {
   minutos: number;
@@ -168,7 +171,10 @@ export function estimarTiempoRestante(
     return null;
   }
 
-  const porDefecto = promedioMs === null || !Number.isFinite(promedioMs) || promedioMs <= 0;
+  const porDefecto =
+    promedioMs === null ||
+    !Number.isFinite(promedioMs) ||
+    promedioMs < PROMEDIO_MINIMO_CONFIABLE_MS;
   const preparacionMs = porDefecto
     ? MINUTOS_PREPARACION_POR_DEFECTO * 60_000
     : promedioMs;
