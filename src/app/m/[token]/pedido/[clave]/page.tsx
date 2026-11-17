@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
 import {
   BotonEnlace,
-  Insignia,
   MensajeEstado,
   Tarjeta,
 } from "@/components/ui";
@@ -13,11 +12,12 @@ import {
 } from "@/features/pedidos/estado-cliente-servidor";
 import {
   etiquetaEstadoCliente,
-  pasoDelPedido,
+  mensajeEstadoCliente,
 } from "@/features/pedidos/estado-cliente";
 import {
-  TONO_ESTADO,
-} from "@/features/pedidos/estados";
+  LineaTiempoPedido,
+  TicketPedido,
+} from "@/features/pedidos/linea-tiempo-cliente";
 import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
 import { AvisoEstadoCliente } from "@/features/pedidos/aviso-estado-cliente";
 import { TemporizadorPagoCliente } from "@/features/pedidos/temporizador-pago-cliente";
@@ -123,119 +123,68 @@ async function ContenidoPedido({ params, searchParams }: Props) {
 }
 
 function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
-  const pasoActual = pasoDelPedido(pedido.estado);
-
-  const pasos = [
-    "Recibido",
-    "Aceptado",
-    "En preparación",
-    pedido.estado === "DELIVERED" ? "Entregado" : "Listo",
-  ];
-
   return (
-    <Tarjeta className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">
-          Pedido N.º {pedido.numero}
-        </h2>
+    <>
+      {/* US-092: ticket con número, tiempo estimado y barra de avance. */}
+      <TicketPedido
+        numero={pedido.numero}
+        estadoTexto={etiquetaEstadoCliente(pedido.estado)}
+        mensaje={mensajeEstadoCliente(pedido.estado, pedido.modalidad)}
+        estimado={pedido.estimado}
+        pasos={pedido.lineaTiempo}
+        cancelado={pedido.estado === "CANCELLED"}
+      />
 
-        <Insignia tono={TONO_ESTADO[pedido.estado]}>
-          {etiquetaEstadoCliente(pedido.estado)}
-        </Insignia>
-      </div>
+      <Tarjeta className="space-y-6">
+        <p className="text-sm text-texto-suave">
+          {pedido.modalidad === "TAKEAWAY"
+            ? "Pedido para llevar"
+            : pedido.mesaNumero !== null
+              ? `Consumo en mesa ${pedido.mesaNumero}`
+              : "Consumo en el local"}
+        </p>
 
+        <LineaTiempoPedido pasos={pedido.lineaTiempo} />
 
-      <p className="text-sm text-texto-suave">
-        {pedido.modalidad === "TAKEAWAY"
-          ? "Pedido para llevar"
-          : pedido.mesaNumero !== null
-            ? `Consumo en mesa ${pedido.mesaNumero}`
-            : "Consumo en el local"}
-      </p>
+        {pedido.estado === "CANCELLED" && (
+          <div className="rounded-xl border border-peligro-borde bg-peligro-fondo p-4 text-peligro-texto">
+            <p className="font-semibold">Motivo de cancelación</p>
+            <p className="mt-1 whitespace-pre-line break-words">
+              {pedido.motivo || "El restaurante no registró un motivo."}
+            </p>
+          </div>
+        )}
 
-      {pasoActual !== null && (
-        <section aria-label="Progreso del pedido">
-          <ol className="grid grid-cols-4 gap-2">
-            {pasos.map((etiqueta, indice) => {
-              const numeroPaso = indice + 1;
-              const alcanzado = numeroPaso <= pasoActual;
-              const actual = numeroPaso === pasoActual;
+        {pedido.estado === "PENDING" && (
+          <TemporizadorPagoCliente limite={pedido.limitePago} pagoPendiente={pedido.pagoPendiente} />
+        )}
 
-              return (
-                <li
-                  key={numeroPaso}
-                  aria-current={actual ? "step" : undefined}
-                  className="min-w-0"
-                >
-                  <div
-                    aria-hidden="true"
-                    className={`mb-2 h-2 rounded-full ${
-                      alcanzado ? "bg-marca" : "bg-borde"
-                    }`}
-                  />
+        <section aria-labelledby="productos-del-pedido">
+          <h3
+            id="productos-del-pedido"
+            className="mb-3 font-semibold"
+          >
+            Tu pedido
+          </h3>
 
-                  <p
-                    className={`break-words text-xs sm:text-sm ${
-                      alcanzado
-                        ? "font-semibold text-marca"
-                        : "text-texto-suave"
-                    }`}
-                  >
-                    {etiqueta}
-                  </p>
+          <ul className="divide-y divide-borde">
+            {pedido.items.map((item, indice) => (
+              <li
+                key={indice}
+                className="flex items-start justify-between gap-4 py-3"
+              >
+                <span className="min-w-0 break-words">
+                  {item.nombre}
+                </span>
 
-                  <span className="sr-only">
-                    {actual
-                      ? "Paso actual"
-                      : alcanzado
-                        ? "Paso completado"
-                        : "Paso pendiente"}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+                <span className="shrink-0 font-semibold">
+                  × {item.cantidad}
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
-      )}
-
-      {pedido.estado === "CANCELLED" && (
-        <div className="rounded-xl border border-peligro-borde bg-peligro-fondo p-4 text-peligro-texto">
-          <p className="font-semibold">Motivo de cancelación</p>
-          <p className="mt-1 whitespace-pre-line break-words">
-            {pedido.motivo || "El restaurante no registró un motivo."}
-          </p>
-        </div>
-      )}
-
-      {pedido.estado === "PENDING" && (
-        <TemporizadorPagoCliente limite={pedido.limitePago} pagoPendiente={pedido.pagoPendiente} />
-      )}
-
-      <section aria-labelledby="productos-del-pedido">
-        <h3
-          id="productos-del-pedido"
-          className="mb-3 font-semibold"
-        >
-          Tu pedido
-        </h3>
-
-        <ul className="divide-y divide-borde">
-          {pedido.items.map((item, indice) => (
-            <li
-              key={indice}
-              className="flex items-start justify-between gap-4 py-3"
-            >
-              <span className="min-w-0 break-words">
-                {item.nombre}
-              </span>
-
-              <span className="shrink-0 font-semibold">
-                × {item.cantidad}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </Tarjeta>
+      </Tarjeta>
+    </>
   );
 }
