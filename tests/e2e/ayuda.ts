@@ -1,3 +1,4 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -203,6 +204,7 @@ export type EntornoPedido = {
   staff: (rol: RolDemo) => Promise<Page>;
   abrirMesa: () => Promise<void>;
   alLimpiar: (tarea: () => Promise<void>) => void;
+  prepararStock: () => Promise<{ id: string; name: string }>;
 };
 
 async function paginaStaff(
@@ -227,6 +229,7 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
   ) => {
     const marca = `PRUEBA E2E ${randomUUID()}`;
     const admin = await clienteAdminDemo();
+    const stockPrueba = new StockPrueba(RESTAURANTE);
     const contextos: BrowserContext[] = [];
     const paginas = new Map<RolDemo, Page>();
     const tareasLimpieza: (() => Promise<void>)[] = [];
@@ -275,6 +278,14 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
         admin,
         staff,
         alLimpiar: (tarea) => tareasLimpieza.push(tarea),
+        prepararStock: async () => {
+          const { data, error } = await admin.from("products").select("id,name,categories!inner(active)")
+            .eq("restaurant_id", RESTAURANTE).eq("active", true).eq("available", true).eq("categories.active", true)
+            .order("price").order("id").limit(1).single();
+          if (error || !data) throw new Error("No existe un producto activo para la prueba E2E.");
+          await stockPrueba.preparar(data.id, 1);
+          return { id: data.id, name: data.name };
+        },
         abrirMesa: async () => {
           expect(
             await sesionMesa(),
@@ -438,6 +449,8 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
         }
       }
 
+      await stockPrueba.restaurar().catch(error => errores.push(String(error)));
+
       const evidencias: string[] = [];
 
       async function adjuntar(
@@ -574,8 +587,10 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
 export async function prepararCarrito(
   page: Page,
   token: string,
-  marca: string,
+  pedido: EntornoPedido,
 ) {
+  const marca = pedido.marca;
+  const producto = await pedido.prepararStock();
   await page.setViewportSize({
     width: 390,
     height: 844,
@@ -594,38 +609,10 @@ export async function prepararCarrito(
     "El QR demo debe estar activo y corresponder a la ubicación esperada",
   ).toBeVisible();
 
-  const productos = page.getByRole("button", {
-    name: /S\//,
-  });
-
-  await expect(productos.first()).toBeVisible();
-
-  const candidatos = await productos.allTextContents();
-
-  const disponibles = candidatos
-    .map((texto, indice) => ({
-      indice,
-      texto,
-      precio: Number(
-        texto
-          .match(/S\/\s*([\d,.]+)/)?.[1]
-          .replaceAll(",", ""),
-      ),
-    }))
-    .filter(
-      (p) =>
-        !p.texto.includes("Agotado") &&
-        Number.isFinite(p.precio),
-    );
-
-  disponibles.sort((a, b) => a.precio - b.precio);
-
-  expect(
-    disponibles.length,
-    "Debe existir un producto disponible con precio visible",
-  ).toBeGreaterThan(0);
-
-  await productos.nth(disponibles[0].indice).click();
+  const tarjeta = page.getByRole("button", { name: /S\// }).filter({ has: page.getByText(producto.name, { exact: true }) });
+  await expect(tarjeta, "Debe identificarse únicamente el producto cuyo stock preparamos").toHaveCount(1);
+  await expect(tarjeta).not.toContainText("Agotado");
+  await tarjeta.click();
 
   const detalle = page.getByRole("dialog");
 

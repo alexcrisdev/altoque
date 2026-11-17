@@ -36,9 +36,28 @@ ${modalidad === "DINE_IN" ? `insert into public.table_sessions(id, restaurant_id
 insert into public.orders(id, restaurant_id, branch_id, qr_code_id, table_session_id, dining_table_id, modality, total, idempotency_key) values
  ('88000000-0000-4000-8000-000000000095', '10000000-0000-0000-0000-000000000001', '88000000-0000-4000-8000-000000000091', '88000000-0000-4000-8000-000000000093',
  ${modalidad === "DINE_IN" ? "'88000000-0000-4000-8000-000000000094', '88000000-0000-4000-8000-000000000092'" : "null, null"}, '${modalidad}', 10, gen_random_uuid());
+
+-- US-098: preparar solo el plato de este caso con el ADMIN demo.
+-- El ROLLBACK de la prueba (también al cerrarse psql por error) restaura todo.
+select set_config('request.jwt.claim.sub',
+ (select id::text from auth.users where email = 'admin@demo.altoque.pe'), true);
+set local role authenticated;
+select public.guardar_stock_diario(
+ '10000000-0000-0000-0000-000000000001',
+ (now() at time zone 'America/Lima')::date,
+ jsonb_build_array(jsonb_build_object('productoId', p.id, 'cantidad',
+   case when s.product_id is null then null else greatest(s.quantity, s.sold + 1) end)),
+ true)
+from (select id from public.products
+ where restaurant_id = '10000000-0000-0000-0000-000000000001' and active
+ order by id limit 1) p
+left join public.product_daily_stock s on s.product_id = p.id
+ and s.restaurant_id = '10000000-0000-0000-0000-000000000001'
+ and s.stock_date = (now() at time zone 'America/Lima')::date;
+reset role;
 insert into public.order_items(order_id, product_id, product_name, quantity, unit_price, subtotal)
  select '88000000-0000-4000-8000-000000000095', id, name, 1, 10, 10 from public.products
- where restaurant_id = '10000000-0000-0000-0000-000000000001' order by id limit 1;
+ where restaurant_id = '10000000-0000-0000-0000-000000000001' and active order by id limit 1;
 insert into public.receipt_series(restaurant_id, series, next_number)
  values ('10000000-0000-0000-0000-000000000001', 'BBB1', 33);
 select set_config('request.jwt.claim.sub', '88000000-0000-4000-8000-000000000090', true);

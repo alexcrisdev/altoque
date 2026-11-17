@@ -1,3 +1,4 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -5,6 +6,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const clavePublica = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const password = process.env.DEMO_PASSWORD;
 const restauranteId = "10000000-0000-0000-0000-000000000001";
+const stockPrueba = new StockPrueba(restauranteId);
 let mesero: SupabaseClient | undefined;
 let cocina: SupabaseClient | undefined;
 let polleria: SupabaseClient | undefined;
@@ -42,6 +44,8 @@ beforeAll(async () => {
   const ocupadas = new Set((sesiones.data ?? []).map((sesion) => sesion.dining_table_id));
   const mesa = mesas.data?.find((fila) => !ocupadas.has(fila.id));
   if (!mesa || !productos.data?.[0]) throw new Error("US-017 requiere una mesa libre y un producto disponible.");
+  await stockPrueba.preparar(productos.data[0].id, 1);
+
   const apertura = await mesero.from("table_sessions").insert({
     restaurant_id: restauranteId, branch_id: mesa.branch_id, dining_table_id: mesa.id, opened_by: meseroId,
   }).select("id").single();
@@ -81,7 +85,9 @@ afterAll(async () => {
       }
     }
   } catch { errores.push("Falló la limpieza de US-017; revisar el pedido y la sesión de prueba."); }
-  finally { await Promise.all([mesero?.auth.signOut(), cocina?.auth.signOut(), polleria?.auth.signOut(), admin?.auth.signOut()]); }
+  finally {
+    await stockPrueba.restaurar().catch(error => errores.push(String(error)));
+    await Promise.all([mesero?.auth.signOut(), cocina?.auth.signOut(), polleria?.auth.signOut(), admin?.auth.signOut()]); }
   if (errores.length) throw new Error(errores.join("; "));
 }, 30_000);
 

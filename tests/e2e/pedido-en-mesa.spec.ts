@@ -4,7 +4,7 @@ import { aceptarDialogoDeAccion } from "./dialogos";
 
 test("US-091: alergia declarada aparece en cocina y mesero", async ({ page, pedido }) => {
   await pedido.abrirMesa();
-  const carrito = await prepararCarrito(page, TOKEN_MESA, pedido.marca);
+  const carrito = await prepararCarrito(page, TOKEN_MESA, pedido);
   await carrito.getByRole("button", { name: "Sí", exact: true }).click();
   const confirmar = carrito.getByRole("button", { name: "Confirmar pedido", exact: true });
   await expect(confirmar).toBeDisabled();
@@ -24,7 +24,7 @@ test("US-091: alergia declarada aparece en cocina y mesero", async ({ page, pedi
 
 test(`Mesa ${MESA_NUMERO} → abrir sesión → pedido en cocina y mesero → limpiar`, async ({ page, pedido }) => {
   await pedido.abrirMesa();
-  await prepararCarrito(page, TOKEN_MESA, pedido.marca);
+  await prepararCarrito(page, TOKEN_MESA, pedido);
   await confirmarYVerificar(page, pedido);
   const [propio] = await pedidosPropios(pedido.admin, pedido.marca);
   pedido.alLimpiar(async () => {

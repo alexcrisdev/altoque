@@ -1,3 +1,4 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -10,6 +11,7 @@ const local = (() => {
 })();
 
 const restauranteId = "10000000-0000-0000-0000-000000000001";
+const stockPrueba = new StockPrueba(restauranteId);
 const pedidos: string[] = [];
 const pagos: string[] = [];
 const checkouts: string[] = [];
@@ -103,9 +105,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
     fechaStock = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit",
     }).format(new Date());
-    exigir(await servicio.from("product_daily_stock").insert({
-      restaurant_id: restauranteId, product_id: productoId, stock_date: fechaStock, quantity: 10, sold: 0,
-    }).select("id").single<{ id: string }>());
+    await stockPrueba.preparar(productoId, 10, { limitar: true });
 
     const qr = exigir(await servicio.from("qr_codes").insert({
       restaurant_id: restauranteId, branch_id: ramaId, purpose: "TAKEAWAY",
@@ -144,6 +144,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
         if (ramaId) anotar((await servicio.from("branches").delete().eq("id", ramaId)).error);
       }
     } finally {
+      await stockPrueba.restaurar().catch(error => errores.push(String(error)));
       await servicio?.auth.signOut();
     }
     if (errores.length) throw new Error(`Limpieza US-097: ${errores.join("; ")}`);
