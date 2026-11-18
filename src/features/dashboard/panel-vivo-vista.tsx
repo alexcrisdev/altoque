@@ -84,7 +84,7 @@ export function PanelVivoVista({ panel }: { panel: PanelVivo }) {
         <Indicador titulo="Ventas" comparacion={panel.ventas} formato={soles} />
         <Indicador titulo="Pedidos" comparacion={panel.pedidos} formato={(n) => String(n)} />
         <Indicador titulo="Ticket promedio" comparacion={panel.ticket} formato={soles} />
-        <Indicador titulo="Tiempo de cocina" comparacion={panel.cocinaMin} formato={(n) => `${n} min`} menosEsMejor />
+        <Indicador titulo="Tiempo de cocina" comparacion={panel.cocinaMin} formato={(n) => (n < 1 ? "< 1 min" : `${n} min`)} menosEsMejor />
         <Indicador titulo="Satisfacción" comparacion={panel.satisfaccion} formato={(n) => `${n.toFixed(1)} ★`} />
       </section>
 

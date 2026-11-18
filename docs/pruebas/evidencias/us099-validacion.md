@@ -40,8 +40,17 @@
 - `npx eslint` sobre los archivos tocados: sin errores.
 - `npm run build`: ver la descripción del PR.
 
+## Prueba en navegador (solo lectura)
+
+Se hizo con el build de producción local (`next start`, puerto 3100) contra la base compartida, iniciando sesión como `dueno@demo.altoque.pe`. Solo se miró: no se guardó nada ni se crearon pedidos.
+
+- Escritorio 1280 px: `captura-us099-panel-escritorio.png`.
+- Celular 390 px: `captura-us099-panel-celular.png`. `scrollWidth` = 390, sin scroll horizontal y sin errores en la consola de la página.
+- Valores observados: ventas S/ 619.00 (−46 % vs ayer), 100 pedidos (−40 %), ticket S/ 6.19 (−9 %), tiempo de cocina "0 min" y satisfacción "—" (no hay calificaciones hoy). Mapa: Mesas 2 y 3 ocupadas, 1 y 5 libres. Alerta: "Agotado: Leche de tigre". «Prepara mañana» muestra las predicciones de US-090.
+- Los números bajos (ticket, cocina) reflejan los datos de las pruebas E2E del día. Después de la captura, un tiempo de cocina menor a 1 min se muestra como "< 1 min".
+
 ## Pendiente (no entró por el corte)
 
 - **Predicción como línea en el gráfico por hora.** `demand_forecasts` predice por día y plato, no por hora, así que no hay un dato honesto que dibujar. La predicción se muestra en «Prepara mañana».
-- **Capturas en staging.** No se tomaron por falta de tiempo antes del corte.
+- **Capturas en staging.** Se tomaron en local con la base compartida, no en staging.
 - **Parte 2 (BI: preguntas de negocio y sección "Actividad y tiempos")**: no se implementó.
