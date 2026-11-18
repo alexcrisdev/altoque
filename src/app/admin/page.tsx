@@ -13,13 +13,16 @@ import { consultarPanelVivoAction } from "@/features/dashboard/panel-vivo-action
 import { PanelVivoVista } from "@/features/dashboard/panel-vivo-vista";
 import { consultarPrediccionMananaAction } from "@/features/dashboard/prediccion-actions";
 import { TarjetaPrediccion } from "@/features/dashboard/tarjeta-prediccion";
+import { consultarActividadDiaAction } from "@/features/dashboard/actividad-actions";
+import { ActividadVista } from "@/features/dashboard/actividad-vista";
 
 async function AdminPanel() {
   await requerirRol(["OWNER", "ADMIN"]);
-  // US-099: panel en vivo + «Prepara mañana» (US-090), en paralelo.
-  const [resultado, prediccion] = await Promise.all([
+  // US-099: panel en vivo + «Prepara mañana» (US-090) + actividad del día, en paralelo.
+  const [resultado, prediccion, actividad] = await Promise.all([
     consultarPanelVivoAction(),
     consultarPrediccionMananaAction(),
+    consultarActividadDiaAction(),
   ]);
 
   return (
@@ -56,6 +59,13 @@ async function AdminPanel() {
       <Tarjeta>
         <TarjetaPrediccion resultado={prediccion} />
       </Tarjeta>
+
+      <section aria-labelledby="actividad-titulo" className="space-y-3">
+        <h2 id="actividad-titulo" className="text-xl font-bold">
+          Actividad y tiempos
+        </h2>
+        <ActividadVista resultado={actividad} />
+      </section>
 
       <nav aria-label="Administración">
         <ul className="grid gap-4 sm:grid-cols-2">
