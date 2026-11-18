@@ -60,7 +60,7 @@ test("US-082: caja distingue mesa libre y ocupada e impide ofrecer una segunda a
 
 test("US-082 / US-085: caja identifica y cobra el pedido para llevar antes de cocina", async ({ page, pedido }) => {
   prepararRecuperacion(pedido);
-  await prepararCarrito(page, TOKEN_MOSTRADOR, pedido.marca);
+  await prepararCarrito(page, TOKEN_MOSTRADOR, pedido);
   await confirmarYVerificar(page, pedido);
   const p = await cuentaPropia(pedido);
   const caja = await pedido.staff("caja");

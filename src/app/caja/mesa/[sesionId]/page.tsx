@@ -9,6 +9,7 @@ import { CobrarCuenta } from "@/features/pago-cierre/cobrar-cuenta";
 import { CerrarCuenta } from "@/features/pago-cierre/cerrar-cuenta";
 import { evaluarCierre } from "@/features/pago-cierre/cierre-logica";
 import { ResumenCierre } from "@/features/pago-cierre/resumen-cierre";
+import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
 
 async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
   const { sesionId } = await params;
@@ -36,6 +37,7 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
         verificacion={{ cuenta: { tipo: "MESA", id: cuenta.sesionId }, puedeVerificar }}
       />
       {cuenta.cierre && <ResumenCierre cierre={cuenta.cierre} />}
+      {cuenta.cierre && <TotalBilletera restauranteId={restauranteId} />}
       {!cuenta.cerrada && (
         <>
           {cuenta.saldoCentimos > 0 && (

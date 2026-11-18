@@ -80,7 +80,14 @@ export function BotonQr({
         />
       )}
 
-      {resultado.estado === "listo" && (
+      {/* US-096: si quedó guardado, la pantalla ya lo muestra arriba; no repetirlo. */}
+      {resultado.estado === "listo" && resultado.guardado && (
+        <p role="status" className="text-sm font-semibold text-exito-texto">
+          QR nuevo listo. El anterior ya no funciona.
+        </p>
+      )}
+
+      {resultado.estado === "listo" && !resultado.guardado && (
         <Tarjeta className="grid justify-items-start gap-3">
           <Image
             src={resultado.imagen}
@@ -108,8 +115,9 @@ export function BotonQr({
           </a>
 
           <p className="text-sm text-texto-suave">
-            Guárdalo ahora: por seguridad este QR no se vuelve a
-            mostrar. Si lo pierdes, regenéralo.
+            {resultado.guardado
+              ? "Listo: este QR queda guardado y lo verás en esta pantalla cuando quieras."
+              : "Guárdalo ahora: este QR no se vuelve a mostrar (falta configurar QR_TOKEN_SECRET). Si lo pierdes, regenéralo."}
           </p>
         </Tarjeta>
       )}

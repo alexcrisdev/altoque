@@ -9,6 +9,7 @@ import { CobrarCuenta } from "@/features/pago-cierre/cobrar-cuenta";
 import { CerrarCuenta } from "@/features/pago-cierre/cerrar-cuenta";
 import { evaluarCierre } from "@/features/pago-cierre/cierre-logica";
 import { ResumenCierre } from "@/features/pago-cierre/resumen-cierre";
+import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
 
 async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">) {
   const { pedidoId } = await params;
@@ -28,6 +29,7 @@ async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">
         verificacion={{ cuenta: { tipo: "PARA_LLEVAR", id: cuenta.pedidoId }, puedeVerificar }}
       />
       {cuenta.cierre && <ResumenCierre cierre={cuenta.cierre} />}
+      {cuenta.cierre && <TotalBilletera restauranteId={restauranteId} />}
       {!cuenta.cierre && cuenta.pedidos.length > 0 && (
         <>
           {cuenta.saldoCentimos > 0 && (

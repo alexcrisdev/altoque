@@ -11,7 +11,7 @@ test("US-088: correo opcional, reserva y callback firmado visibles en caja (loca
   const secreto = process.env.N8N_WEBHOOK_SECRET;
   test.skip(!secreto, "Requiere secreto HMAC efímero del servidor local");
   prepararRecuperacion(pedido);
-  await prepararCarrito(page, TOKEN_MOSTRADOR, pedido.marca);
+  await prepararCarrito(page, TOKEN_MOSTRADOR, pedido);
   await confirmarYVerificar(page, pedido);
   const p = await cuentaPropia(pedido);
   if (process.env.US088_STRIPE_SIMULADO === "1") {

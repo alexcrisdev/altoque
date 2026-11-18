@@ -25,6 +25,7 @@ import {
 } from "./cierre-logica";
 import { cerrarCuenta } from "./cierres";
 import { programarAvisoPago } from "./aviso-n8n";
+import { limpiarCapturas } from "./capturas";
 
 export type RespuestaPago =
   | { ok: true; vueltoCentimos: number }
@@ -173,6 +174,7 @@ export async function cerrarCuentaAction(
 
   const resultado = await cerrarCuenta(cuenta, motivoLimpio);
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorCierre(resultado.codigo) };
+  await limpiarCapturas(membresia.restaurantId, cuenta).catch(() => console.error("US-102: limpieza del cierre pendiente"));
   refrescarCaja(cuenta);
   if (cuenta.tipo === "MESA") revalidatePath("/mesero");
   return { ok: true, tipo: resultado.tipo };

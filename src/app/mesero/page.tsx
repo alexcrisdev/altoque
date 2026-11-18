@@ -1,4 +1,5 @@
 import { AvisoAlergia } from "../../features/pedidos/aviso-alergia";
+import { PanelCapturas } from "../../features/pago-cierre/panel-capturas";
 import { Suspense } from "react";
 import { Boton, BotonEnlace, EncabezadoPantalla, Insignia, MensajeEstado, Tarjeta } from "@/components/ui";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
@@ -48,10 +49,11 @@ async function MeseroPanel() {
   const requierenAtencion = pedidosQueRequierenAtencion(pedidos, ahora);
   const paraLlevar = grupos.get(GRUPO_PARA_LLEVAR) ?? [];
 
-  return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+  return <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
     <EncabezadoPantalla titulo="Panel mesero" subtitulo="Organiza la atención de mesas y pedidos activos."
       acciones={<form action={cerrarSesion}><Boton type="submit" variante="secundario">Cerrar sesión</Boton></form>} />
     <ActualizacionAutomatica segundos={10} />
+    <PanelCapturas restauranteId={resultado.restauranteId} mesero />
     <div className="flex flex-wrap gap-3">
       <BotonEnlace href="/mesero/pedido">Registrar pedido asistido</BotonEnlace>
       <BotonEnlace href="/mesero" variante="secundario">Actualizar panel</BotonEnlace>
@@ -75,7 +77,7 @@ async function MeseroPanel() {
         <p className="mb-4 text-sm text-texto-suave">Primero los listos para entregar, luego los pendientes de aceptar con más de 5 minutos.</p>
         {requierenAtencion.length === 0 ? <MensajeEstado tipo="vacio" titulo="Todo al día" /> :
           <ul className="grid gap-3 md:grid-cols-2">{requierenAtencion.map((pedido) =>
-            <li key={pedido.id}><Tarjeta className={pedido.estado === "READY" ? "border-2 border-exito-borde" : ""}>
+            <li key={pedido.id}><Tarjeta className={pedido.estado === "READY" ? "border-2 border-exito-borde bg-exito-fondo p-6 text-lg shadow-sm" : ""}>
               <DatosPedido pedido={pedido} ahora={ahora} />
             </Tarjeta></li>)}
           </ul>}
@@ -84,11 +86,11 @@ async function MeseroPanel() {
       <section aria-labelledby="mesero-mesas" className="mt-8">
         <h2 id="mesero-mesas" className="mb-4 text-xl font-semibold">Mesas</h2>
         {mesas.length === 0 ? <MensajeEstado tipo="vacio" titulo="No hay mesas activas en este restaurante." /> :
-          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">{mesas.map((mesa) => {
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{mesas.map((mesa) => {
             const pedidosMesa = grupos.get(mesa.id) ?? [];
             const resumen = resumenMesa(pedidosMesa);
             return <li key={mesa.id}>
-              <Tarjeta className={`h-full space-y-4 ${resumen.listos > 0 ? "border-2 border-exito-borde" : ""}`}>
+              <Tarjeta className={`h-full space-y-4 ${resumen.listos > 0 ? "border-2 border-exito-borde bg-exito-fondo" : ""}`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-lg font-semibold">Mesa {mesa.numero}</h3>
                   <Insignia tono={mesa.sesion ? "aviso" : "exito"}>

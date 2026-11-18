@@ -8,7 +8,7 @@ import {
   Tarjeta,
 } from "../../components/ui";
 import { Carrito } from "./carrito";
-import { calcularTotalCentimos } from "./carrito-logica";
+import { calcularTotalCentimos, hayLineasConProblema } from "./carrito-logica";
 import { formatearPrecio } from "../carta/formato";
 import type { ResultadoRegistroPedido } from "./actions";
 import { ALERGENOS, DECLARACION_ALERGIA, validarAlergia, type AlergiaFormulario, type Alergeno } from "./alergias";
@@ -42,6 +42,9 @@ export function PanelCarrito(props: Props) {
   const hayProductosAusentes = props.items.some(
     (item) => !productosDisponibles.has(item.productoId),
   );
+
+  // US-103: agotados o más unidades de las que quedan bloquean el envío.
+  const hayProblemasStock = hayLineasConProblema(props.items, props.productos);
 
   const total = hayProductosAusentes
     ? null
@@ -169,6 +172,12 @@ export function PanelCarrito(props: Props) {
               >
                 {props.opciones}
               </fieldset>
+            )}
+
+            {hayProblemasStock && unidades > 0 && (
+              <p role="status" className="text-sm font-semibold text-aviso-texto">
+                Revisa los platos marcados: quítalos o deja lo que queda para enviar.
+              </p>
             )}
 
             {props.faltaDato && unidades > 0 && (
@@ -308,6 +317,7 @@ export function PanelCarrito(props: Props) {
                 !props.pedidosHabilitados ||
                 unidades === 0 ||
                 hayProductosAusentes ||
+                hayProblemasStock ||
                 Boolean(props.faltaDato) || !validacionAlergia.ok
               }
               className="w-full"

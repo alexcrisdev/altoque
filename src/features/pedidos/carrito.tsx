@@ -7,7 +7,9 @@ import type { ItemCarrito } from "./tipos";
 import {
   calcularSubtotalCentimos,
   calcularTotalCentimos,
+  problemaDeLinea,
 } from "./carrito-logica";
+import { IconoCandado as Candado } from "../../components/icono-candado";
 
 type Props = {
   items: ItemCarrito[];
@@ -17,6 +19,8 @@ type Props = {
   observacionMaxima: number;
   onCambiarCantidad: (productoId: string, cantidad: number) => void;
   onEliminar: (productoId: string) => void;
+  // US-103: «Dejar N» baja la línea a lo que queda hoy.
+  onDejarDisponible?: (productoId: string) => void;
   onCambiarObservacion: (
     productoId: string,
     observacion: string,
@@ -32,6 +36,7 @@ export function Carrito({
   observacionMaxima,
   onCambiarCantidad,
   onEliminar,
+  onDejarDisponible,
   enPanel = false,
   onCambiarObservacion,
 }: Props) {
@@ -92,11 +97,13 @@ export function Carrito({
                 producto.price,
                 item.cantidad,
               );
+              const problema = problemaDeLinea(item, producto);
 
               return (
                 <li
                   key={item.productoId}
                   className="space-y-3 border-b border-borde pb-4"
+                  data-problema-stock={problema?.tipo}
                 >
                   <h3 className="break-words font-semibold">
                     {producto.name}
@@ -106,15 +113,45 @@ export function Carrito({
                     Precio unitario: {formatearPrecio(producto.price)}
                   </p>
 
-                  {!producto.available && (
-                    <div role="status" className="space-y-2">
-                      <Insignia tono="aviso">
+                  {problema?.tipo === "AGOTADO" && (
+                    <div role="status" className="flex flex-wrap items-center gap-3 rounded-xl bg-aviso-fondo p-3 text-aviso-texto">
+                      <Insignia tono="aviso" className="gap-1">
+                        <Candado />
                         Agotado
                       </Insignia>
 
-                      <p className="text-sm text-texto-suave">
-                        Este producto está agotado. Puedes eliminarlo.
+                      <p className="flex-1 text-sm">
+                        Se acabó mientras armabas tu pedido.
                       </p>
+
+                      <Boton
+                        type="button"
+                        variante="secundario"
+                        aria-label={`Quitar ${producto.name} del carrito`}
+                        onClick={() => onEliminar(item.productoId)}
+                      >
+                        Quitar
+                      </Boton>
+                    </div>
+                  )}
+
+                  {problema?.tipo === "EXCEDE" && (
+                    <div role="status" className="flex flex-wrap items-center gap-3 rounded-xl bg-aviso-fondo p-3 text-aviso-texto">
+                      <p className="flex-1 text-sm font-semibold">
+                        Solo quedan {problema.quedan}
+                      </p>
+
+                      <Boton
+                        type="button"
+                        variante="secundario"
+                        onClick={() =>
+                          onDejarDisponible
+                            ? onDejarDisponible(item.productoId)
+                            : onCambiarCantidad(item.productoId, problema.quedan)
+                        }
+                      >
+                        Dejar {problema.quedan}
+                      </Boton>
                     </div>
                   )}
 
@@ -148,8 +185,10 @@ export function Carrito({
                       variante="secundario"
                       aria-label={`Aumentar cantidad de ${producto.name}`}
                       disabled={
-                        !producto.available ||
-                        item.cantidad >= cantidadMaxima
+                        problema !== null ||
+                        item.cantidad >= cantidadMaxima ||
+                        (typeof producto.quedan === "number" &&
+                          item.cantidad >= producto.quedan)
                       }
                       onClick={() =>
                         onCambiarCantidad(

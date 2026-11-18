@@ -5,11 +5,13 @@ import { formatearPrecio } from "@/features/carta/formato";
 import { obtenerPanelCaja } from "@/features/pago-cierre/panel-actions";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
 import { Insignia } from "@/components/ui";
+import { PanelCapturas } from "@/features/pago-cierre/panel-capturas";
+import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
 
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
 async function CajaPanel() {
-  const { cuentas, mesas, actualizadoEn } = await obtenerPanelCaja();
+  const { cuentas, mesas, actualizadoEn, restauranteId, puedeVerificar } = await obtenerPanelCaja();
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
@@ -20,6 +22,8 @@ async function CajaPanel() {
         </form>
       </header>
       <ActualizacionAutomatica segundos={10} />
+      {puedeVerificar && <PanelCapturas restauranteId={restauranteId} />}
+      <TotalBilletera restauranteId={restauranteId} />
 
       <section aria-labelledby="caja-cuentas" className="mt-8">
         <h2 id="caja-cuentas" className="text-xl font-semibold">Cuentas por cobrar o cerrar</h2>

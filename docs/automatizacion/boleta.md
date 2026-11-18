@@ -8,8 +8,12 @@ exclusivamente para una empresa Nubefact en modo DEMO. No activar producción.
 1. AlToque registra el pago con sus reglas habituales. Un pago parcial o un Yape
    pendiente no generan una boleta.
 2. Cuando un pago confirmado deja el saldo en cero, un trigger reserva en
-   `receipts` una fila `PENDIENTE`. Bloquea `receipt_series` para obtener e
-   incrementar el número. Hay una única reserva por cuenta (sesión o pedido).
+   `receipts` una fila `PENDIENTE` **solo si la cuenta tiene correo para la boleta**:
+   al menos un pago `CONFIRMED` del mismo restaurante y de la misma sesión o
+   pedido tiene `receipt_email` no vacío. Puede ser un pago parcial anterior.
+   Sin correo, el cobro sigue normal y no se lee ni bloquea la serie, no se crea
+   reserva y no cambia `next_number`. Con correo, se bloquea `receipt_series`
+   para obtener e incrementar el número. Hay una única reserva por cuenta.
 3. El aviso firmado v2 lleva esa reserva, el saldo y, únicamente si se escribió
    voluntariamente al pagar, `cliente.correo`. En Stripe se usa
    `metadata.receipt_email` de Checkout; no `customer_details.email` ni el correo
@@ -34,6 +38,22 @@ exclusivamente para una empresa Nubefact en modo DEMO. No activar producción.
 
 ## Aplicación de la migración (Alexander)
 
+Corrección del 16/11/2026:
+`supabase/migrations/20261116220801_us088_boleta_solo_con_correo.sql`.
+Reemplaza solo `private.reservar_boleta_prueba()`, conserva seguridad y permisos,
+y añade la condición de correo confirmado antes de leer `receipt_series`.
+No cambia el trigger, otras funciones, reservas anteriores ni correlativos.
+Se valida únicamente en Supabase local. Alexander revisa y aplica la migración
+en la base compartida; después configura la serie con `next_number=33` según
+su revisión del correlativo. No se ejecuta esa configuración desde esta guía.
+
+La condición es de **cuenta**, no únicamente del pago final. Este cambio no
+modifica el aviso n8n: actualmente `cliente.correo` procede del pago que dispara
+el aviso. Si el correo estuvo solo en un pago parcial y el último no lo tiene,
+la reserva sí se crea, pero el aviso final no recupera el correo anterior.
+La prueba compartida acordada debe introducir el correo en el pago final.
+
+Migración base ya integrada:
 Archivo nuevo: `supabase/migrations/20261115221935_us088_boletas_prueba.sql`.
 Se probó primero en Supabase local. No ejecutar `supabase db push` desde esta guía.
 Alexander revisa y aplica la migración en la base compartida antes de publicar
@@ -58,7 +78,8 @@ número libre en Nubefact para la serie **BBB1**. No asumir que es 1 por no habe
 emitido desde AlToque, ni copiar el correlativo de las pruebas locales.
 Configurar la serie antes del primer pago que vaya a emitir boleta.
 
-No se reservan boletas sin configuración, con serie agotada, con importe cero o desde S/ 700.
+No se reservan boletas sin correo confirmado de la cuenta, sin configuración,
+con serie agotada, con importe cero o desde S/ 700.
 El cobro sigue funcionando. No se incluye emisión con DNI/RUC, factura,
 percepciones, retenciones ni comprobantes reales en esta historia.
 

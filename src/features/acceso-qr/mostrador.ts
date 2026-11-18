@@ -8,19 +8,21 @@ export type MostradorAdmin = {
   localId: string;
   local: string;
   tieneQrActivo: boolean;
+  // US-096: QR activo (id y hash), solo para el servidor.
+  qrActivo: { id: string; token_hash: string } | null;
 };
 
 type FilaLocal = {
   id: string;
   name: string;
-  qr_codes: { active: boolean; purpose: "DINE_IN" | "TAKEAWAY" }[];
+  qr_codes: { id: string; active: boolean; purpose: "DINE_IN" | "TAKEAWAY"; token_hash: string }[];
 };
 
 export async function listarMostradores(restauranteId: string): Promise<MostradorAdmin[]> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("branches")
-    .select("id, name, qr_codes(active, purpose)")
+    .select("id, name, qr_codes(id, active, purpose, token_hash)")
     .eq("restaurant_id", restauranteId)
     .eq("active", true)
     .order("name")
@@ -31,11 +33,15 @@ export async function listarMostradores(restauranteId: string): Promise<Mostrado
     throw new Error("No se pudieron cargar los mostradores");
   }
 
-  return data.map((fila) => ({
-    localId: fila.id,
-    local: fila.name,
-    tieneQrActivo: fila.qr_codes.some((qr) => qr.active && qr.purpose === "TAKEAWAY"),
-  }));
+  return data.map((fila) => {
+    const qr = fila.qr_codes.find((q) => q.active && q.purpose === "TAKEAWAY");
+    return {
+      localId: fila.id,
+      local: fila.name,
+      tieneQrActivo: !!qr,
+      qrActivo: qr ? { id: qr.id, token_hash: qr.token_hash } : null,
+    };
+  });
 }
 
 // Anula el QR de mostrador activo del local (si hay uno).
@@ -62,9 +68,11 @@ export type ResultadoMostrador =
 
 // Genera o regenera: primero anula el QR viejo y luego guarda el hash del nuevo.
 // La base solo permite un QR de mostrador activo por local.
+// US-096: el id del QR llega calculado de antes, porque el token depende de él.
 export async function reemplazarQrMostrador(
   restauranteId: string,
   localId: string,
+  qrId: string,
   tokenHash: string,
 ): Promise<ResultadoMostrador> {
   const supabase = await crearClienteServidor();
@@ -86,6 +94,7 @@ export async function reemplazarQrMostrador(
   }
 
   const { error: errorInsert } = await supabase.from("qr_codes").insert({
+    id: qrId,
     restaurant_id: restauranteId,
     branch_id: local.id,
     dining_table_id: null,

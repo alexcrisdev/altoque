@@ -19,9 +19,28 @@ insert into public.orders(id, restaurant_id, branch_id, qr_code_id, table_sessio
  select '88000000-0000-4000-8000-000000000011', restaurant_id, branch_id, id,
  '88000000-0000-4000-8000-000000000010', dining_table_id, 'DINE_IN', 32, gen_random_uuid()
  from public.qr_codes where dining_table_id = '30000000-0000-0000-0000-000000000001' and active;
+
+-- US-098: preparar solo el plato de este caso con el ADMIN demo.
+-- El ROLLBACK de la prueba (también al cerrarse psql por error) restaura todo.
+select set_config('request.jwt.claim.sub',
+ (select id::text from auth.users where email = 'admin@demo.altoque.pe'), true);
+set local role authenticated;
+select public.guardar_stock_diario(
+ '10000000-0000-0000-0000-000000000001',
+ (now() at time zone 'America/Lima')::date,
+ jsonb_build_array(jsonb_build_object('productoId', p.id, 'cantidad',
+   case when s.product_id is null then null else greatest(s.quantity, s.sold + 2) end)),
+ true)
+from (select id from public.products
+ where restaurant_id = '10000000-0000-0000-0000-000000000001' and active and name = 'Ceviche clásico'
+ order by id limit 1) p
+left join public.product_daily_stock s on s.product_id = p.id
+ and s.restaurant_id = '10000000-0000-0000-0000-000000000001'
+ and s.stock_date = (now() at time zone 'America/Lima')::date;
+reset role;
 insert into public.order_items(order_id, product_id, product_name, quantity, unit_price, subtotal)
  select '88000000-0000-4000-8000-000000000011', id, name, 1, 32, 32 from public.products
- where restaurant_id = '10000000-0000-0000-0000-000000000001' and name = 'Ceviche clásico';
+ where restaurant_id = '10000000-0000-0000-0000-000000000001' and active and name = 'Ceviche clásico' order by id limit 1;
 
 select set_config('request.jwt.claim.sub', '88000000-0000-4000-8000-000000000001', true);
 set local role authenticated;
@@ -111,12 +130,17 @@ do $$ begin
 end $$;
 reset role;
 -- Otra cuenta para llevar pagada por Stripe, sin tomar correos de Stripe Checkout.
+-- QR propio de esta transacción: no usar el mostrador reservado para E2E.
+insert into public.branches(id, restaurant_id, name) values
+ ('88000000-0000-4000-8000-000000000080', '10000000-0000-0000-0000-000000000001', 'US-088 Stripe local');
+insert into public.qr_codes(restaurant_id, branch_id, purpose, token_hash) values
+ ('10000000-0000-0000-0000-000000000001', '88000000-0000-4000-8000-000000000080', 'TAKEAWAY', repeat('d', 64));
 insert into public.orders(id, restaurant_id, branch_id, qr_code_id, modality, total, idempotency_key)
  select '88000000-0000-4000-8000-000000000012', restaurant_id, branch_id, id, 'TAKEAWAY', 32, gen_random_uuid()
- from public.qr_codes where restaurant_id = '10000000-0000-0000-0000-000000000001' and purpose = 'TAKEAWAY' and active;
+ from public.qr_codes where branch_id = '88000000-0000-4000-8000-000000000080' and purpose = 'TAKEAWAY' and active;
 insert into public.order_items(order_id, product_id, product_name, quantity, unit_price, subtotal)
  select '88000000-0000-4000-8000-000000000012', id, name, 1, 32, 32 from public.products
- where restaurant_id = '10000000-0000-0000-0000-000000000001' and name = 'Ceviche clásico';
+ where restaurant_id = '10000000-0000-0000-0000-000000000001' and active and name = 'Ceviche clásico' order by id limit 1;
 set local role service_role;
 -- US-097: registrar solo un Checkout OPEN con snapshot y monto válidos.
 select public.vincular_checkout_stripe(checkout_id, 'cs_test_us088A')

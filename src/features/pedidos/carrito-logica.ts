@@ -1,5 +1,74 @@
-import type { Producto } from "../carta/tipos";
+import type { DisponibilidadProducto, Producto } from "../carta/tipos";
 import { LIMITES, type ItemCarrito, type ItemPedido } from "./tipos";
+
+// US-103: con pocas unidades la carta avisa «¡Quedan N!».
+export const POCAS_UNIDADES = 5;
+
+export type ProblemaLinea =
+  | { tipo: "AGOTADO" }
+  | { tipo: "EXCEDE"; quedan: number };
+
+// Aplica la última consulta de stock sin tocar el resto de datos del producto.
+// Un producto que ya no vino en la consulta se deja como estaba: el servidor lo valida al enviar.
+export function aplicarDisponibilidad(
+  productos: readonly Producto[],
+  disponibilidad: ReadonlyMap<string, DisponibilidadProducto>,
+): Producto[] {
+  return productos.map((producto) => {
+    const vivo = disponibilidad.get(producto.id);
+    if (!vivo) return producto;
+    return { ...producto, available: vivo.available, quedan: vivo.quedan };
+  });
+}
+
+export function estaAgotado(producto: Producto): boolean {
+  return !producto.available || producto.quedan === 0;
+}
+
+// Cuántas unidades más se pueden pedir (null = sin límite de stock).
+function limiteStock(producto: Producto): number | null {
+  return typeof producto.quedan === "number" ? producto.quedan : null;
+}
+
+export function problemaDeLinea(
+  item: ItemCarrito,
+  producto: Producto,
+): ProblemaLinea | null {
+  if (estaAgotado(producto)) return { tipo: "AGOTADO" };
+  const limite = limiteStock(producto);
+  if (limite !== null && item.cantidad > limite) {
+    return { tipo: "EXCEDE", quedan: limite };
+  }
+  return null;
+}
+
+// «Enviar pedido» queda bloqueado si alguna línea está agotada, excede el stock
+// o ya no aparece en la carta.
+export function hayLineasConProblema(
+  items: readonly ItemCarrito[],
+  productos: readonly Producto[],
+): boolean {
+  const porId = new Map(productos.map((producto) => [producto.id, producto]));
+  return items.some((item) => {
+    const producto = porId.get(item.productoId);
+    return !producto || problemaDeLinea(item, producto) !== null;
+  });
+}
+
+// «Dejar N»: baja solo esa línea a lo que queda; si no queda nada, la quita.
+export function ajustarADisponible(
+  items: ItemCarrito[],
+  producto: Producto,
+): ItemCarrito[] {
+  if (estaAgotado(producto)) return quitarDelCarrito(items, producto.id);
+  const limite = limiteStock(producto);
+  if (limite === null) return items;
+  return items.map((item) =>
+    item.productoId === producto.id && item.cantidad > limite
+      ? { ...item, cantidad: limite }
+      : item,
+  );
+}
 
 // El precio mostrado sirve para detectar cambios; el servidor recalcula el pedido.
 export function aItemsPedido(
@@ -33,16 +102,18 @@ export function agregarAlCarrito(
   items: ItemCarrito[],
   producto: Producto,
 ): ItemCarrito[] {
-  if (!producto.available) return items;
+  if (estaAgotado(producto)) return items;
 
   const existente = items.find(
     (item) => item.productoId === producto.id,
   );
+  const limite = limiteStock(producto);
 
   if (existente) {
     const cantidad = existente.cantidad + 1;
 
     if (!cantidadValida(cantidad)) return items;
+    if (limite !== null && cantidad > limite) return items;
 
     return items.map((item) =>
       item.productoId === producto.id
@@ -74,7 +145,13 @@ export function cambiarCantidad(
     if (item.productoId !== producto.id) return item;
 
     // Un producto agotado puede reducirse, pero no aumentarse.
-    if (!producto.available && cantidad > item.cantidad) {
+    if (estaAgotado(producto) && cantidad > item.cantidad) {
+      return item;
+    }
+
+    // US-103: tampoco se sube por encima de lo que queda hoy.
+    const limite = limiteStock(producto);
+    if (limite !== null && cantidad > item.cantidad && cantidad > limite) {
       return item;
     }
 

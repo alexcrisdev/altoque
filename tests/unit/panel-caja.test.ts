@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("../../src/features/pago-cierre/acceso-caja", () => ({ requerirCaja: vi.fn() }));
+vi.mock("../../src/features/pago-cierre/acceso-caja", () => ({ contextoCaja: vi.fn() }));
 vi.mock("../../src/features/mesero/sesiones", () => ({ listarMesasConSesion: vi.fn() }));
 vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() }));
 vi.mock("../../src/features/pedidos/vencimiento-datos", () => ({ vencerPedidosSinPago: vi.fn().mockResolvedValue(undefined) }));
 
-import { requerirCaja } from "../../src/features/pago-cierre/acceso-caja";
+import { contextoCaja } from "../../src/features/pago-cierre/acceso-caja";
 import { listarMesasConSesion } from "../../src/features/mesero/sesiones";
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { listarCuentasAbiertas } from "../../src/features/pago-cierre/cuentas";
@@ -57,7 +57,7 @@ describe("US-094: prioridad de cuentas que esperan pago", () => {
 
 describe("US-082: lectura del panel de caja", () => {
   it("US-085: conserva el pedido para llevar PENDING con saldo para poder cobrarlo", async () => {
-    vi.mocked(requerirCaja).mockResolvedValue("restaurante-autorizado");
+    vi.mocked(contextoCaja).mockResolvedValue({ restauranteId: "restaurante-autorizado", puedeVerificar: true, autorizaExcepcion: false });
     const { filtros } = lecturas("Cliente espera pago", false, "PENDING");
     vi.mocked(listarMesasConSesion).mockResolvedValue([]);
     const resultado = await obtenerPanelCaja();
@@ -70,13 +70,13 @@ describe("US-082: lectura del panel de caja", () => {
   });
 
   it("comprueba el acceso antes de consultar cuentas o mesas", async () => {
-    vi.mocked(requerirCaja).mockRejectedValue(new Error("Sin permiso"));
+    vi.mocked(contextoCaja).mockRejectedValue(new Error("Sin permiso"));
     await expect(obtenerPanelCaja()).rejects.toThrow("Sin permiso");
     expect(crearClienteServidor).not.toHaveBeenCalled();
     expect(listarMesasConSesion).not.toHaveBeenCalled();
   });
   it("consulta solo el restaurante de la membresía y conserva importes", async () => {
-    vi.mocked(requerirCaja).mockResolvedValue("restaurante-autorizado");
+    vi.mocked(contextoCaja).mockResolvedValue({ restauranteId: "restaurante-autorizado", puedeVerificar: true, autorizaExcepcion: false });
     const { filtros } = lecturas();
     const mesas = [{ id: "mesa-demo", numero: 5, sesion: null }];
     vi.mocked(listarMesasConSesion).mockResolvedValue(mesas);
@@ -89,7 +89,7 @@ describe("US-082: lectura del panel de caja", () => {
     expect(resultado.cuentas[0]).toMatchObject({ titulo: "Para llevar #82 – Cliente Demo", consumoCentimos: 1250, saldoCentimos: 1250 });
   });
   it("propaga el fallo de sesiones en lugar de presentar las mesas como libres", async () => {
-    vi.mocked(requerirCaja).mockResolvedValue("restaurante-autorizado");
+    vi.mocked(contextoCaja).mockResolvedValue({ restauranteId: "restaurante-autorizado", puedeVerificar: true, autorizaExcepcion: false });
     lecturas();
     vi.mocked(listarMesasConSesion).mockRejectedValue(new Error("No se pudieron cargar las sesiones"));
     await expect(obtenerPanelCaja()).rejects.toThrow("No se pudieron cargar las sesiones");

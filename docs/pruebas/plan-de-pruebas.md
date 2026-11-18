@@ -62,6 +62,74 @@ La preparación del esquema/seed es una operación de base de datos y correspond
 
 `npm run test:rls` lee `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `DEMO_PASSWORD` de `.env.local`; **el destino real es esa URL**, no el proyecto que figure enlazado en la CLI. Según la decisión del equipo, tanto la ejecución local como el workflow usan `altoque-dev`; no se debe confundir esta configuración con un entorno aislado. El workflow `Pruebas de integración` recibe esas tres variables desde GitHub Actions Secrets. No usa `SUPABASE_SERVICE_ROLE_KEY`; las pruebas ejercitan RLS con clientes autenticados normales y anónimos.
 
+
+### Datos de prueba: preparación y restauración de stock (US-098)
+
+Las pruebas que piden platos usan `tests/soporte/stock-prueba.ts`: autentican
+`admin@demo.altoque.pe` con las credenciales demo existentes y llaman a
+`guardar_stock_diario` con `p_parcial: true`. Requiere la migración
+`20261116120000_us098_stock_parcial_pruebas.sql`, cuya aplicación al entorno
+compartido necesita aprobación. La firma anterior de tres parámetros sigue intacta;
+el formulario de stock de la aplicación no cambia. La sobrecarga conserva los
+permisos OWNER/ADMIN, el restaurante, la fecha de Lima y los bloqueos de US-078.
+
+Antes de crear pedidos se guardan `quantity` y `sold` de los productos concretos
+del caso, y se garantiza la cantidad necesaria aunque estuvieran agotados.
+Los productos sin fila de stock conservan su disponibilidad ilimitada.
+No se cambia `available`, no se reescribe la carta completa y no se alteran otros platos.
+
+Al finalizar, los bloques `finally` de `afterAll` o de la fixture E2E intentan
+limpiar los pedidos propios y restaurar el stock, incluso cuando falla una aserción.
+La restauración devuelve **la disponibilidad previa**, conservando el consumo registrado:
+
+```text
+disponibilidad inicial = quantity inicial - sold inicial
+quantity restaurado = disponibilidad inicial + sold actual
+```
+
+Los pedidos entregados conservados como historial mantienen sus unidades vendidas.
+Los pedidos cancelados devuelven unidades mediante las reglas existentes.
+La restauración vuelve a consultar la fila para comprobar el resultado; un fallo
+se reporta como limpieza pendiente, no se oculta. Si un producto temporal conserva
+ventas, no se borra su contador: primero deben limpiarse sus pedidos propios.
+
+Cobertura de preparación:
+- Integración compartida: pagos, cierre, entrega e incidencias de cocina.
+- Integración exclusiva local: alergias, espera de pago, vencimiento, capturas y
+  concurrencia. Preparan stock con ADMIN aunque otros datos propios usen el servicio local.
+- E2E: `prepararCarrito` prepara un producto activo concreto antes de abrir la carta;
+  la fixture restaura al finalizar. Los recorridos usan ese mismo producto.
+- SQL local de boletas: preparación con la identidad ADMIN demo dentro de la
+  transacción existente; `ROLLBACK` o el cierre de psql por error restaura los datos.
+- `tests/unit/stock-prueba.test.ts` comprueba agotados, consumo conservado, fallos,
+  restauración, productos ilimitados y repetición sin conexiones reales.
+- `tests/rls/stock-parcial-local.test.ts` y `supabase/tests/us098_stock_parcial.sql`
+  comprueban la sobrecarga, el aislamiento de productos y los permisos en Docker local.
+
+Ejecución de aceptación, dos veces consecutivas desde esta máquina:
+
+```powershell
+node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/rls --no-file-parallelism
+node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/rls --no-file-parallelism
+```
+
+El destino sigue siendo la URL de `.env.local`: «LOCAL» en este procedimiento
+significa ejecutar el comando en la máquina, no garantiza una base aislada.
+No ejecutar a la vez que E2E, otra suite local o un ensayo manual sobre esos platos;
+el grupo de concurrencia de CI no bloquea procesos lanzados desde una laptop.
+Evitar que la ejecución cruce medianoche en Lima, pues el RPC solo permite modificar
+el día vigente. Un cierre forzado del proceso no ejecuta `finally`; si ocurre,
+revisar los productos del caso antes de repetir, sin reiniciar stock ajeno.
+
+**Verificación del 16/11/2026:** 1333/1333 unitarias en 81 archivos (13 casos
+propios de stock); lint, typecheck, tsc --noEmit, build y git diff --check aprobados.
+Playwright carga 21 casos en 9 archivos con --list; esto no ejecuta los recorridos.
+El build mostró un aviso de seguridad de la versión actual de Next.js; no se
+actualizaron dependencias fuera del alcance de US-098. La migración está preparada, **no aplicada**.
+Las dos ejecuciones de integración y los recorridos E2E siguen pendientes de aplicar
+la migración con aprobación. La prueba SQL local requiere Docker, no disponible en
+la máquina revisada. No presentar esos casos como aprobados.
+
 ## Integración automática US-039
 
 `.github/workflows/integracion.yml` ejecuta `tests/rls/` en cada PR hacia `develop` o `main`, en cada push a `develop` y cuando alguien lo lanza desde Actions → **Pruebas de integración** → **Run workflow**. Todas las ejecuciones comparten un único grupo de concurrencia y no se cancela una ejecución activa, porque las suites usan mesas y datos demo compartidos.

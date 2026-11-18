@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
-import { cancelarPedido, pedidosPropios, verificarEnCocina, RESTAURANTE, type EntornoPedido } from "./ayuda";
+import { randomUUID } from "node:crypto";
+import { cancelarPedido, pedidosPropios, verificarEnCocina, MESA_NUMERO, RESTAURANTE, type EntornoPedido } from "./ayuda";
 
 export const textoSoles = (centimos: number) => (centimos / 100).toFixed(2);
 
@@ -73,6 +74,48 @@ export async function pagarParaLlevarEnCaja(pedido: EntornoPedido) {
   }]);
   await verificarEnCocina(pedido, Number(p.order_number));
   return caja;
+}
+
+// Pago previo obligatorio en mesa: caja cobra todo el saldo y recién ahí cocina lo ve.
+export async function pagarMesaEnCaja(pedido: EntornoPedido) {
+  const p = await cuentaPropia(pedido);
+  expect(p).toMatchObject({ status: "PENDING", modality: "DINE_IN", source: "QR" });
+  const caja = await pedido.staff("caja");
+  await caja.goto(p.ruta);
+  await expect(caja).toHaveURL(new RegExp(`/caja/mesa/${p.table_session_id}$`));
+  const saldo = await saldoVisible(caja);
+  expect(saldo).toBeGreaterThan(0);
+  await pagarEfectivo(caja, saldo);
+  await expect.poll(async () => (await cuentaPropia(pedido)).status).toBe("IN_PROGRESS");
+  const historial = await pedido.admin.from("order_status_history")
+    .select("from_status,to_status,reason").eq("restaurant_id", RESTAURANTE)
+    .eq("order_id", p.id).eq("from_status", "PENDING");
+  expect(historial.error).toBeNull();
+  expect(historial.data).toEqual([{
+    from_status: "PENDING", to_status: "IN_PROGRESS", reason: "US-094: pago confirmado",
+  }]);
+  await verificarEnCocina(pedido, Number(p.order_number));
+  return caja;
+}
+
+// Pedido tomado por el mesero en la mesa propia: entra directo a cocina, sin pago previo.
+export async function registrarPedidoMeseroPropio(pedido: EntornoPedido) {
+  const sesiones = await pedido.admin.from("table_sessions")
+    .select("branch_id, dining_table_id, dining_tables!inner(number)").eq("restaurant_id", RESTAURANTE)
+    .eq("dining_tables.number", MESA_NUMERO).is("closed_at", null);
+  expect(sesiones.error).toBeNull();
+  expect(sesiones.data).toHaveLength(1);
+  // US-098: el producto tiene stock preparado y se restaura al terminar.
+  const producto = await pedido.prepararStock();
+  const registro = await pedido.admin.rpc("registrar_pedido_mesero", {
+    p_restaurant_id: RESTAURANTE, p_modality: "DINE_IN",
+    p_dining_table_id: sesiones.data![0].dining_table_id, p_branch_id: sesiones.data![0].branch_id,
+    p_idempotency_key: randomUUID(),
+    p_items: [{ productoId: producto.id, cantidad: 1, observacion: pedido.marca }],
+  });
+  expect(registro.error).toBeNull();
+  await expect.poll(async () => (await cuentaPropia(pedido)).status).toBe("IN_PROGRESS");
+  expect((await cuentaPropia(pedido)).source).toBe("WAITER");
 }
 
 export async function cerrarOrdinaria(page: Page) {

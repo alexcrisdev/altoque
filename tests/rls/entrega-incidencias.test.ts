@@ -1,3 +1,4 @@
+import { StockPrueba } from "../soporte/stock-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -5,6 +6,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const password = process.env.DEMO_PASSWORD;
 const restaurantId = "10000000-0000-0000-0000-000000000001";
+const stockPrueba = new StockPrueba(restaurantId);
 
 let mesero: SupabaseClient | undefined;
 let meseroId: string | undefined;
@@ -48,6 +50,8 @@ beforeAll(async () => {
   if (!mesa || !productos?.[0]) throw new Error("Se requiere una mesa libre y un producto activo en Cevichería demo");
   mesaId = mesa.id;
   branchId = mesa.branch_id;
+
+  await stockPrueba.preparar(productos[0].id, 1);
 
   const { data: sesion, error: errorApertura } = await mesero.from("table_sessions").insert({
     restaurant_id: restaurantId, branch_id: branchId, dining_table_id: mesaId, opened_by: meseroId,
@@ -94,6 +98,7 @@ afterAll(async () => {
   } catch (error) {
     erroresLimpieza.push(`Falló el cierre de la sesión de prueba: ${String(error)}`);
   } finally {
+    await stockPrueba.restaurar().catch(error => erroresLimpieza.push(String(error)));
     await Promise.all([mesero?.auth.signOut(), cocina?.auth.signOut(), duenoPolleria?.auth.signOut()]);
   }
   if (erroresLimpieza.length) throw new Error(erroresLimpieza.join("; "));

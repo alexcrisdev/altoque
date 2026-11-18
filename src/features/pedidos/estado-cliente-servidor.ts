@@ -8,6 +8,14 @@ import {
 } from "./estados";
 import { calcularLimitePago } from "./temporizador-pago";
 import { vencerPedidosSinPago } from "./vencimiento-datos";
+import {
+  construirLineaTiempo,
+  estimarTiempoRestante,
+  inicioEnCocina,
+  type PasoLineaTiempo,
+  type TiempoEstimado,
+} from "./linea-tiempo";
+import { leerEventosPedido, leerPromedioCocinaMs } from "./linea-tiempo-datos";
 
 export type PedidoCliente = {
   numero: number;
@@ -22,6 +30,9 @@ export type PedidoCliente = {
   motivo: string | null;
   limitePago: string;
   pagoPendiente: boolean;
+  /** US-092: pasos con su hora (HH:MM Lima). Sin personal ni motivos. */
+  lineaTiempo: PasoLineaTiempo[];
+  estimado: TiempoEstimado | null;
 };
 
 type FilaPedido = {
@@ -140,6 +151,14 @@ export async function consultarPedidoCliente(
     motivo = historial.data?.reason?.trim() || null;
   }
 
+  // US-092: historial de este pedido (ya validado por QR + clave).
+  const eventos = await leerEventosPedido(supabase, acceso.restauranteId, data.id);
+  const ahora = Date.now();
+  const promedioMs =
+    data.status === "PENDING" || data.status === "ACCEPTED" || data.status === "IN_PROGRESS"
+      ? await leerPromedioCocinaMs(supabase, acceso.restauranteId, ahora)
+      : null;
+
   // Construimos la respuesta explícitamente: sin claves, IDs,
   // datos del personal, datos de contacto ni información de pagos.
   return {
@@ -158,5 +177,12 @@ export async function consultarPedidoCliente(
     motivo,
     limitePago: calcularLimitePago(data.created_at),
     pagoPendiente,
+    lineaTiempo: construirLineaTiempo(eventos, data.status, data.created_at),
+    estimado: estimarTiempoRestante(
+      data.status,
+      promedioMs,
+      inicioEnCocina(eventos),
+      ahora,
+    ),
   };
 }

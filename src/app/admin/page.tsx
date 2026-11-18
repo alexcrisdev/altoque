@@ -3,23 +3,30 @@ import {
   Boton,
   BotonEnlace,
   EncabezadoPantalla,
-  Insignia,
   MensajeEstado,
   Tarjeta,
 } from "@/components/ui";
 import { cerrarSesion } from "@/features/auth/actions";
 import { requerirRol } from "@/features/auth/sesion";
-import {
-  actualizarCobroAnticipadoAction,
-  consultarCobroAnticipadoAction,
-} from "@/features/dashboard/configuracion-actions";
+import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
+import { consultarPanelVivoAction } from "@/features/dashboard/panel-vivo-actions";
+import { PanelVivoVista } from "@/features/dashboard/panel-vivo-vista";
+import { consultarPrediccionMananaAction } from "@/features/dashboard/prediccion-actions";
+import { TarjetaPrediccion } from "@/features/dashboard/tarjeta-prediccion";
+import { consultarActividadDiaAction } from "@/features/dashboard/actividad-actions";
+import { ActividadVista } from "@/features/dashboard/actividad-vista";
 
 async function AdminPanel() {
   await requerirRol(["OWNER", "ADMIN"]);
-  const cobroAnticipado = await consultarCobroAnticipadoAction();
+  // US-099: panel en vivo + «Prepara mañana» (US-090) + actividad del día, en paralelo.
+  const [resultado, prediccion, actividad] = await Promise.all([
+    consultarPanelVivoAction(),
+    consultarPrediccionMananaAction(),
+    consultarActividadDiaAction(),
+  ]);
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
       <EncabezadoPantalla
         titulo="Panel administrador"
         acciones={
@@ -31,23 +38,34 @@ async function AdminPanel() {
         }
       />
 
-      <Tarjeta className="my-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h2 className="font-semibold text-texto">Cobro anticipado en mesa</h2>
-          <p className="mt-1 text-sm text-texto-suave">
-            Si está activo, los pedidos por QR esperan el pago completo de la mesa antes de entrar a cocina.
-          </p>
-          <Insignia tono={cobroAnticipado ? "exito" : "neutro"} className="mt-2">
-            {cobroAnticipado ? "Activo" : "Apagado"}
-          </Insignia>
+      <section aria-labelledby="panel-vivo-titulo" className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="panel-vivo-titulo" className="text-xl font-bold">
+            Hoy en tu restaurante
+          </h2>
+          <span className="inline-flex items-center gap-2 rounded-full bg-exito-fondo px-3 py-1 text-sm font-semibold text-exito-texto">
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-exito-texto motion-safe:animate-pulse" />
+            En vivo
+          </span>
         </div>
-        <form action={actualizarCobroAnticipadoAction}>
-          <input type="hidden" name="activo" value={String(!cobroAnticipado)} />
-          <Boton type="submit" variante="secundario">
-            {cobroAnticipado ? "Apagar" : "Activar"} cobro anticipado
-          </Boton>
-        </form>
+        <ActualizacionAutomatica segundos={20} />
+        {resultado.ok ? (
+          <PanelVivoVista panel={resultado.panel} />
+        ) : (
+          <MensajeEstado tipo="error" titulo={resultado.mensaje} />
+        )}
+      </section>
+
+      <Tarjeta>
+        <TarjetaPrediccion resultado={prediccion} />
       </Tarjeta>
+
+      <section aria-labelledby="actividad-titulo" className="space-y-3">
+        <h2 id="actividad-titulo" className="text-xl font-bold">
+          Actividad y tiempos
+        </h2>
+        <ActividadVista resultado={actividad} />
+      </section>
 
       <nav aria-label="Administración">
         <ul className="grid gap-4 sm:grid-cols-2">
@@ -118,7 +136,7 @@ async function AdminPanel() {
                 variante="secundario"
                 className="w-full"
               >
-                Reportes de ventas
+                Reportes por fechas
               </BotonEnlace>
             </Tarjeta>
           </li>
@@ -132,7 +150,7 @@ export default function AdminPage() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+        <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
           <MensajeEstado
             tipo="cargando"
             titulo="Cargando panel…"
