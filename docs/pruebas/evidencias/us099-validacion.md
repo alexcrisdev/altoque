@@ -53,4 +53,4 @@ Se hizo con el build de producción local (`next start`, puerto 3100) contra la 
 
 - **Predicción como línea en el gráfico por hora.** `demand_forecasts` predice por día y plato, no por hora, así que no hay un dato honesto que dibujar. La predicción se muestra en «Prepara mañana».
 - **Capturas en staging.** Se tomaron en local con la base compartida, no en staging.
-- **Parte 2 (BI: preguntas de negocio y sección "Actividad y tiempos")**: no se implementó.
+- **Parte 2b (sección "Actividad y tiempos")**: no se implementó. La Parte 2a sí: `docs/analitica/preguntas-de-negocio.md`.
