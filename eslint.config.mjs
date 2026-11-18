@@ -7,6 +7,8 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
+      // Entorno virtual de Python usado por analítica.
+    ".venv/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",

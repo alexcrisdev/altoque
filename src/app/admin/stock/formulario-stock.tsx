@@ -1,51 +1,247 @@
 "use client";
 
-import { useActionState } from "react";
-import { guardarStockAction, type EstadoGuardarStock } from "@/features/carta/stock-actions";
-import type { ProductoConStock } from "@/features/carta/stock-diario";
+import { useActionState, useState } from "react";
+import { Boton } from "../../../components/ui/boton";
+import { Insignia } from "../../../components/ui/insignia";
+import { guardarStockConPrediccionAction } from "../../../features/carta/stock-prediccion-actions";
+import type { EstadoGuardarStock } from "../../../features/carta/stock-actions";
+import type { ProductoConStock } from "../../../features/carta/stock-diario";
+import {
+  crearEstadoStock,
+  deshacerRellenoStock,
+  editarCantidadStock,
+  rellenarStockConPrediccion,
+  type SugerenciaStock,
+} from "../../../features/carta/rellenar-stock-logica";
 
-const estadoInicial: EstadoGuardarStock = { tipo: "inicial", mensaje: "" };
+type Props = {
+  fecha: string;
+  productos: ProductoConStock[];
+  sugerencias: SugerenciaStock[];
+};
 
-export function FormularioStock({ productos }: { productos: ProductoConStock[] }) {
-  const [estado, accion, pendiente] = useActionState(guardarStockAction, estadoInicial);
+const estadoInicial: EstadoGuardarStock = {
+  tipo: "inicial",
+  mensaje: "",
+};
+
+const ETIQUETA = {
+  registrado: "Registrado",
+  prediccion: "Predicción",
+  editado: "Editado por ti",
+  sin_prediccion: "Sin predicción",
+};
+
+export function FormularioStock({
+  fecha,
+  productos,
+  sugerencias,
+}: Props) {
+  const [relleno, setRelleno] = useState(
+    () => crearEstadoStock(productos),
+  );
+
+  const [estado, accion, pendiente] = useActionState(
+    async (anterior: EstadoGuardarStock, datos: FormData) => {
+      const resultado = await guardarStockConPrediccionAction(
+        anterior,
+        datos,
+      );
+
+      if (resultado.tipo === "exito") {
+        setRelleno((actual) => ({
+          anteriores: null,
+          campos: actual.campos.map((campo) => ({
+            ...campo,
+            origen: "registrado",
+          })),
+        }));
+      }
+
+      return resultado;
+    },
+    estadoInicial,
+  );
+
+  const porProducto = new Map(
+    sugerencias.map((fila) => [fila.productoId, fila]),
+  );
+
+  const puedeRellenar = relleno.campos.some(
+    (campo) => porProducto.has(campo.productoId),
+  );
 
   if (productos.length === 0) {
-    return <p className="mt-4 rounded-xl border border-borde p-4">No hay productos activos para registrar.</p>;
+    return (
+      <p className="mt-4 rounded-xl border border-borde p-4">
+        No hay productos activos para registrar.
+      </p>
+    );
   }
 
   return (
     <form action={accion} className="mt-5 grid gap-4">
-      <p className="text-sm text-zinc-700">Deja el campo vacío para vender sin límite, siempre que aún no haya ventas hoy. Un valor de 0 indica que hoy no hay platos disponibles.</p>
-      <ul className="grid gap-3">
-        {productos.map((producto) => (
-          <li key={producto.id} className="grid items-center gap-3 rounded-xl border border-borde bg-superficie p-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
-            <div>
-              <p className="font-semibold">{producto.name}</p>
-              <p className="text-sm text-zinc-700">Vendidos hoy: {producto.vendidos}</p>
-            </div>
-            <label className="grid gap-1 text-sm font-medium">
-              Platos de hoy
-              <input
-                name="cantidad"
-                type="number"
-                min={producto.vendidos}
-                max={2147483647}
-                step="1"
-                defaultValue={producto.cantidad ?? ""}
-                inputMode="numeric"
-                aria-label={`Platos de hoy para ${producto.name}`}
-                className="min-h-11 rounded-xl border border-borde bg-white px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
-              />
-            </label>
-            <input type="hidden" name="productoId" value={producto.id} />
-          </li>
-        ))}
-      </ul>
-      <button disabled={pendiente} className="min-h-11 w-fit rounded-xl bg-teal-700 px-5 py-2 font-semibold text-white disabled:opacity-50">
-        {pendiente ? "Guardando…" : "Guardar"}
-      </button>
+      <input type="hidden" name="fecha" value={fecha} />
+
+      <p className="text-sm text-texto-suave">
+        Deja el campo vacío para vender sin límite si aún no hay
+        ventas hoy. Un valor de 0 indica que no hay unidades disponibles.
+      </p>
+
+      <fieldset
+        disabled={pendiente}
+        className="grid min-w-0 gap-4"
+      >
+        <legend className="sr-only">
+          Cantidades del stock de hoy
+        </legend>
+
+        <div className="flex flex-wrap gap-2">
+          {puedeRellenar && (
+            <Boton
+              type="button"
+              variante="secundario"
+              onClick={() => setRelleno((actual) =>
+                rellenarStockConPrediccion(actual, sugerencias)
+              )}
+            >
+              Rellenar con la predicción
+            </Boton>
+          )}
+
+          {relleno.anteriores !== null && (
+            <Boton
+              type="button"
+              variante="fantasma"
+              onClick={() => setRelleno(deshacerRellenoStock)}
+            >
+              Deshacer relleno
+            </Boton>
+          )}
+        </div>
+
+        {puedeRellenar && (
+          <p className="text-sm text-texto-suave">
+            Rellenar no guarda los cambios. Revisa las cantidades
+            y pulsa Guardar. El rango es orientativo, no un
+            intervalo de confianza.
+          </p>
+        )}
+
+        <ul className="grid gap-3">
+          {relleno.campos.map((campo) => {
+            const sugerencia = porProducto.get(campo.productoId);
+            const insuficiente =
+              campo.valor !== "" &&
+              Number(campo.valor) < campo.vendidos;
+
+            return (
+              <li
+                key={campo.productoId}
+                className="grid items-center gap-3 rounded-xl border border-borde bg-superficie p-4 sm:grid-cols-[minmax(0,1fr)_12rem]"
+              >
+                <div className="min-w-0 space-y-2">
+                  <p className="break-words font-semibold">
+                    {campo.nombre}
+                  </p>
+
+                  <p className="text-sm text-texto-suave">
+                    Vendidos hoy: {campo.vendidos}
+                  </p>
+
+                  <p className="text-sm">
+                    {sugerencia ? (
+                      <>
+                        Sugerencia:{" "}
+                        <span className="font-semibold">
+                          ~{sugerencia.cantidad}{" "}
+                          ({sugerencia.minimo}–{sugerencia.maximo})
+                        </span>
+                      </>
+                    ) : "Sin predicción"}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Insignia
+                      tono={
+                        campo.origen === "prediccion"
+                          ? "info"
+                          : "neutro"
+                      }
+                    >
+                      {ETIQUETA[campo.origen]}
+                    </Insignia>
+
+                    {sugerencia?.modelo.endsWith("-demo") && (
+                      <Insignia tono="aviso">Demo</Insignia>
+                    )}
+                  </div>
+
+                  {!sugerencia && campo.vendidos > 0 && (
+                    <p className="text-sm text-texto-suave">
+                      Se conserva el stock porque ya hay ventas hoy.
+                    </p>
+                  )}
+
+                  {insuficiente && (
+                    <p className="text-sm text-peligro-texto">
+                      Ajusta la cantidad: no puede ser menor que
+                      lo vendido.
+                    </p>
+                  )}
+                </div>
+
+                <label className="grid gap-1 text-sm font-medium">
+                  Unidades de hoy
+                  <input
+                    name="cantidad"
+                    type="number"
+                    min={campo.vendidos}
+                    max={2147483647}
+                    step="1"
+                    required={campo.vendidos > 0}
+                    value={campo.valor}
+                    inputMode="numeric"
+                    aria-label={`Unidades de hoy para ${campo.nombre}`}
+                    onChange={(evento) => {
+                      const valor = evento.currentTarget.value;
+                      setRelleno((actual) =>
+                        editarCantidadStock(
+                          actual,
+                          campo.productoId,
+                          valor,
+                        )
+                      );
+                    }}
+                    className="min-h-11 w-full rounded-xl border border-borde bg-superficie px-3 text-base text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
+                  />
+                </label>
+
+                <input
+                  type="hidden"
+                  name="productoId"
+                  value={campo.productoId}
+                />
+              </li>
+            );
+          })}
+        </ul>
+
+        <Boton type="submit" className="w-fit">
+          {pendiente ? "Guardando…" : "Guardar"}
+        </Boton>
+      </fieldset>
+
       {estado.mensaje && (
-        <p role={estado.tipo === "error" ? "alert" : "status"} aria-live="polite" className={estado.tipo === "error" ? "text-red-700" : "text-teal-800"}>
+        <p
+          role={estado.tipo === "error" ? "alert" : "status"}
+          aria-live="polite"
+          className={
+            estado.tipo === "error"
+              ? "text-peligro-texto"
+              : "text-texto"
+          }
+        >
           {estado.mensaje}
         </p>
       )}

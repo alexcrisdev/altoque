@@ -80,3 +80,17 @@ py -3.14 -m venv .venv
 pip install -r analitica/requirements.txt
 ```
 Abrir el notebook con el kernel `.venv` → **Restart** → **Run All**.
+
+## Actualización US-104: semana del demo
+
+El 17/11/2026 se regeneró `analitica/prediccion_7_dias.csv` para
+el periodo 16–20/11/2026, reutilizando el entrenamiento y los parámetros
+de XGBoost de US-087.
+
+El CSV contiene 25 filas: cinco platos por cinco días, con modelo
+`xgboost-calendario-v1`. Se utilizó un escenario sin feriados ni eventos
+adicionales. Aunque conserva su nombre histórico, esta entrega cubre
+cinco días.
+
+El simulacro del cargador reconoció las 25 filas sin omisiones.
+La aplicación en la base compartida queda a cargo de Alexander.
