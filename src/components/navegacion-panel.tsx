@@ -6,7 +6,7 @@ import { Marca } from "./marca";
 
 const destinos = {
   admin: [["/admin", "Resumen"], ["/admin/mesas", "Mesas y QR"], ["/admin/productos", "Productos"], ["/admin/stock", "Stock del día"], ["/admin/para-llevar", "Para llevar"], ["/admin/pedidos", "Pedidos"], ["/admin/reportes", "Reportes"]],
-  mesero: [["/mesero", "Mesas y pedidos"], ["/mesero/pedido", "Pedido asistido"], ["/caja", "Ir a caja"]],
+  mesero: [["/mesero", "Mesas y pedidos"], ["/mesero/pedido", "Pedido asistido"]],
   caja: [["/caja", "Cuentas y mesas"]],
   cocina: [["/cocina", "Tablero de pedidos"]],
 } as const;
