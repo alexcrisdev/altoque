@@ -228,10 +228,10 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
     {pedidos.filter((p) => p.estado === "CANCELLED" && (vista.cancelados[p.id] ?? 0) > ahora).map((p) => <p key={p.id} role="alert"
       className="motion-safe:animate-pulse rounded-xl border-2 border-peligro-borde bg-peligro-fondo p-5 font-bold text-peligro-texto">Pedido N.º {p.numero} cancelado — no preparar</p>)}
     <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
-      <section aria-label="En preparación"><h2 className="mb-4 text-2xl font-bold">En preparación</h2>
+      <section aria-label="En preparación"><h2 className="mb-4 flex items-center justify-between border-b border-borde pb-3 text-2xl font-bold">En preparación <span className="rounded-lg bg-superficie px-3 py-1 text-base tabular-nums">{preparacion.length}</span></h2>
         <ul className="space-y-4">{preparacion.map((p) => tarjeta(p, false))}</ul>{!preparacion.length && <p>Sin pedidos en preparación</p>}
       </section>
-      <section aria-label="Listos"><h2 className="mb-4 text-2xl font-bold">Listos</h2>
+      <section aria-label="Listos"><h2 className="mb-4 flex items-center justify-between border-b border-borde pb-3 text-2xl font-bold">Listos <span className="rounded-lg bg-superficie px-3 py-1 text-base tabular-nums">{listos.length}</span></h2>
         <ul className="space-y-4">{listos.map((p) => tarjeta(p, true))}</ul>{!listos.length && <p>Sin pedidos listos</p>}
       </section>
     </div>

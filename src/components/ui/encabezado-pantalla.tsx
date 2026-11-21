@@ -12,9 +12,9 @@ export function EncabezadoPantalla({
   acciones,
 }: EncabezadoPantallaProps) {
   return (
-    <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="encabezado-pantalla mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <h1 className="break-words text-2xl font-bold text-texto">
+        <h1 className="break-words text-2xl font-bold tracking-tight text-texto sm:text-3xl">
           {titulo}
         </h1>
 

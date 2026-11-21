@@ -8,7 +8,7 @@ import { FormularioStock } from "./formulario-stock";
 
 export default function StockPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <Suspense fallback={<MensajeEstado tipo="cargando" titulo="Cargando stock del día…" />}>
         <ContenidoStock />
       </Suspense>

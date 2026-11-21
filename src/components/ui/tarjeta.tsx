@@ -7,7 +7,7 @@ export function Tarjeta({
   return (
     <div
       {...props}
-      className={`rounded-2xl border border-borde bg-superficie p-5 text-texto shadow-sm ${className}`}
+      className={`tarjeta rounded-2xl border border-borde bg-superficie p-5 text-texto ${className}`}
     />
   );
 }

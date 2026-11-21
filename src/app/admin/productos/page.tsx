@@ -25,8 +25,8 @@ async function PanelProductos() {
   ]);
 
   return (
-    <>
-      <section aria-labelledby="nuevo-producto" className="mt-6">
+    <div className="mt-6 grid items-start gap-8 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <section aria-labelledby="nuevo-producto" className="min-w-0">
         <h2 id="nuevo-producto" className="mb-3 text-xl font-semibold">Nuevo producto</h2>
         {categorias.length ? (
           <FormularioProducto categorias={categorias} />
@@ -35,7 +35,7 @@ async function PanelProductos() {
         )}
       </section>
 
-      <section aria-labelledby="productos-registrados" className="mt-10">
+      <section aria-labelledby="productos-registrados" className="min-w-0">
         <h2 id="productos-registrados" className="text-xl font-semibold">Productos registrados</h2>
         {productos.length === 0 ? (
           <p className="mt-3 rounded border p-4">Todavía no hay productos.</p>
@@ -60,7 +60,7 @@ async function PanelProductos() {
           </div>
         )}
       </section>
-    </>
+    </div>
   );
 }
 
@@ -72,10 +72,10 @@ function ProductoFila({
   categorias: CategoriaAdmin[];
 }) {
   return (
-    <li className="grid gap-4 rounded border border-borde bg-superficie p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+    <li className="grid gap-4 rounded-2xl border border-borde bg-superficie p-5 xl:grid-cols-[minmax(0,1fr)_auto]">
       <div className="min-w-0">
         <h4 className="break-words font-semibold">{producto.name}</h4>
-        <p className="text-sm text-zinc-700">S/ {producto.price.toFixed(2)}</p>
+        <p className="text-sm text-texto-suave">S/ {producto.price.toFixed(2)}</p>
         <p className="mt-1 text-sm">
           {producto.active ? "Activo en la carta" : "Desactivado"} ·{" "}
           {producto.available ? "Disponible" : "Agotado"}
@@ -107,7 +107,7 @@ function ProductoFila({
 
 export default function ProductosPage() {
   return (
-    <main className="mx-auto w-full max-w-4xl p-8">
+    <main id="contenido-principal" className="mx-auto w-full max-w-4xl p-8">
       <Link href="/admin" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">← Panel administrador</Link>
       <h1 className="mt-2 text-3xl font-bold">Administrar productos</h1>
       <Suspense fallback={<p role="status" aria-busy="true" className="mt-6">Cargando productos…</p>}>

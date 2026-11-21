@@ -70,10 +70,10 @@ async function PanelMesas() {
             titulo="No hay mesas registradas."
           />
         ) : (
-          <ul className="grid gap-3">
+          <ul className="grid gap-4 lg:grid-cols-2">
             {mesas.map((mesa) => (
               <li key={mesa.id}>
-                <Tarjeta className="flex flex-wrap items-start justify-between gap-4">
+                <Tarjeta className="flex h-full flex-col items-start justify-between gap-5">
                   <div>
                     <h3 className="text-lg font-semibold">
                       Mesa {mesa.numero}
@@ -230,7 +230,7 @@ async function PanelMesas() {
 
 export default function MesasPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <div className="mb-4">
         <BotonEnlace
           href="/admin"

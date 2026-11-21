@@ -13,6 +13,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">
+        <a href="#contenido-principal" className="salto-contenido">Saltar al contenido</a>
         {children}
       </body>
     </html>

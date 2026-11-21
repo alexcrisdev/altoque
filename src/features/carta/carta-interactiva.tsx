@@ -390,7 +390,7 @@ export function CartaInteractiva({
     <div className="pt-4 pb-28">
       <nav
         aria-label="Categorías de la carta"
-        className="sticky top-0 z-20 -mx-4 mb-6 flex gap-2 overflow-x-auto border-b border-borde bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6"
+        className="carta-categorias sticky top-0 z-20 -mx-4 mb-8 flex gap-2 overflow-x-auto border-y border-borde bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6"
       >
         {categorias.map((categoria) => (
           <a
@@ -413,7 +413,7 @@ export function CartaInteractiva({
           >
             <h2
               id={`titulo-${categoria.id}`}
-              className="mb-3 text-xl font-bold text-texto"
+              className="mb-4 border-l-4 border-acento pl-3 text-2xl font-bold tracking-tight text-texto"
             >
               {categoria.name}
             </h2>
@@ -440,7 +440,7 @@ export function CartaInteractiva({
                     tamano="lg"
                     onClick={() => abrirDetalle(producto)}
                     aria-haspopup="dialog"
-                    className={`w-full gap-4 pr-16 text-left ${
+                    className={`carta-producto w-full gap-4 pr-16 text-left ${
                       agotado ? "opacity-60 grayscale" : ""
                     }`}
                   >
@@ -466,7 +466,7 @@ export function CartaInteractiva({
                         </span>
                       )}
 
-                      <span className="block font-semibold">
+                      <span className="block text-lg font-bold tabular-nums text-marca">
                         {formatearPrecio(producto.price)}
                       </span>
 

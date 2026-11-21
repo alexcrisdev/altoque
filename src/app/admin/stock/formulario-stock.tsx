@@ -15,13 +15,13 @@ export function FormularioStock({ productos }: { productos: ProductoConStock[] }
 
   return (
     <form action={accion} className="mt-5 grid gap-4">
-      <p className="text-sm text-zinc-700">Deja el campo vacío para vender sin límite, siempre que aún no haya ventas hoy. Un valor de 0 indica que hoy no hay platos disponibles.</p>
-      <ul className="grid gap-3">
+      <p className="text-sm text-texto-suave">Deja el campo vacío para vender sin límite, siempre que aún no haya ventas hoy. Un valor de 0 indica que hoy no hay platos disponibles.</p>
+      <ul className="grid gap-3 xl:grid-cols-2">
         {productos.map((producto) => (
           <li key={producto.id} className="grid items-center gap-3 rounded-xl border border-borde bg-superficie p-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
             <div>
               <p className="font-semibold">{producto.name}</p>
-              <p className="text-sm text-zinc-700">Vendidos hoy: {producto.vendidos}</p>
+              <p className="text-sm text-texto-suave">Vendidos hoy: {producto.vendidos}</p>
             </div>
             <label className="grid gap-1 text-sm font-medium">
               Platos de hoy
@@ -41,11 +41,11 @@ export function FormularioStock({ productos }: { productos: ProductoConStock[] }
           </li>
         ))}
       </ul>
-      <button disabled={pendiente} className="min-h-11 w-fit rounded-xl bg-teal-700 px-5 py-2 font-semibold text-white disabled:opacity-50">
+      <button disabled={pendiente} className="min-h-11 w-fit rounded-xl bg-marca px-5 py-2 font-semibold text-white disabled:opacity-50">
         {pendiente ? "Guardando…" : "Guardar"}
       </button>
       {estado.mensaje && (
-        <p role={estado.tipo === "error" ? "alert" : "status"} aria-live="polite" className={estado.tipo === "error" ? "text-red-700" : "text-teal-800"}>
+        <p role={estado.tipo === "error" ? "alert" : "status"} aria-live="polite" className={estado.tipo === "error" ? "text-peligro-texto" : "text-exito-texto"}>
           {estado.mensaje}
         </p>
       )}

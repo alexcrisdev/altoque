@@ -19,10 +19,10 @@ async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">
   if (!cuenta) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <Link href="/caja" className="text-sm underline">← Volver a caja</Link>
       <h1 className="mt-4 text-3xl font-bold">Cuenta · Para llevar N.º {cuenta.numero}</h1>
-      {cuenta.nombre && <p className="mt-1 text-zinc-600">A nombre de {cuenta.nombre}</p>}
+      {cuenta.nombre && <p className="mt-1 text-texto-suave">A nombre de {cuenta.nombre}</p>}
       <DetalleCuenta
         cuenta={cuenta}
         cerrada={cuenta.cierre !== null}
@@ -47,7 +47,7 @@ async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">
 
 export default function CuentaParaLlevarPage(props: PageProps<"/caja/pedido/[pedidoId]">) {
   return (
-    <Suspense fallback={<main role="status" aria-busy="true" className="mx-auto w-full max-w-3xl p-6">Cargando cuenta…</main>}>
+    <Suspense fallback={<main id="contenido-principal" role="status" aria-busy="true" className="mx-auto w-full max-w-3xl p-6">Cargando cuenta…</main>}>
       <CuentaParaLlevar {...props} />
     </Suspense>
   );

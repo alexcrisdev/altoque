@@ -25,10 +25,10 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
   });
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <Link href="/caja" className="text-sm underline">← Volver a caja</Link>
       <h1 className="mt-4 text-3xl font-bold">Cuenta · Mesa {cuenta.mesaNumero}</h1>
-      <p className="mt-1 text-zinc-600">
+      <p className="mt-1 text-texto-suave">
         {cuenta.cerrada ? "Mesa cerrada" : `Mesa abierta desde las ${desde}`}
       </p>
       <DetalleCuenta
@@ -55,7 +55,7 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
 
 export default function CuentaMesaPage(props: PageProps<"/caja/mesa/[sesionId]">) {
   return (
-    <Suspense fallback={<main role="status" aria-busy="true" className="mx-auto w-full max-w-3xl p-6">Cargando cuenta…</main>}>
+    <Suspense fallback={<main id="contenido-principal" role="status" aria-busy="true" className="mx-auto w-full max-w-3xl p-6">Cargando cuenta…</main>}>
       <CuentaMesa {...props} />
     </Suspense>
   );

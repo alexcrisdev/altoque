@@ -23,17 +23,17 @@ export function FormularioParaLlevar({ config }: { config: ConfigParaLlevar }) {
         <input type="checkbox" name="pideTelefono" defaultChecked={config.pideTelefono} className="h-5 w-5 accent-marca" />
         Teléfono obligatorio
       </label>
-      <p className="text-sm text-zinc-600">
+      <p className="text-sm text-texto-suave">
         Si un dato no es obligatorio, el cliente igual puede dejarlo si quiere.
       </p>
       <button
         disabled={pendiente}
-        className="min-h-11 justify-self-start rounded bg-teal-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
+        className="min-h-11 justify-self-start rounded bg-marca px-4 py-2 font-semibold text-white disabled:opacity-50"
       >
         {pendiente ? "Guardando…" : "Guardar"}
       </button>
       {estado.mensaje && (
-        <p role={estado.tipo === "error" ? "alert" : "status"} className={estado.tipo === "error" ? "text-red-700" : "text-teal-800"}>
+        <p role={estado.tipo === "error" ? "alert" : "status"} className={estado.tipo === "error" ? "text-peligro-texto" : "text-exito-texto"}>
           {estado.mensaje}
         </p>
       )}

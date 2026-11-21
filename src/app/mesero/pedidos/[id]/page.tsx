@@ -26,7 +26,7 @@ async function DetalleMesero({ params }: PageProps<"/mesero/pedidos/[id]">) {
   const roles = membresias.filter((m) => m.restaurantId === restauranteId).map((m) => m.rol);
   const incidencias = await listarIncidencias(pedido.id);
 
-  return <main className="mx-auto max-w-3xl p-6">
+  return <main id="contenido-principal" className="mx-auto max-w-3xl p-6">
     <Link href="/mesero" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">← Panel mesero</Link>
     <h1 className="mt-4 text-3xl font-bold">Pedido n.º {pedido.numero}</h1>
     <p className="mt-2 text-slate-600">{describirDestino(pedido)} · {ETIQUETA_ESTADO[pedido.estado]}</p>
@@ -39,5 +39,5 @@ async function DetalleMesero({ params }: PageProps<"/mesero/pedidos/[id]">) {
 }
 
 export default function DetallePedidoMeseroPage(props: PageProps<"/mesero/pedidos/[id]">) {
-  return <Suspense fallback={<main role="status" aria-busy="true" className="p-6">Cargando pedido…</main>}><DetalleMesero {...props} /></Suspense>;
+  return <Suspense fallback={<main id="contenido-principal" role="status" aria-busy="true" className="p-6">Cargando pedido…</main>}><DetalleMesero {...props} /></Suspense>;
 }

@@ -42,7 +42,7 @@ type Props = {
 
 export default function PaginaEstadoPedido({ params, searchParams }: Props) {
   return (
-    <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-lg space-y-6 px-4 py-6 sm:px-6">
       <h1 className="text-2xl font-bold text-texto">
         Estado de mi pedido
       </h1>
