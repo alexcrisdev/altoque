@@ -1,15 +1,19 @@
 import { Suspense } from "react";
-import { EncabezadoPantalla } from "@/components/ui";
-import { MensajeEstado } from "@/components/ui";
-import { requerirRol } from "@/features/auth/sesion";
-import { fechaActualLima } from "@/features/carta/validar-stock";
-import { listarProductosConStock } from "@/features/carta/stock-diario";
+import { EncabezadoPantalla, MensajeEstado } from "@/components/ui";
+import { consultarStockConPrediccionAction } from "@/features/carta/stock-prediccion-actions";
 import { FormularioStock } from "./formulario-stock";
 
 export default function StockPage() {
   return (
     <main id="contenido-principal" className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-      <Suspense fallback={<MensajeEstado tipo="cargando" titulo="Cargando stock del día…" />}>
+      <Suspense
+        fallback={
+          <MensajeEstado
+            tipo="cargando"
+            titulo="Cargando stock del día…"
+          />
+        }
+      >
         <ContenidoStock />
       </Suspense>
     </main>
@@ -17,12 +21,19 @@ export default function StockPage() {
 }
 
 async function ContenidoStock() {
-  const sesion = await requerirRol(["OWNER", "ADMIN"]);
-  const membresia = sesion.membresias.find((m) => m.rol === "OWNER" || m.rol === "ADMIN");
-  if (!membresia) return null;
+  const resultado = await consultarStockConPrediccionAction();
 
-  const fecha = fechaActualLima();
-  const productos = await listarProductosConStock(membresia.restaurantId, fecha);
+  if (!resultado.ok) {
+    return (
+      <MensajeEstado
+        tipo="error"
+        titulo="No pudimos mostrar el stock"
+        descripcion={resultado.mensaje}
+      />
+    );
+  }
+
+  const { fecha, productos, sugerencias, avisoPrediccion } = resultado;
   const fechaLegible = new Intl.DateTimeFormat("es-PE", {
     timeZone: "America/Lima",
     dateStyle: "long",
@@ -30,8 +41,25 @@ async function ContenidoStock() {
 
   return (
     <>
-      <EncabezadoPantalla titulo="Stock del día" subtitulo={`Registra cuántos platos puedes preparar hoy, ${fechaLegible}.`} />
-      <FormularioStock productos={productos} />
+      <EncabezadoPantalla
+        titulo="Stock del día"
+        subtitulo={`Registra cuántas unidades de platos y bebidas puedes ofrecer hoy, ${fechaLegible}.`}
+      />
+
+      {avisoPrediccion && (
+        <div className="mt-4" role="status">
+          <p className="rounded-xl border border-borde bg-superficie p-4 text-sm text-texto">
+            {avisoPrediccion}
+          </p>
+        </div>
+      )}
+
+      <FormularioStock
+        key={JSON.stringify([fecha, productos])}
+        fecha={fecha}
+        productos={productos}
+        sugerencias={sugerencias}
+      />
     </>
   );
 }

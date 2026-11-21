@@ -1,7 +1,20 @@
 import { Suspense } from "react";
-import { Boton, BotonEnlace, EncabezadoPantalla, MensajeEstado, Tarjeta } from "@/components/ui";
+import {
+  Boton,
+  BotonEnlace,
+  EncabezadoPantalla,
+  MensajeEstado,
+  Tarjeta,
+} from "@/components/ui";
 import { cerrarSesion } from "@/features/auth/actions";
 import { requerirRol } from "@/features/auth/sesion";
+import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
+import { consultarPanelVivoAction } from "@/features/dashboard/panel-vivo-actions";
+import { PanelVivoVista } from "@/features/dashboard/panel-vivo-vista";
+import { consultarPrediccionMananaAction } from "@/features/dashboard/prediccion-actions";
+import { TarjetaPrediccion } from "@/features/dashboard/tarjeta-prediccion";
+import { consultarActividadDiaAction } from "@/features/dashboard/actividad-actions";
+import { ActividadVista } from "@/features/dashboard/actividad-vista";
 
 const secciones = [
   { href: "/admin/mesas", titulo: "Mesas y códigos QR", texto: "Organiza el salón y los accesos a la carta de cada mesa.", grupo: "Sala" },
@@ -14,22 +27,80 @@ const secciones = [
 
 async function AdminPanel() {
   await requerirRol(["OWNER", "ADMIN"]);
-  return <main id="contenido-principal" className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
-    <EncabezadoPantalla titulo="Panel administrador" subtitulo="Todo lo que necesitas para preparar y gestionar la jornada."
-      acciones={<form action={cerrarSesion}><Boton type="submit" variante="secundario">Cerrar sesión</Boton></form>} />
-    <section className="mb-8 flex flex-col justify-between gap-6 rounded-2xl bg-marino p-6 text-white sm:flex-row sm:items-center sm:p-8">
-      <div><p className="text-sm font-semibold text-acento">Tu restaurante, en perspectiva</p><h2 className="mt-2 text-2xl font-bold tracking-tight">Decisiones claras para cada jornada.</h2><p className="mt-2 max-w-xl text-sm text-white/80">Consulta los resultados del negocio o prepara la carta y las mesas antes de atender.</p></div>
-      <BotonEnlace href="/admin/reportes" variante="secundario" className="shrink-0">Consultar reportes</BotonEnlace>
-    </section>
-    <nav aria-label="Administración"><ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  // US-099: panel en vivo + «Prepara mañana» (US-090) + actividad del día, en paralelo.
+  const [resultado, prediccion, actividad] = await Promise.all([
+    consultarPanelVivoAction(),
+    consultarPrediccionMananaAction(),
+    consultarActividadDiaAction(),
+  ]);
+
+  return (
+    <main id="contenido-principal" className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <EncabezadoPantalla
+        titulo="Panel administrador"
+        subtitulo="La jornada en vivo, la actividad y los próximos pasos de tu restaurante."
+        acciones={
+          <form action={cerrarSesion}>
+            <Boton type="submit" variante="secundario">
+              Cerrar sesión
+            </Boton>
+          </form>
+        }
+      />
+
+      <section aria-labelledby="panel-vivo-titulo" className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="panel-vivo-titulo" className="text-xl font-bold">
+            Hoy en tu restaurante
+          </h2>
+          <span className="inline-flex items-center gap-2 rounded-full bg-exito-fondo px-3 py-1 text-sm font-semibold text-exito-texto">
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-exito-texto motion-safe:animate-pulse" />
+            En vivo
+          </span>
+        </div>
+        <ActualizacionAutomatica segundos={20} />
+        {resultado.ok ? (
+          <PanelVivoVista panel={resultado.panel} />
+        ) : (
+          <MensajeEstado tipo="error" titulo={resultado.mensaje} />
+        )}
+      </section>
+
+      <Tarjeta>
+        <TarjetaPrediccion resultado={prediccion} />
+      </Tarjeta>
+
+      <section aria-labelledby="actividad-titulo" className="space-y-3">
+        <h2 id="actividad-titulo" className="text-xl font-bold">
+          Actividad y tiempos
+        </h2>
+        <ActividadVista resultado={actividad} />
+      </section>
+
+      <nav aria-label="Administración"><ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {secciones.map(({ href, titulo, texto, grupo }) => <li key={href}><Tarjeta className="flex h-full flex-col p-6">
         <span className="mb-3 w-fit rounded-lg bg-marca-suave px-2.5 py-1 text-xs font-semibold text-marca">{grupo}</span>
         <h2 className="text-lg font-bold">{titulo}</h2><p className="mb-6 mt-2 flex-1 text-sm text-texto-suave">{texto}</p>
         <BotonEnlace href={href} variante="secundario" className="w-full">{titulo}</BotonEnlace>
       </Tarjeta></li>)}
     </ul></nav>
-  </main>;
+    </main>
+  );
 }
+
 export default function AdminPage() {
-  return <Suspense fallback={<main id="contenido-principal" className="mx-auto w-full max-w-7xl p-6"><MensajeEstado tipo="cargando" titulo="Cargando panel…" /></main>}><AdminPanel /></Suspense>;
+  return (
+    <Suspense
+      fallback={
+        <main id="contenido-principal" className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+          <MensajeEstado
+            tipo="cargando"
+            titulo="Cargando panel…"
+          />
+        </main>
+      }
+    >
+      <AdminPanel />
+    </Suspense>
+  );
 }
