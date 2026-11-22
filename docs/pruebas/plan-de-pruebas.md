@@ -179,17 +179,17 @@ usa Mesa 3; Erick autorizó usar otra mesa demo libre al encontrar pedidos anter
 Mesa 3. `E2E_MESA_NUMERO` permite elegirla (Mesa 2 está expresamente excluida), y
 `E2E_MESA_TOKEN` / `E2E_MOSTRADOR_TOKEN` permiten usar los tokens vigentes si se
 reemplazaron los del seed. Se configuran en `.env.local`, sin subir sus valores.
-En Actions, configurar la variable `E2E_MESA_NUMERO` y los secretos `E2E_MESA_TOKEN`
-y `E2E_MOSTRADOR_TOKEN` si se necesitan esas alternativas. Sin valores se conservan
-los tokens del seed. La suite no regenera ni reactiva QR automáticamente. No ejecutar
+En Actions (US-106) el workflow fija `E2E_MESA_NUMERO=5`, `E2E_MESA_TOKEN=demo-mesa-5`
+y `E2E_MOSTRADOR_TOKEN=demo-mostrador`, que salen del seed local; no usa secretos. La suite no regenera ni reactiva QR automáticamente. No ejecutar
 la suite local simultáneamente con otras pruebas o atención manual sobre la mesa E2E.
 
 El workflow `.github/workflows/e2e.yml` se ejecuta en PR hacia `develop` y manualmente.
-Comparte `integracion-supabase-compartida` con integración para serializar la base demo.
-Los secretos públicos se usan en la compilación y el runner; `DEMO_PASSWORD` solo en
-el paso E2E. Con autorización de Erick, `SUPABASE_SERVICE_ROLE_KEY` se proporciona
-exclusivamente al paso que inicia el servidor Next.js, porque QR/carta/registro de la
-app dependen de ella. El proceso de Playwright no recibe ese secreto en Actions.
+Desde US-106 ya no comparte grupo de concurrencia ni base: cada ejecución levanta su
+propia Supabase local desechable (todas las migraciones y `supabase/seed.sql`), crea los
+usuarios demo con una `DEMO_PASSWORD` aleatoria enmascarada y falla antes de probar si
+`NEXT_PUBLIC_SUPABASE_URL` no es `127.0.0.1` o `localhost`. No usa claves ni la URL de la
+base compartida. La `SUPABASE_SERVICE_ROLE_KEY` local se entrega solo al paso que inicia
+el servidor Next.js; el proceso de Playwright no la recibe.
 No se configura el check como obligatorio: esa decisión corresponde a Alexander.
 
 Ante fallos se guardan captura y traza del comensal y de los paneles abiertos, junto al
