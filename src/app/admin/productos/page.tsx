@@ -12,6 +12,7 @@ import {
 } from "@/features/carta/admin-productos";
 import { requerirRol } from "@/features/auth/sesion";
 import { FormularioProducto } from "./formulario-producto";
+import { ImagenProducto } from "@/components/imagen-producto";
 
 async function PanelProductos() {
   const sesion = await requerirRol(["OWNER", "ADMIN"]);
@@ -73,13 +74,16 @@ function ProductoFila({
 }) {
   return (
     <li className="grid gap-4 rounded-2xl border border-borde bg-superficie p-5 xl:grid-cols-[minmax(0,1fr)_auto]">
-      <div className="min-w-0">
+      <div className="flex min-w-0 items-start gap-3">
+        <ImagenProducto src={producto.image_url} nombre={producto.name} decorativa className="h-20 w-20 shrink-0 rounded-xl" />
+        <div className="min-w-0">
         <h4 className="break-words font-semibold">{producto.name}</h4>
         <p className="text-sm text-texto-suave">S/ {producto.price.toFixed(2)}</p>
         <p className="mt-1 text-sm">
           {producto.active ? "Activo en la carta" : "Desactivado"} ·{" "}
           {producto.available ? "Disponible" : "Agotado"}
         </p>
+        </div>
       </div>
       <div className="flex flex-wrap items-start gap-2">
         <form action={cambiarDisponibilidadAction}>

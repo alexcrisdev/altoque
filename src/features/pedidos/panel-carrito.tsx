@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useRef, type ComponentProps, type ReactNode, type RefObject } from "react";
 import {
   Boton,
   Insignia,
@@ -14,6 +14,7 @@ import type { ResultadoRegistroPedido } from "./actions";
 import { ALERGENOS, DECLARACION_ALERGIA, validarAlergia, type AlergiaFormulario, type Alergeno } from "./alergias";
 
 type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
+  dialogoRef?: RefObject<HTMLDialogElement | null>;
   pedidosHabilitados: boolean;
   enviando: boolean;
   resultado: ResultadoRegistroPedido | null;
@@ -27,8 +28,42 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
 };
 
 export function PanelCarrito(props: Props) {
-  const dialogo = useRef<HTMLDialogElement>(null);
+  const dialogoInterno = useRef<HTMLDialogElement>(null);
+  const dialogo = props.dialogoRef ?? dialogoInterno;
   const validacionAlergia = validarAlergia(props.alergia);
+
+  useEffect(() => {
+    const panel = dialogo.current;
+    const viewport = window.visualViewport;
+    let cuadro = 0;
+
+    function ajustarEspacioVisible() {
+      if (!panel) return;
+      const alto = viewport?.height ?? window.innerHeight;
+      const inicio = viewport?.offsetTop ?? 0;
+      panel.style.setProperty("--carrito-alto", `${alto}px`);
+      panel.style.setProperty("--carrito-centro", `${inicio + alto / 2}px`);
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(() => {
+        const activo = document.activeElement;
+        if (panel.open && activo instanceof HTMLElement &&
+          panel.contains(activo) && activo.matches("input, textarea, select")) {
+          activo.scrollIntoView({ block: "nearest" });
+        }
+      });
+    }
+
+    ajustarEspacioVisible();
+    viewport?.addEventListener("resize", ajustarEspacioVisible);
+    viewport?.addEventListener("scroll", ajustarEspacioVisible);
+    window.addEventListener("resize", ajustarEspacioVisible);
+    return () => {
+      cancelAnimationFrame(cuadro);
+      viewport?.removeEventListener("resize", ajustarEspacioVisible);
+      viewport?.removeEventListener("scroll", ajustarEspacioVisible);
+      window.removeEventListener("resize", ajustarEspacioVisible);
+    };
+  }, [dialogo]);
 
   const unidades = props.items.reduce(
     (total, item) => total + item.cantidad,
@@ -117,10 +152,11 @@ export function PanelCarrito(props: Props) {
         id="panel-carrito"
         ref={dialogo}
         aria-labelledby="carrito-titulo"
-        className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85dvh] w-full max-w-none overflow-hidden rounded-t-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60 md:inset-y-0 md:left-auto md:right-0 md:h-dvh md:max-h-none md:w-[440px] md:rounded-none md:rounded-l-3xl"
+        className="fixed inset-x-0 top-[var(--carrito-centro,50%)] bottom-auto m-0 mx-auto max-h-[calc(var(--carrito-alto,100dvh)-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-y-1/2 overflow-hidden rounded-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60"
       >
-        <div className="flex max-h-[calc(85dvh-2px)] flex-col md:h-full md:max-h-none">
-          <div className="flex shrink-0 justify-end border-b border-borde px-5 py-3">
+        <div className="flex max-h-[calc(var(--carrito-alto,100dvh)-1rem-2px)] flex-col">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-borde bg-marca-suave px-5 py-3">
+            <p className="font-semibold">Revisa y confirma tu pedido</p>
             <Boton
               type="button"
               variante="secundario"
@@ -130,7 +166,7 @@ export function PanelCarrito(props: Props) {
             </Boton>
           </div>
 
-          <div className="min-h-[25dvh] flex-1 overflow-y-auto overscroll-contain md:min-h-0">
+          <div data-carrito-contenido className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-py-4">
             <fieldset
               disabled={props.enviando}
               className="p-5 disabled:opacity-60"
@@ -141,29 +177,13 @@ export function PanelCarrito(props: Props) {
 
               <Carrito {...props} enPanel />
             </fieldset>
-          </div>
-
-          <footer className="max-h-[min(50dvh,calc(60dvh-5rem))] shrink-0 space-y-4 overflow-y-auto overscroll-contain border-t border-borde bg-superficie px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:max-h-[60dvh] md:overflow-y-auto">
+          <div className="space-y-5 border-t border-borde px-5 py-5">
             <p className="text-sm text-texto-suave">
               {unidades} {unidades === 1 ? "unidad" : "unidades"}
               {" · "}
               {props.items.length}{" "}
               {props.items.length === 1 ? "producto" : "productos"}
             </p>
-
-            <div
-              aria-live="polite"
-              aria-atomic="true"
-              className="flex items-center justify-between gap-3"
-            >
-              <span className="text-lg font-semibold">
-                Total
-              </span>
-
-              <span className="text-xl font-bold">
-                {totalFormateado}
-              </span>
-            </div>
 
             {props.opciones && (
               <fieldset
@@ -309,8 +329,26 @@ export function PanelCarrito(props: Props) {
 
             <Boton
               type="button"
+              variante="secundario"
+              tamano="lg"
+              onClick={cerrarCarrito}
+              className="w-full"
+            >
+              Seguir viendo la carta
+            </Boton>
+          </div>
+          </div>
+
+          <footer className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-borde bg-superficie px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div aria-live="polite" aria-atomic="true" className="min-w-0">
+              <span className="block text-sm text-texto-suave">Total</span>
+              <span className="block font-bold">{totalFormateado}</span>
+            </div>
+            <Boton
+              type="button"
               variante="primario"
               tamano="lg"
+              cargando={props.enviando}
               onClick={props.onConfirmar}
               disabled={
                 props.enviando ||
@@ -320,22 +358,13 @@ export function PanelCarrito(props: Props) {
                 hayProblemasStock ||
                 Boolean(props.faltaDato) || !validacionAlergia.ok
               }
-              className="w-full"
+              className="w-full disabled:pointer-events-auto! disabled:cursor-not-allowed aria-busy:cursor-wait"
             >
               {props.enviando
                 ? "Confirmando pedido..."
                 : "Confirmar pedido"}
             </Boton>
 
-            <Boton
-              type="button"
-              variante="secundario"
-              tamano="lg"
-              onClick={cerrarCarrito}
-              className="w-full"
-            >
-              Seguir viendo la carta
-            </Boton>
           </footer>
         </div>
       </dialog>

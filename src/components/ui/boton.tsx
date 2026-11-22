@@ -8,18 +8,23 @@ import {
 export type BotonProps = ComponentProps<"button"> & {
   variante?: VarianteBoton;
   tamano?: TamanoBoton;
+  cargando?: boolean;
 };
 
 export function Boton({
   variante = "primario",
   tamano = "md",
   className = "",
+  cargando = false,
+  disabled,
   ...props
 }: BotonProps) {
   return (
     <button
       {...props}
-      className={`${clasesBoton(variante, tamano)} ${className}`}
+      disabled={disabled || cargando}
+      aria-busy={cargando ? true : props["aria-busy"]}
+      className={`${clasesBoton(variante, tamano)} ${cargando ? "cursor-wait" : ""} ${className}`}
     />
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenProducto } from "../../components/imagen-producto";
 import type { RefObject } from "react";
 import { Boton, Insignia } from "../../components/ui";
 import { formatearPrecio } from "./formato";
@@ -39,16 +39,11 @@ export function DetalleProducto({
 
       {producto && (
         <div className="space-y-4">
-          {producto.image_url && (
-            <Image
+            <ImagenProducto
               src={producto.image_url}
-              alt={producto.name}
-              width={600}
-              height={400}
-              unoptimized
-              className="max-h-72 w-full rounded-xl object-cover"
+              nombre={producto.name}
+              className="aspect-[4/3] max-h-64 w-full rounded-xl"
             />
-          )}
 
           <h2
             id="detalle-producto-titulo"

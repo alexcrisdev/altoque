@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import Image from "next/image";
+import { ImagenProducto } from "../../components/imagen-producto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Boton,
@@ -440,20 +440,16 @@ export function CartaInteractiva({
                     tamano="lg"
                     onClick={() => abrirDetalle(producto)}
                     aria-haspopup="dialog"
-                    className={`carta-producto w-full gap-4 pr-16 text-left ${
+                    className={`carta-producto h-full w-full gap-3 pr-16 text-left sm:gap-4 ${
                       agotado ? "opacity-60 grayscale" : ""
                     }`}
                   >
-                    {producto.image_url && (
-                      <Image
+                      <ImagenProducto
                         src={producto.image_url}
-                        alt={producto.name}
-                        width={88}
-                        height={88}
-                        unoptimized
-                        className="h-22 w-22 shrink-0 rounded-xl object-cover"
+                        nombre={producto.name}
+                        decorativa
+                        className="h-24 w-24 shrink-0 rounded-xl sm:h-32 sm:w-32"
                       />
-                    )}
 
                     <span className="min-w-0 flex-1 space-y-2 text-left">
                       <span className="block break-words font-semibold">
