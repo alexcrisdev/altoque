@@ -513,6 +513,9 @@ export function CartaInteractiva({
         pedidosHabilitados={pedidosHabilitados}
         enviando={enviando}
         resultado={resultado}
+        seguimientoHref={claveConfirmada
+          ? `/m/${encodeURIComponent(token)}/pedido/${encodeURIComponent(claveConfirmada)}`
+          : null}
         onConfirmar={confirmar}
         alergia={alergia}
         onAlergia={(valor) => cambiarOpciones(() => setAlergia(valor))}
