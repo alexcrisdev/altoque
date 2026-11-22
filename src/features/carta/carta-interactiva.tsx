@@ -77,7 +77,6 @@ export function CartaInteractiva({
     null,
   );
   const dialogo = useRef<HTMLDialogElement>(null);
-  const dialogoCarrito = useRef<HTMLDialogElement>(null);
 
   const [items, setItems] = useState<ItemCarrito[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -219,13 +218,6 @@ export function CartaInteractiva({
     actualizarCarrito((actuales) =>
       agregarAlCarrito(actuales, producto),
     );
-  }
-
-  function agregarDesdeDetalle(producto: Producto) {
-    if (envioEnCurso.current || estaAgotado(producto)) return;
-    agregarProducto(producto);
-    dialogo.current?.close();
-    if (!dialogoCarrito.current?.open) dialogoCarrito.current?.showModal();
   }
 
   function actualizarCarrito(
@@ -509,7 +501,6 @@ export function CartaInteractiva({
       </div>
 
       <PanelCarrito
-        dialogoRef={dialogoCarrito}
         items={items}
         productos={productos}
         cantidadMaxima={LIMITES.cantidadMax}
@@ -572,7 +563,7 @@ export function CartaInteractiva({
       <DetalleProducto
         producto={productoSeleccionado}
         dialogoRef={dialogo}
-        onAgregar={agregarDesdeDetalle}
+        onAgregar={agregarProducto}
         aviso={aviso}
       />
 

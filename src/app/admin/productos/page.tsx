@@ -75,7 +75,7 @@ function ProductoFila({
   return (
     <li className="grid gap-4 rounded-2xl border border-borde bg-superficie p-5 xl:grid-cols-[minmax(0,1fr)_auto]">
       <div className="flex min-w-0 items-start gap-3">
-        <ImagenProducto src={producto.image_url} nombre={producto.name} className="h-20 w-20 shrink-0 rounded-xl" />
+        <ImagenProducto src={producto.image_url} nombre={producto.name} decorativa className="h-20 w-20 shrink-0 rounded-xl" />
         <div className="min-w-0">
         <h4 className="break-words font-semibold">{producto.name}</h4>
         <p className="text-sm text-texto-suave">S/ {producto.price.toFixed(2)}</p>
