@@ -1,6 +1,8 @@
 name: Pruebas de integración
 
 # US-095: en los PR corre solo. En develop y main lo llama pipeline-main.yml (etapa 2).
+# US-106: cada ejecución levanta su propia Supabase local desechable (migraciones + seed).
+# No usa claves ni la URL de la base compartida; por eso ya no comparte grupo de concurrencia.
 on:
   pull_request:
     branches: [develop, main]
@@ -10,23 +12,11 @@ on:
 permissions:
   contents: read
 
-# Las suites usan una misma base demo y una mesa compartida. El grupo fijo
-# serializa también PR, pushes y ejecuciones manuales de todo el repositorio.
-concurrency:
-  group: integracion-supabase-compartida
-  cancel-in-progress: false
-
 jobs:
   integracion:
     name: integracion
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
-      # Solo para preparar solicitudes de ayuda en las pruebas de Node.
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    timeout-minutes: 15
     steps:
       - name: Obtener el código
         uses: actions/checkout@v7.0.1
@@ -40,24 +30,41 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Comprobar secretos
-        shell: bash
+      - name: Levantar Supabase local desechable
+        # Aplica todas las migraciones y supabase/seed.sql. La salida trae claves locales: no se imprime.
         run: |
-          faltan=()
-          [[ -n "$NEXT_PUBLIC_SUPABASE_URL" ]] || faltan+=("NEXT_PUBLIC_SUPABASE_URL")
-          [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]] || faltan+=("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-          [[ -n "$DEMO_PASSWORD" ]] || faltan+=("DEMO_PASSWORD")
-          [[ -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || faltan+=("SUPABASE_SERVICE_ROLE_KEY")
+          npx supabase start -x studio,imgproxy,vector,logflare,edge-runtime,supavisor,postgres-meta,mailpit \
+            > "$RUNNER_TEMP/supabase-start.log" 2>&1 \
+            || { grep -viE 'key|secret|jwt|password' "$RUNNER_TEMP/supabase-start.log"; exit 1; }
+          echo "Supabase local iniciado con migraciones y seed."
 
-          if (( ${#faltan[@]} > 0 )); then
-            {
-              echo "## Configuración incompleta de pruebas RLS"
-              echo "Faltan estos secretos de Actions: ${faltan[*]}."
-              echo "Pide a Alexander que los configure en Settings → Secrets and variables → Actions."
-              echo "No se ejecutaron pruebas ni se imprimieron valores secretos."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+      - name: Preparar variables y cuentas demo locales
+        run: |
+          npx supabase status -o env > "$RUNNER_TEMP/supabase.env" 2>/dev/null
+          # Enmascara cada valor (claves locales) antes de que algo pueda imprimirlo.
+          while IFS='=' read -r nombre valor; do
+            valor="${valor%\"}"; valor="${valor#\"}"
+            case "$nombre" in *_URL) continue ;; esac
+            if [ -n "$valor" ]; then echo "::add-mask::$valor"; fi
+          done < "$RUNNER_TEMP/supabase.env"
+          set -a; . "$RUNNER_TEMP/supabase.env"; set +a
+          rm "$RUNNER_TEMP/supabase.env"
+          DEMO_PASSWORD="$(openssl rand -hex 18)"
+          echo "::add-mask::$DEMO_PASSWORD"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            # Solo para preparar datos de las pruebas de Node en la base local.
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "DEMO_PASSWORD=$DEMO_PASSWORD"
+          } >> "$GITHUB_ENV"
+          NEXT_PUBLIC_SUPABASE_URL="$API_URL" NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" \
+            SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" DEMO_PASSWORD="$DEMO_PASSWORD" \
+            node scripts/usuarios-demo.mjs
+
+      - name: Exigir Supabase local
+        # Si la URL no es 127.0.0.1 o localhost, el job falla antes de probar.
+        run: node scripts/exigir-supabase-local.mjs
 
       - name: Ejecutar pruebas de integración
         run: >-

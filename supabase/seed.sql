@@ -17,8 +17,13 @@ insert into public.dining_tables (id, restaurant_id, branch_id, number, capacity
   ('30000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 3, 2, true),
   ('30000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 4, 6, false);
 
+-- US-106: Mesa 5 local y desechable para el E2E (CI levanta esta base en cada ejecución).
+-- No es la Mesa 5 de la base compartida: su token es demo-mesa-5.
+insert into public.dining_tables (id, restaurant_id, branch_id, number, capacity, active) values
+  ('30000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 5, 4, true);
+
 -- QR: se guarda solo la huella SHA-256 del token.
--- Tokens de prueba para abrir /m/<token>: demo-mesa-1, demo-mesa-2, demo-mesa-3, demo-mostrador
+-- Tokens de prueba para abrir /m/<token>: demo-mesa-1, demo-mesa-2, demo-mesa-3, demo-mesa-5, demo-mostrador
 -- demo-mesa-4 existe pero está ANULADO (para probar "QR desactivado").
 insert into public.qr_codes (restaurant_id, branch_id, dining_table_id, purpose, token_hash, active, revoked_at) values
   ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'DINE_IN',
@@ -29,6 +34,8 @@ insert into public.qr_codes (restaurant_id, branch_id, dining_table_id, purpose,
    encode(sha256(convert_to('demo-mesa-3', 'UTF8')), 'hex'), true, null),
   ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000004', 'DINE_IN',
    encode(sha256(convert_to('demo-mesa-4', 'UTF8')), 'hex'), false, now()),
+  ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000007', 'DINE_IN',
+   encode(sha256(convert_to('demo-mesa-5', 'UTF8')), 'hex'), true, null),
   ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', null, 'TAKEAWAY',
    encode(sha256(convert_to('demo-mostrador', 'UTF8')), 'hex'), true, null);
 

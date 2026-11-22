@@ -9,7 +9,7 @@ import { cuentaPropia, pagarParaLlevarEnCaja, prepararRecuperacion } from "./pag
 test.setTimeout(90_000);
 
 test("US-082: caja distingue mesa libre y ocupada e impide ofrecer una segunda apertura", async ({ pedido }) => {
-  expect(MESA_NUMERO, "US-082 utiliza exclusivamente la mesa demo reservada").toBe(5);
+  expect(MESA_NUMERO, "US-082 utiliza exclusivamente la Mesa 5 del seed local").toBe(5);
   const caja = await pedido.staff("caja");
   const mesas = caja.getByRole("region", { name: "Mesas", exact: true });
   const mesa = mesas.getByRole("listitem").filter({ has: caja.getByRole("heading", { name: `Mesa ${MESA_NUMERO}`, exact: true }) });
