@@ -1,11 +1,11 @@
 import { expect } from "@playwright/test";
-import { test, prepararCarrito, pedidosPropios, TOKEN_MOSTRADOR } from "./ayuda";
+import { test, prepararCarrito, pedidosPropios, TOKEN_MOSTRADOR, TOKEN_MESA, RESTAURANTE, type EntornoPedido } from "./ayuda";
+import { StockPrueba } from "../soporte/stock-prueba";
 
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-for (const doble of [false, true]) {
-  test(`US-127: ${doble ? "dos toques" : "confirmar"} deja el seguimiento a un toque sin repetir alergias`, async ({ page, pedido }, testInfo) => {
-    pedido.alLimpiar(async () => {
+function limpiarPedidosPropios(pedido: EntornoPedido) {
+  pedido.alLimpiar(async () => {
       for (const propio of await pedidosPropios(pedido.admin, pedido.marca)) {
         if (propio.status === "CANCELLED") continue;
         const cancelacion = await pedido.admin.rpc("cambiar_estado_pedido", {
@@ -15,7 +15,12 @@ for (const doble of [false, true]) {
         expect(cancelacion.error).toBeNull();
       }
       expect((await pedidosPropios(pedido.admin, pedido.marca)).every(p => p.status === "CANCELLED")).toBe(true);
-    });
+  });
+}
+
+for (const doble of [false, true]) {
+  test(`US-127: ${doble ? "dos toques" : "confirmar"} deja el seguimiento a un toque sin repetir alergias`, async ({ page, pedido }, testInfo) => {
+    limpiarPedidosPropios(pedido);
     const carrito = await prepararCarrito(page, TOKEN_MOSTRADOR, pedido);
     const confirmar = carrito.getByRole("button", { name: "Confirmar pedido", exact: true });
     const caja = await confirmar.boundingBox();
@@ -62,5 +67,48 @@ for (const doble of [false, true]) {
       .getByText("Esperando pago. Paga en caja o con tarjeta para que comencemos a preparar tu pedido.", { exact: true })).toBeVisible();
     await expect(page.getByText("¿Alguien tiene alergias?", { exact: true })).toHaveCount(0);
     await expect.poll(async () => (await pedidosPropios(pedido.admin, pedido.marca)).length).toBe(1);
+  });
+}
+
+for (const enMesa of [false, true]) {
+  test(`US-127: cerrar la confirmación y armar otro pedido ${enMesa ? "en mesa" : "para llevar"} reinicia las alergias`, async ({ page, pedido }) => {
+    limpiarPedidosPropios(pedido);
+    const primero = await pedido.prepararStock();
+    const otro = await pedido.admin.from("products").select("id,name,categories!inner(active)")
+      .eq("restaurant_id", RESTAURANTE).eq("active", true).eq("available", true).eq("categories.active", true)
+      .neq("id", primero.id).order("price").order("id").limit(1).single();
+    expect(otro.error).toBeNull();
+    expect(otro.data).not.toBeNull();
+    const stockOtro = new StockPrueba(RESTAURANTE);
+    pedido.alLimpiar(() => stockOtro.restaurar());
+    await stockOtro.preparar(otro.data!.id, 1);
+    if (enMesa) await pedido.abrirMesa();
+    const carrito = await prepararCarrito(page, enMesa ? TOKEN_MESA : TOKEN_MOSTRADOR, pedido);
+    await carrito.getByRole("button", { name: "Sí", exact: true }).click();
+    await carrito.getByLabel("Maní", { exact: true }).check();
+    await carrito.getByLabel(/^Entiendo que la cocina/).check();
+    await carrito.getByRole("button", { name: "Confirmar pedido", exact: true }).click();
+    await expect(carrito.getByText(/^Tu número de pedido es \d+$/)).toBeVisible();
+    await expect(carrito.getByRole("group", { name: "¿Alguien tiene alergias?" })).toHaveCount(0);
+    await carrito.getByRole("button", { name: "Cerrar", exact: true }).click();
+    await expect(carrito).not.toBeVisible();
+    const seguimientoPagina = page.getByRole("link", { name: "Ver el estado de mi pedido", exact: true });
+    await expect(seguimientoPagina).toBeFocused();
+    await expect(seguimientoPagina).toBeVisible();
+    // Se arma el segundo pedido en la misma visita, sin recargar ni navegar:
+    // una recarga ocultaría un posible fallo al reiniciar el estado de alergias.
+    await page.getByRole("button", { name: `Agregar ${otro.data!.name} al carrito`, exact: true }).click();
+    await page.getByRole("button", { name: /^Ver carrito:/ }).click();
+    const nuevoCarrito = page.getByRole("dialog", { name: "Tu carrito", exact: true });
+    await expect(nuevoCarrito.getByRole("heading", { name: otro.data!.name, exact: true })).toBeVisible();
+    const alergias = nuevoCarrito.getByRole("group", { name: "¿Alguien tiene alergias?", exact: true });
+    await alergias.scrollIntoViewIfNeeded();
+    await expect(alergias).toBeVisible();
+    await expect(alergias.getByRole("button", { name: "No", exact: true })).toHaveAttribute("aria-pressed", "false");
+    await expect(alergias.getByRole("button", { name: "Sí", exact: true })).toHaveAttribute("aria-pressed", "false");
+    await expect(nuevoCarrito.getByRole("button", { name: "Confirmar pedido", exact: true })).toBeVisible();
+    await expect(nuevoCarrito.getByRole("button", { name: "Confirmar pedido", exact: true })).toBeDisabled();
+    await expect(nuevoCarrito.getByText(/^Tu número de pedido es \d+$/)).toHaveCount(0);
+    expect(await pedidosPropios(pedido.admin, pedido.marca)).toHaveLength(1);
   });
 }

@@ -112,7 +112,7 @@ Asignación y títulos confirmados por el equipo para Sprint 3 (30/10–01/11/20
 
 | Historia | Título | Responsable | Archivo(s)/caso(s) | Nivel | Cantidad | Resultado | Evidencia |
 |---|---|---|---|---|---|---|---|
-| US-127 | Ir al seguimiento después de confirmar el pedido | Erick | `tests/unit/seguimiento-confirmacion.test.ts`; `tests/e2e/seguimiento-confirmacion.spec.ts` | Unitaria / E2E Chromium con Supabase local | 4 unitarios propios; 2 E2E, cada uno a 360×640, 390×844 y 1440×900 | Aprobado: acceso a un toque sin scroll, línea de tiempo existente, orientación de pago, sin repetir alergias y doble toque con un solo pedido. Suite 1445/1445; lint, tipos y build aprobados. Sin migración ni cambios en la base compartida | [Validación US-127](evidencias/us127-validacion.md) |
+| US-127 | Ir al seguimiento después de confirmar el pedido | Erick | `tests/unit/seguimiento-confirmacion.test.ts`; `tests/e2e/seguimiento-confirmacion.spec.ts` | Unitaria / E2E Chromium con Supabase local | 4 unitarios propios; 4 E2E: dos de seguimiento a 360×640, 390×844 y 1440×900; dos de segundo carrito a 390×844, mesa y para llevar | Aprobado: seguimiento a un toque, línea de tiempo existente, texto neutral sobre pago, foco al enlace exterior al cerrar, alergias reiniciadas para un segundo pedido sin recargar y doble toque con un solo registro. Suite 1445/1445; lint, tipos y build aprobados. Sin migración ni cambios en la base compartida. Validado en Chromium con viewport móvil; no probado en celular físico | [Validación US-127](evidencias/us127-validacion.md) |
 
 ## Actualización al cerrar una historia
 

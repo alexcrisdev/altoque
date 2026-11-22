@@ -29,7 +29,8 @@ describe("US-127: seguimiento después de confirmar", () => {
   it("explica dónde consultar el pago sin afirmar que el pedido está pagado", () => {
     const html = renderToStaticMarkup(createElement(PanelCarrito, props));
     expect(html).toContain("Si falta pagar");
-    expect(html).toContain("saldo y las opciones disponibles");
+    expect(html).toContain("estado del pago");
+    expect(html).not.toContain("verás el saldo");
     expect(html).toContain("pagar en caja");
   });
 

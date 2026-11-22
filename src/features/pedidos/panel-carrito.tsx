@@ -20,6 +20,7 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
   resultado: ResultadoRegistroPedido | null;
   seguimientoHref?: string | null;
   onConfirmar: () => void;
+  onCerrarConfirmado?: () => void;
   alergia: AlergiaFormulario;
   onAlergia: (alergia: AlergiaFormulario) => void;
   // US-002: selector de modalidad y datos para llevar.
@@ -160,6 +161,9 @@ export function PanelCarrito(props: Props) {
       <dialog
         id="panel-carrito"
         ref={dialogo}
+        onClose={() => {
+          if (confirmado) props.onCerrarConfirmado?.();
+        }}
         aria-labelledby="carrito-titulo"
         className="fixed inset-x-0 top-[var(--carrito-centro,50%)] bottom-auto m-0 mx-auto max-h-[calc(var(--carrito-alto,100dvh)-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-y-1/2 overflow-hidden rounded-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60"
       >
@@ -185,7 +189,7 @@ export function PanelCarrito(props: Props) {
                   <p>Recibimos tu pedido. Consulta su avance en el seguimiento.</p>
                 </div>
                 <p className="text-sm text-texto-suave">
-                  Si falta pagar, en el seguimiento verás el saldo y las opciones disponibles.
+                  Si falta pagar, en el seguimiento verás el estado del pago.
                   También puedes pagar en caja para que comencemos a preparar tu pedido.
                 </p>
               </div>
