@@ -154,15 +154,16 @@ npx supabase link --project-ref <ref-del-proyecto>   # pedir el ref y la contras
 
 ### Datos de prueba (`supabase/seed.sql`)
 
-Sin información personal real. Incluye *Cevichería Demo* (1 local, 4 mesas y 7 productos) y *Pollería Demo* (1 local, 2 mesas y 2 productos) para probar el aislamiento entre restaurantes.
+Sin información personal real. Incluye *Cevichería Demo* (1 local, 5 mesas y 7 productos) y *Pollería Demo* (1 local, 2 mesas y 2 productos) para probar el aislamiento entre restaurantes.
 
 | Token para `/m/<token>` | Caso |
 |---|---|
 | `demo-mesa-1`, `demo-mesa-2`, `demo-mesa-3` | QR de mesa válido en una base nueva cargada con el seed |
+| `demo-mesa-5` | Mesa 5 local que usa el E2E (US-106) |
 | `demo-mesa-4` | QR anulado (mesa desactivada) |
 | `demo-mostrador` | QR de mostrador (para llevar) |
 
-En la base compartida *altoque-dev* estos tokens públicos ya están **anulados** (DEF-002): cualquiera podía leerlos en el repositorio. Para probar, genera un QR nuevo desde `/admin/mesas`. La Mesa 5 y el QR de mostrador del E2E tienen tokens privados guardados como secretos del CI; no los regeneres.
+En la base compartida *altoque-dev* estos tokens públicos ya están **anulados** (DEF-002): cualquiera podía leerlos en el repositorio. Para probar, genera un QR nuevo desde `/admin/mesas`. No regeneres el QR de Mesa 5 ni el del mostrador de la base compartida. Desde US-106 el E2E ya no los usa: corre con la Mesa 5 y el mostrador del seed local.
 
 ### Usuarios demo y pruebas
 
@@ -192,18 +193,25 @@ El [plan de pruebas del sistema](docs/pruebas/plan-de-pruebas.md) define los niv
 | Comando | Alcance y ejecución |
 |---|---|
 | `npm test` | Unitarias de `tests/unit`, incluyendo las variantes parametrizadas. Se ejecutan localmente y en el job `verificar` del CI |
-| `npm run test:rls` | Integración real de permisos, sesiones, pagos y cierre en `tests/rls`. Corre en el workflow **Pruebas de integración** (US-039) en cada PR y push a `develop`; en local requiere el seed, los usuarios demo y `.env.local`. Escribe datos en la base compartida |
+| `npm run test:rls` | Integración real de permisos, sesiones, pagos y cierre en `tests/rls`. Corre en el workflow **Pruebas de integración** (US-039) en cada PR y push a `develop`. En CI usa una Supabase local desechable (US-106). `npm run test:rls` usa `.env.local`; para no escribir en la base compartida usa `npm run test:integracion` con las variables locales (ver abajo) |
 | `npm run test:cobertura` | Unitarias con `@vitest/coverage-v8`; imprime cobertura por sentencias, ramas, funciones y líneas. Los reportes se generan en `coverage/`, ignorado por Git |
 
 La [evidencia de cobertura al inicio del Sprint 3](docs/pruebas/evidencias/cobertura-sprint3-inicio.txt) conserva el resumen obtenido. El reporte predeterminado mide los archivos importados por las unitarias, no todo el sistema, y no sustituye pruebas RLS ni recorridos de navegador. No se añade un umbral ni se modifica el CI en US-038.
 
-Las pruebas funcionales E2E con Playwright están en `tests/e2e` (US-040 y US-030) y se ejecutan con `npm run test:e2e`. El guion de aceptación está en `docs/pruebas/casos/`, el registro de defectos en `docs/pruebas/defectos/` y la guía de la demo final en [docs/demo/guia-demostracion.md](docs/demo/guia-demostracion.md).
+Las pruebas funcionales E2E con Playwright están en `tests/e2e` (US-040 y US-030) y se ejecutan con `npm run test:e2e`. Desde US-106 solo corren contra Supabase local: `playwright.config.ts` se detiene si `NEXT_PUBLIC_SUPABASE_URL` no es `127.0.0.1` o `localhost`.
+
+**Integración y E2E en local (US-106).** Con Docker Desktop abierto:
+
+1. `npx supabase start` y luego `npx supabase db reset --local` (aplica todas las migraciones y el seed **solo en tu PC**; nunca uses `--linked`).
+2. Define en la terminal, no en `.env.local`, las variables que muestra `npx supabase status -o env`: `NEXT_PUBLIC_SUPABASE_URL` (API_URL), `NEXT_PUBLIC_SUPABASE_ANON_KEY` (ANON_KEY), `SUPABASE_SERVICE_ROLE_KEY` (SERVICE_ROLE_KEY), una `DEMO_PASSWORD` inventada, `E2E_MESA_NUMERO=5`, `E2E_MESA_TOKEN=demo-mesa-5`, `E2E_MOSTRADOR_TOKEN=demo-mostrador` y `N8N_WEBHOOK_URL=` vacía. Lo que ya está definido en la terminal tiene prioridad sobre `.env.local`.
+3. `node scripts/exigir-supabase-local.mjs` (debe decir *Supabase local confirmado*) y `node scripts/usuarios-demo.mjs`.
+4. Integración: `npm run test:integracion`. E2E: `npm run build`, `npm run start` en otra terminal con las mismas variables y `E2E_BASE_URL=http://localhost:3000 npm run test:e2e`. El guion de aceptación está en `docs/pruebas/casos/`, el registro de defectos en `docs/pruebas/defectos/` y la guía de la demo final en [docs/demo/guia-demostracion.md](docs/demo/guia-demostracion.md).
 
 **Entorno:** la guía actual de [despliegue](docs/despliegue.md#entornos) indica que staging y producción comparten `altoque-dev`. Verifica el destino antes de probar integración; no uses datos reales. La preparación del staging aislado y la automatización se coordinan en US-039. Las credenciales nunca se guardan en la documentación ni en las evidencias.
 
 ## CI/CD
 
-El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `develop` y `main`, y en cada push a esas ramas. Con Node.js 22, instala las dependencias con `npm ci` y ejecuta, en orden, npm run lint, npm run typecheck, npm test y npm run build para revisar el código, verificar los tipos, correr las pruebas unitarias y comprobar que la aplicación compila. El check se llama verificar. Además, los workflows **Pruebas de integración** (`npm run test:rls`) y **Pruebas funcionales E2E** (`npm run test:e2e`) corren contra la base compartida y nunca al mismo tiempo, y **Seguridad (DevSecOps)** revisa secretos, dependencias y código. Las ejecuciones anteriores del mismo PR se cancelan cuando llega una nueva.
+El workflow **CI** de GitHub Actions se ejecuta en los Pull Requests hacia `develop` y `main`, y en cada push a esas ramas. Con Node.js 22, instala las dependencias con `npm ci` y ejecuta, en orden, npm run lint, npm run typecheck, npm test y npm run build para revisar el código, verificar los tipos, correr las pruebas unitarias y comprobar que la aplicación compila. El check se llama verificar. Además, los workflows **Pruebas de integración** (`npm run test:integracion`) y **Pruebas funcionales E2E** (`npm run test:e2e`) levantan en cada ejecución su propia Supabase local con todas las migraciones y el seed (US-106): no usan claves ni la URL de la base compartida y fallan antes de probar si la URL no es local, y **Seguridad (DevSecOps)** revisa secretos, dependencias y código. Las ejecuciones anteriores del mismo PR se cancelan cuando llega una nueva.
 
 | Origen | Entorno en Vercel |
 |---|---|

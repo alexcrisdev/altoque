@@ -1,6 +1,8 @@
 name: Pruebas funcionales E2E
 
 # US-095: en los PR corre solo. En develop y main lo llama pipeline-main.yml (etapa 3).
+# US-106: cada ejecución levanta su propia Supabase local desechable (migraciones + seed).
+# No usa claves ni la URL de la base compartida; por eso ya no comparte grupo de concurrencia.
 on:
   pull_request:
     branches: [develop]
@@ -10,18 +12,11 @@ on:
 permissions:
   contents: read
 
-# Mismo bloqueo que integración: ambos workflows escriben en la base demo.
-concurrency:
-  group: integracion-supabase-compartida
-  cancel-in-progress: false
-
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       NEXT_PUBLIC_APP_URL: http://localhost:3000
     steps:
       - name: Obtener código
@@ -33,17 +28,53 @@ jobs:
           cache: npm
       - name: Instalar dependencias
         run: npm ci
+
+      - name: Levantar Supabase local desechable
+        # Aplica todas las migraciones y supabase/seed.sql. La salida trae claves locales: no se imprime.
+        run: |
+          npx supabase start -x studio,imgproxy,vector,logflare,edge-runtime,supavisor,postgres-meta,mailpit \
+            > "$RUNNER_TEMP/supabase-start.log" 2>&1 \
+            || { grep -viE 'key|secret|jwt|password' "$RUNNER_TEMP/supabase-start.log"; exit 1; }
+          echo "Supabase local iniciado con migraciones y seed."
+
+      - name: Preparar variables y cuentas demo locales
+        run: |
+          npx supabase status -o env > "$RUNNER_TEMP/supabase.env" 2>/dev/null
+          # Enmascara cada valor (claves locales) antes de que algo pueda imprimirlo.
+          while IFS='=' read -r nombre valor; do
+            valor="${valor%\"}"; valor="${valor#\"}"
+            case "$nombre" in *_URL) continue ;; esac
+            if [ -n "$valor" ]; then echo "::add-mask::$valor"; fi
+          done < "$RUNNER_TEMP/supabase.env"
+          set -a; . "$RUNNER_TEMP/supabase.env"; set +a
+          rm "$RUNNER_TEMP/supabase.env"
+          DEMO_PASSWORD="$(openssl rand -hex 18)"
+          echo "::add-mask::$DEMO_PASSWORD"
+          # La clave de servidor queda en un archivo privado: solo la leen el seed y Next.js.
+          umask 077
+          printf '%s' "$SERVICE_ROLE_KEY" > "$RUNNER_TEMP/clave-servidor"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "DEMO_PASSWORD=$DEMO_PASSWORD"
+          } >> "$GITHUB_ENV"
+          NEXT_PUBLIC_SUPABASE_URL="$API_URL" NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" \
+            SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" DEMO_PASSWORD="$DEMO_PASSWORD" \
+            node scripts/usuarios-demo.mjs
+
+      - name: Exigir Supabase local
+        # Si la URL no es 127.0.0.1 o localhost, el job falla antes de compilar o probar.
+        run: node scripts/exigir-supabase-local.mjs
+
       - name: Instalar Chromium
         run: npx playwright install --with-deps chromium
       - name: Compilar aplicación
         run: npm run build
       - name: Iniciar servidor de la aplicación
-        env:
-          # Autorizada exclusivamente para Next.js, nunca para el runner E2E.
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo 'Falta el secreto de servidor'; exit 1; }
-          npm run start > /tmp/altoque-e2e-servidor.log 2>&1 &
+          # Autorizada exclusivamente para Next.js, nunca para el runner E2E.
+          SUPABASE_SERVICE_ROLE_KEY="$(cat "$RUNNER_TEMP/clave-servidor")" \
+            npm run start > /tmp/altoque-e2e-servidor.log 2>&1 &
           node --input-type=module -e '
             const limite = Date.now() + 120000;
             while (true) {
@@ -55,11 +86,13 @@ jobs:
       - name: Recorrer la aplicación con usuarios demo
         env:
           E2E_BASE_URL: http://localhost:3000
-          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
-          E2E_MESA_NUMERO: ${{ vars.E2E_MESA_NUMERO }}
-          E2E_MESA_TOKEN: ${{ secrets.E2E_MESA_TOKEN }}
-          E2E_MOSTRADOR_TOKEN: ${{ secrets.E2E_MOSTRADOR_TOKEN }}
-        run: npm run test:e2e
+          # Mesa 5 y mostrador del seed local (supabase/seed.sql), no los de la base compartida.
+          E2E_MESA_NUMERO: '5'
+          E2E_MESA_TOKEN: demo-mesa-5
+          E2E_MOSTRADOR_TOKEN: demo-mostrador
+        run: |
+          node scripts/exigir-supabase-local.mjs
+          npm run test:e2e
       - name: Conservar evidencia de fallos
         if: failure()
         uses: actions/upload-artifact@v4
