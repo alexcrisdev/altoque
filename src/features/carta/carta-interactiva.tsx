@@ -77,6 +77,7 @@ export function CartaInteractiva({
     null,
   );
   const dialogo = useRef<HTMLDialogElement>(null);
+  const enlacePedidoConfirmado = useRef<HTMLAnchorElement>(null);
 
   const [items, setItems] = useState<ItemCarrito[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -513,7 +514,11 @@ export function CartaInteractiva({
         pedidosHabilitados={pedidosHabilitados}
         enviando={enviando}
         resultado={resultado}
+        seguimientoHref={claveConfirmada
+          ? `/m/${encodeURIComponent(token)}/pedido/${encodeURIComponent(claveConfirmada)}`
+          : null}
         onConfirmar={confirmar}
+        onCerrarConfirmado={() => enlacePedidoConfirmado.current?.focus()}
         alergia={alergia}
         onAlergia={(valor) => cambiarOpciones(() => setAlergia(valor))}
         faltaDato={faltaDato}
@@ -550,6 +555,7 @@ export function CartaInteractiva({
 
           {claveConfirmada && (
             <BotonEnlace
+              ref={enlacePedidoConfirmado}
               href={`/m/${encodeURIComponent(token)}/pedido/${encodeURIComponent(claveConfirmada)}`}
               variante="primario"
               className="mt-4 w-full"

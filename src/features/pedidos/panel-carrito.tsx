@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ComponentProps, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
 import {
   Boton,
+  BotonEnlace,
   Insignia,
   MensajeEstado,
   Tarjeta,
@@ -14,11 +15,12 @@ import type { ResultadoRegistroPedido } from "./actions";
 import { ALERGENOS, DECLARACION_ALERGIA, validarAlergia, type AlergiaFormulario, type Alergeno } from "./alergias";
 
 type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
-  dialogoRef?: RefObject<HTMLDialogElement | null>;
   pedidosHabilitados: boolean;
   enviando: boolean;
   resultado: ResultadoRegistroPedido | null;
+  seguimientoHref?: string | null;
   onConfirmar: () => void;
+  onCerrarConfirmado?: () => void;
   alergia: AlergiaFormulario;
   onAlergia: (alergia: AlergiaFormulario) => void;
   // US-002: selector de modalidad y datos para llevar.
@@ -28,9 +30,17 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
 };
 
 export function PanelCarrito(props: Props) {
-  const dialogoInterno = useRef<HTMLDialogElement>(null);
-  const dialogo = props.dialogoRef ?? dialogoInterno;
+  const dialogo = useRef<HTMLDialogElement>(null);
+  const enlaceSeguimiento = useRef<HTMLAnchorElement>(null);
   const validacionAlergia = validarAlergia(props.alergia);
+  const confirmado = props.resultado?.ok ? props.resultado : null;
+  const seguimiento = confirmado && props.seguimientoHref;
+
+  useEffect(() => {
+    if (seguimiento && dialogo.current?.open) {
+      enlaceSeguimiento.current?.focus({ preventScroll: true });
+    }
+  }, [seguimiento]);
 
   useEffect(() => {
     const panel = dialogo.current;
@@ -151,12 +161,15 @@ export function PanelCarrito(props: Props) {
       <dialog
         id="panel-carrito"
         ref={dialogo}
+        onClose={() => {
+          if (confirmado) props.onCerrarConfirmado?.();
+        }}
         aria-labelledby="carrito-titulo"
         className="fixed inset-x-0 top-[var(--carrito-centro,50%)] bottom-auto m-0 mx-auto max-h-[calc(var(--carrito-alto,100dvh)-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-y-1/2 overflow-hidden rounded-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60"
       >
         <div className="flex max-h-[calc(var(--carrito-alto,100dvh)-1rem-2px)] flex-col">
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-borde bg-marca-suave px-5 py-3">
-            <p className="font-semibold">Revisa y confirma tu pedido</p>
+            <p className="font-semibold">{confirmado ? "Pedido recibido" : "Revisa y confirma tu pedido"}</p>
             <Boton
               type="button"
               variante="secundario"
@@ -166,6 +179,28 @@ export function PanelCarrito(props: Props) {
             </Boton>
           </div>
 
+          {seguimiento ? (
+            <>
+              <div data-carrito-confirmado className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
+                <h2 id="carrito-titulo" className="sr-only">Tu carrito</h2>
+                <div role="status" className="space-y-3">
+                  <Insignia tono="exito">Pedido confirmado</Insignia>
+                  <p className="text-xl font-bold">Tu número de pedido es {confirmado.numero}</p>
+                  <p>Recibimos tu pedido. Consulta su avance en el seguimiento.</p>
+                </div>
+                <p className="text-sm text-texto-suave">
+                  Si falta pagar, en el seguimiento verás el estado del pago.
+                  También puedes pagar en caja para que comencemos a preparar tu pedido.
+                </p>
+              </div>
+              <footer className="shrink-0 border-t border-borde bg-superficie px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <BotonEnlace ref={enlaceSeguimiento} href={seguimiento} tamano="lg" className="w-full">
+                  Ver el estado de mi pedido
+                </BotonEnlace>
+              </footer>
+            </>
+          ) : (
+          <>
           <div data-carrito-contenido className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-py-4">
             <fieldset
               disabled={props.enviando}
@@ -366,6 +401,8 @@ export function PanelCarrito(props: Props) {
             </Boton>
 
           </footer>
+          </>
+          )}
         </div>
       </dialog>
     </>
