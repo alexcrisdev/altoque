@@ -18,7 +18,7 @@ const variantes: Record<VarianteBoton, string> = {
   primario:
     "border-transparent bg-marca text-white hover:bg-marca-hover",
   secundario:
-    "border-borde bg-superficie text-texto hover:bg-superficie-suave",
+    "border-borde bg-superficie text-texto hover:border-marca hover:bg-superficie-suave",
   peligro:
     "border-transparent bg-peligro text-white hover:bg-peligro-hover",
   fantasma:
@@ -61,7 +61,7 @@ export function clasesBoton(
 ): string {
   return [
     "inline-flex min-h-11 items-center justify-center gap-2",
-    "rounded-xl border font-semibold text-center transition-colors",
+    "rounded-xl border font-semibold text-center transition-colors motion-safe:active:translate-y-px",
     "focus-visible:outline-2 focus-visible:outline-offset-2",
     "focus-visible:outline-marca",
     "disabled:pointer-events-none disabled:opacity-50",

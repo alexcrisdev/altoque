@@ -11,6 +11,7 @@ import { obtenerConfigParaLlevar } from "@/features/pedidos/para-llevar";
 import { MisPedidos } from "@/features/pedidos/mis-pedidos";
 import { BotonLlamarMesero } from "@/features/mesero/boton-llamar-mesero";
 import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
+import { Marca } from "@/components/marca";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -19,7 +20,8 @@ type Props = {
 
 export default function PaginaQr({ params, searchParams }: Props) {
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+      <div className="mb-6 flex items-center justify-between border-b border-borde pb-4"><Marca /><span className="text-sm font-medium text-texto-suave">Carta digital</span></div>
       <Suspense
         fallback={
           <MensajeEstado
@@ -95,7 +97,7 @@ async function Contenido({ params, searchParams }: Props) {
       {/* US-076: saldo de la mesa y pago con tarjeta online. */}
       {sesionId !== null && <CuentaCliente token={token} clave={null} pago={pago} sesion={sesion} />}
 
-      <Tarjeta>
+      <Tarjeta className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-texto-suave">
           ¿Prefieres que te atiendan? Llama al mesero y él registra
           tu pedido desde su panel.

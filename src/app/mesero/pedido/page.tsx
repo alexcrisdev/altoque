@@ -49,7 +49,7 @@ async function PedidoAsistido() {
 
 export default function PedidoAsistidoPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <div className="mb-4">
         <BotonEnlace href="/mesero" variante="fantasma">
           ← Panel mesero

@@ -2,30 +2,31 @@
 
 :root {
   color-scheme: light;
-  --background: #FAF8F5;
-  --foreground: #1E2A3B;
+  --background: #F1FAFD;
+  --foreground: #102E46;
 
-  /* Paleta v2: coral reservado para las acciones principales. */
-  --v2-coral: #E5634D;
-  --v2-coral-suave: #FDEEEA;
-  --v2-coral-oscuro: #B9442F;
-  --v2-pizarra: #1E2A3B;
-  --v2-azul: #3B6EA5;
-  --v2-azul-suave: #EAF1F8;
-  --v2-salvia: #2F8F83;
-  --v2-salvia-suave: #E7F4F1;
+  /* Costa azul. Los alias v2 conservan la compatibilidad con las vistas existentes.
+     Azul profundo en acciones: contraste AA con texto blanco; azul cielo como acento. */
+  --v2-coral: #096B9C;
+  --v2-coral-suave: #E4F4FC;
+  --v2-coral-oscuro: #075477;
+  --v2-pizarra: #102E46;
+  --v2-azul: #2696D2;
+  --v2-azul-suave: #E4F4FC;
+  --v2-salvia: #08766C;
+  --v2-salvia-suave: #E4F6F2;
   --v2-rojo: #D64545;
   --v2-ambar: #D9902F;
-  --v2-marfil: #FAF8F5;
-  --v2-gris-frio: #F4F6F9;
-  --v2-borde: #E4E8EE;
+  --v2-marfil: #F1FAFD;
+  --v2-gris-frio: #F2F7FA;
+  --v2-borde: #D5E3EB;
 
   /* Superficies de la cocina en tema oscuro. */
-  --kds-fondo: #111923;
-  --kds-superficie: #1e293b;
-  --kds-borde: #475569;
-  --kds-texto: #f1f5f9;
-  --kds-texto-suave: #cbd5e1;
+  --kds-fondo: #0B2234;
+  --kds-superficie: #102E46;
+  --kds-borde: #36586E;
+  --kds-texto: #F1FAFD;
+  --kds-texto-suave: #BED4E1;
 }
 
 @theme inline {
@@ -45,11 +46,14 @@
   --color-marca: var(--v2-coral);
   --color-marca-hover: var(--v2-coral-oscuro);
   --color-marca-suave: var(--v2-coral-suave);
+  --color-acento: #20B7AE;
+  --color-azul-cielo: #2696D2;
+  --color-marino: #102E46;
   --color-superficie: #ffffff;
   --color-superficie-suave: var(--v2-gris-frio);
   --color-borde: var(--v2-borde);
   --color-texto: var(--foreground);
-  --color-texto-suave: #526174;
+  --color-texto-suave: #4D6575;
 
   /* Botones de acciones destructivas. */
   --color-peligro: var(--v2-rojo);
@@ -78,7 +82,7 @@
   /* Listo. */
   --color-exito-fondo: var(--v2-salvia-suave);
   --color-exito-borde: #9CCFC6;
-  --color-exito-texto: #17695F;
+  --color-exito-texto: #075E57;
 
   /* Cancelado y errores. */
   --color-peligro-fondo: #FCECEC;
@@ -99,6 +103,76 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: "Segoe UI", Inter, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+/* Base accesible y controles compartidos; las clases de cada vista prevalecen. */
+@layer base {
+  html { scroll-padding-top: 6rem; }
+  ::selection { background: #BCECE9; color: #102E46; }
+  :focus-visible { outline: 3px solid var(--v2-coral); outline-offset: 3px; }
+  button, summary, select { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]):not([type="file"]), select, textarea {
+    min-height: 2.75rem;
+    max-width: 100%;
+    border: 1px solid #819BAB;
+    border-radius: .75rem;
+    background: white;
+    padding: .65rem .85rem;
+    color: var(--foreground);
+    font-size: 1rem;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    border-color: var(--v2-coral);
+    box-shadow: 0 0 0 3px #D9EFFA;
+  }
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--v2-coral); }
+  input::placeholder, textarea::placeholder { color: #617989; }
+  table { border-collapse: collapse; }
+  thead { background: var(--v2-gris-frio); color: var(--foreground); }
+  th { font-weight: 600; }
+  th, td { vertical-align: top; }
+  tbody tr:hover { background: #F1FAFD; }
+  dialog::backdrop { background: #102E46A6; backdrop-filter: blur(3px); }
+  summary { border-radius: .65rem; }
+}
+
+.tarjeta { box-shadow: 0 2px 3px #102E4604, 0 8px 24px #102E4605; }
+:where(input, select, textarea):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([aria-invalid="true"]) { border-color: #7892A4; }
+:where(input, select, textarea):focus-visible { outline-color: var(--v2-coral); }
+.navegacion-panel { border-bottom: 1px solid var(--v2-borde); background: white; }
+.enlace-panel { display: block; min-height: 44px; padding: .6rem .85rem; border-radius: .65rem; color: #4D6575; font-size: .875rem; font-weight: 600; white-space: nowrap; }
+.enlace-panel:hover { background: var(--v2-gris-frio); color: var(--foreground); }
+.enlace-panel[aria-current="page"] { color: #075477; background: #E4F4FC; }
+.navegacion-oscura { background: var(--kds-fondo); border-color: var(--kds-borde); }
+.navegacion-oscura .enlace-panel, .navegacion-oscura .text-texto-suave { color: var(--kds-texto-suave); }
+.navegacion-oscura .enlace-panel:hover, .navegacion-oscura .enlace-panel[aria-current="page"] { background: var(--kds-superficie); color: white; }
+.area-gestion > main { max-width: 1280px; }
+.area-gestion > main.vista-configuracion { max-width: 900px; }
+.area-caja > main { max-width: 1200px; }
+.area-gestion > main, .area-caja > main, .area-operativa > main { padding-top: 2rem; padding-bottom: 3rem; }
+.encabezado-pantalla { padding-bottom: 1.25rem; border-bottom: 1px solid var(--v2-borde); }
+.area-gestion h2, .area-caja h2, .area-operativa h2 { letter-spacing: -.025em; }
+.area-gestion table td, .area-gestion table th { padding: .85rem 1rem; }
+.superficie-formulario { border: 1px solid var(--v2-borde); border-radius: 1rem; background: white; padding: 1.5rem; }
+.carta-producto { min-height: 154px; align-items: center; border-radius: 1.1rem; box-shadow: 0 3px 12px #102E4604; }
+.carta-producto:hover { box-shadow: 0 6px 20px #102E460C; }
+.carta-categorias a { border-radius: 999px; background: white; }
+.carta-categorias a:hover { background: var(--v2-coral-suave); }
+.indicador-gestion { border-top: 3px solid var(--v2-salvia); }
+.indicador-gestion > p { font-variant-numeric: tabular-nums; font-size: clamp(1.75rem, 3vw, 2.25rem); letter-spacing: -.035em; }
+.salto-contenido { position: fixed; top: .5rem; left: .5rem; z-index: 100; transform: translateY(-180%); border-radius: .5rem; padding: .75rem 1rem; color: white; background: var(--foreground); }
+.salto-contenido:focus { transform: translateY(0); }
+
+@media (max-width: 639px) {
+  .navegacion-panel nav { flex-basis: 100%; }
+  .area-gestion > main, .area-caja > main { padding-left: 1rem; padding-right: 1rem; }
+  .superficie-formulario { padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
 [data-kds] {
@@ -120,3 +194,6 @@ body {
 [data-kds] .text-texto-suave {
   color: var(--kds-texto-suave);
 }
+
+[data-kds] .encabezado-pantalla { border-color: var(--kds-borde); }
+[data-kds] .tarjeta { box-shadow: none; }

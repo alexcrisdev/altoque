@@ -47,7 +47,7 @@ function fechaActualLima(): string {
 
 export default function PaginaReportes({ searchParams }: Props) {
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
       <Suspense
         fallback={
           <MensajeEstado
@@ -231,9 +231,9 @@ async function ContenidoReportes({
       )}
 
       <Tarjeta>
-        <h2 className="text-lg font-bold">
+        <details><summary className="min-h-11 py-2 text-sm font-semibold text-marca"><h2 className="inline text-base font-semibold">
           Cómo se calculan los indicadores
-        </h2>
+        </h2></summary>
 
         <div className="mt-3 space-y-3 text-sm text-texto-suave">
           <p>
@@ -258,6 +258,7 @@ async function ContenidoReportes({
             usan céntimos y el promedio se redondea al céntimo más cercano.
           </p>
         </div>
+        </details>
       </Tarjeta>
 
       <section
@@ -377,9 +378,9 @@ async function ContenidoReportes({
         )}
 
         <Tarjeta>
-          <h3 className="text-lg font-bold">
+          <details><summary className="min-h-11 py-2 text-sm font-semibold text-marca"><h3 className="inline text-base font-semibold">
             Cómo se calculan las tendencias
-          </h3>
+          </h3></summary>
 
           <div className="mt-3 space-y-3 text-sm text-texto-suave">
             <p>
@@ -413,6 +414,7 @@ async function ContenidoReportes({
               sus cantidades no tienen que coincidir.
             </p>
           </div>
+          </details>
         </Tarjeta>
       </section>
 
@@ -497,7 +499,7 @@ function Indicador({
   valor: string;
 }) {
   return (
-    <Tarjeta>
+    <Tarjeta className="indicador-gestion">
       <h2 className="text-sm font-medium text-texto-suave">
         {titulo}
       </h2>

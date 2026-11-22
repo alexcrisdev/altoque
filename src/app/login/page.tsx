@@ -6,6 +6,8 @@ import {
   Tarjeta,
 } from "@/components/ui";
 import { iniciarSesion } from "@/features/auth/actions";
+import { Marca } from "@/components/marca";
+import Link from "next/link";
 
 async function LoginForm({
   searchParams,
@@ -13,8 +15,17 @@ async function LoginForm({
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-12 sm:px-6">
-      <Tarjeta>
+    <main id="contenido-principal" className="mx-auto grid min-h-screen w-full max-w-6xl content-center items-center gap-8 px-5 py-8 sm:px-8 lg:grid-cols-2 lg:gap-24">
+      <section className="lg:py-12">
+        <Link href="/" aria-label="AlToque · Inicio" className="inline-flex rounded-lg"><Marca /></Link>
+        <div className="mt-10 hidden lg:block">
+          <p className="font-semibold text-exito-texto">Un equipo conectado.</p>
+          <h2 className="mt-3 text-5xl font-bold leading-tight tracking-tight">Cada mesa cuenta.<br />Cada detalle también.</h2>
+          <p className="mt-6 max-w-sm text-lg text-texto-suave">Coordina la sala, la cocina y los cobros para que cada pedido llegue a buen puerto.</p>
+          <div className="mt-10 flex gap-3 text-sm font-medium text-texto-suave"><span>Sala</span><span aria-hidden="true">/</span><span>Cocina</span><span aria-hidden="true">/</span><span>Caja</span></div>
+        </div>
+      </section>
+      <Tarjeta className="w-full p-6 sm:p-9">
         <EncabezadoPantalla
           titulo="Iniciar sesión en AlToque"
           subtitulo="Acceso para el equipo del restaurante."
@@ -64,6 +75,7 @@ async function LoginForm({
             Entrar
           </Boton>
         </form>
+        <p className="mt-6 border-t border-borde pt-5 text-sm text-texto-suave">¿Necesitas acceso? Solicita tu cuenta al administrador del restaurante.</p>
       </Tarjeta>
     </main>
   );
@@ -75,7 +87,7 @@ export default function LoginPage(
   return (
     <Suspense
       fallback={
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-12 sm:px-6">
+        <main id="contenido-principal" className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-12 sm:px-6">
           <MensajeEstado
             tipo="cargando"
             titulo="Cargando…"

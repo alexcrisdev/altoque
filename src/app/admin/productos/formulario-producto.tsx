@@ -21,7 +21,7 @@ export function FormularioProducto({
   );
 
   return (
-    <form action={accion} className="grid gap-3 rounded border p-4">
+    <form action={accion} className="superficie-formulario grid gap-4">
       {producto && <input type="hidden" name="productoId" value={producto.id} />}
       <label className="grid gap-1">
         Nombre
@@ -33,7 +33,7 @@ export function FormularioProducto({
           className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
         />
       </label>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
         <label className="grid gap-1">
           Precio (S/)
           <input
@@ -78,11 +78,11 @@ export function FormularioProducto({
         URL de imagen (HTTPS)
         <input name="imageUrl" type="url" defaultValue={producto?.image_url ?? ""} className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" />
       </label>
-      <button disabled={pendiente} className="min-h-11 rounded bg-teal-700 px-4 py-2 font-semibold text-white disabled:opacity-50">
+      <button disabled={pendiente} className="min-h-11 rounded-xl bg-marca px-4 py-3 font-semibold text-white transition-colors hover:bg-marca-hover disabled:opacity-50">
         {pendiente ? "Guardando…" : producto ? "Guardar cambios" : "Crear producto"}
       </button>
       {estado.mensaje && (
-        <p role={estado.tipo === "error" ? "alert" : "status"} className={estado.tipo === "error" ? "text-red-700" : "text-teal-800"}>
+        <p role={estado.tipo === "error" ? "alert" : "status"} className={estado.tipo === "error" ? "text-peligro-texto" : "text-exito-texto"}>
           {estado.mensaje}
         </p>
       )}

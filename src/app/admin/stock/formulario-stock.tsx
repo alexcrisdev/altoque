@@ -128,7 +128,7 @@ export function FormularioStock({
           </p>
         )}
 
-        <ul className="grid gap-3">
+        <ul className="grid gap-3 xl:grid-cols-2">
           {relleno.campos.map((campo) => {
             const sugerencia = porProducto.get(campo.productoId);
             const insuficiente =

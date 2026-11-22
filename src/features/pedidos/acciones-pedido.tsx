@@ -68,7 +68,7 @@ export function AccionesPedido({ pedidoId, estado, roles, items }: { pedidoId: s
           <textarea className="mt-1 min-h-20 w-full rounded border p-3" maxLength={200} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
         </label>
         <p className="mt-4 font-semibold">Nuevo total: {moneda.format(totalCentimos / 100)}</p>
-        <button type="button" disabled={guardando || (requiereMotivoModificacion(estado) && !motivo.trim())} onClick={guardar} className="mt-4 min-h-11 rounded-lg bg-teal-700 px-4 py-2 font-medium text-white disabled:opacity-50">{guardando ? "Guardando…" : "Guardar cambios"}</button>
+        <button type="button" disabled={guardando || (requiereMotivoModificacion(estado) && !motivo.trim())} onClick={guardar} className="mt-4 min-h-11 rounded-lg bg-marca px-4 py-2 font-medium text-white disabled:opacity-50">{guardando ? "Guardando…" : "Guardar cambios"}</button>
       </>}
       {puedeCancelar && <div className="mt-4">
         <button type="button" disabled={guardando} onClick={cancelar} className="min-h-11 rounded-lg border border-red-300 px-4 py-2 text-red-800 disabled:opacity-50">Cancelar pedido</button>

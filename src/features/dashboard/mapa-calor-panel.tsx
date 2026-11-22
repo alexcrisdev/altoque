@@ -366,7 +366,7 @@ export function MapaCalorPanel({
       {error && (
         <p
           role="alert"
-          className="rounded-xl border border-borde p-4 text-red-700"
+          className="rounded-xl border border-borde p-4 text-peligro-texto"
         >
           {error}
         </p>
@@ -454,10 +454,10 @@ function ResultadoMapa({
                   const color = celda.diasEnRango === 0
                     ? "bg-superficie text-texto-suave"
                     : proporcion > 0.66
-                      ? "bg-teal-800 text-white"
+                      ? "bg-marca text-white"
                       : proporcion > 0.33
-                        ? "bg-teal-200 text-slate-950"
-                        : "bg-teal-50 text-slate-950";
+                        ? "bg-acento/30 text-texto"
+                        : "bg-marca-suave text-texto";
 
                   return (
                     <td

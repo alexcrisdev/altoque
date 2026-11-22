@@ -15,7 +15,7 @@ async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
 }
 
 export default function CocinaPage(props: PageProps<"/cocina">) {
-  return <main data-kds className="min-h-screen bg-kds-fondo text-kds-texto">
+  return <main id="contenido-principal" data-kds className="min-h-screen bg-kds-fondo text-kds-texto">
     <Suspense fallback={<div className="mx-auto max-w-7xl p-6">
       <MensajeEstado tipo="cargando" titulo="Cargando cocina…" />
     </div>}><CocinaPanel {...props} /></Suspense>
