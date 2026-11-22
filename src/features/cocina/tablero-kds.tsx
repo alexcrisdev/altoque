@@ -1,6 +1,7 @@
 "use client";
 
 import { AvisoAlergia } from "../pedidos/aviso-alergia";
+import { textoAlergia } from "../pedidos/alergias";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { obtenerKds, cambiarEstadoKds } from "./kds-actions";
 import { minutosDesde } from "./cocina-logica";
@@ -175,7 +176,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
       <span className="mt-2 block font-semibold">{describirDestino({ modalidad: pedido.modalidad, mesaNumero: pedido.mesaNumero, nombre: pedido.nombreCliente, telefono: null })}</span>
       <span className="mt-1 block">Llegó a las <time dateTime={pedido.creadoEn}>{horaLima.format(new Date(pedido.creadoEn))}</time> · Espera: {minutosDesde(pedido.creadoEn, ahora)} min</span>
       <span className="mt-1 block font-semibold">{ETIQUETA_ESPERA[colorEspera(pedido.creadoEn, ahora)]}</span>
-      <AvisoAlergia alergia={pedido.alergia} />
+      <AvisoAlergia alergia={pedido.alergia} cocina id={`alergia-${pedido.id}`} />
       {pedido.items.map((item, i) => <span key={i} className="mt-4 block">
         <span className="block font-bold">{item.cantidad} × {item.nombre}</span>
         {item.observacion && <span className="mt-1 block rounded-lg bg-aviso-fondo p-2 font-bold text-aviso-texto">Observación: {item.observacion}</span>}
@@ -188,12 +189,12 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
   function tarjeta(pedido: PedidoCocina, lista: boolean) {
     const clase = `block min-w-0 w-full break-words rounded-xl border-2 p-4 sm:p-5 text-left ${colores[colorEspera(pedido.creadoEn, ahora)]}`;
     return <li key={pedido.id}>
-      {!tv && !lista ? <button type="button" className={`${clase} focus-visible:outline-4 focus-visible:outline-marca disabled:opacity-60`}
+      {!tv && !lista ? <button type="button" className={`${clase} disabled:opacity-60`}
         disabled={guardando} onClick={(evento) => {
           // La primera tarjeta puede salir antes del segundo clic del mismo gesto.
           if (evento.detail > 1) return;
           void guardar(pedido);
-        }} aria-label={`Marcar listo el pedido N.º ${pedido.numero}`}>
+        }} aria-label={`Marcar listo el pedido N.º ${pedido.numero}`} aria-describedby={textoAlergia(pedido.alergia) ? `alergia-${pedido.id}` : undefined}>
         {detalle(pedido, vista.atajos[pedido.id])}<span className="mt-4 block font-bold">{guardando ? "Guardando…" : "Marcar Listo"}</span>
       </button> : <article className={clase}>{detalle(pedido)}{lista && <p className="mt-4 font-bold">Esperando al mesero</p>}</article>}
       {pedido.incidenciasAbiertas.map((incidencia) => <div key={incidencia.id} className="mt-2 rounded-lg bg-aviso-fondo p-3 text-aviso-texto">
@@ -204,7 +205,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
     </li>;
   }
 
-  return <div data-kds className={`rounded-2xl px-4 py-5 sm:px-6 ${tv ? "space-y-6 text-2xl lg:text-3xl" : "space-y-5 text-lg"}`}>
+  return <div data-kds className={`rounded-2xl px-4 py-5 sm:px-6 [&_button:focus-visible]:outline-4 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-white [&_button:focus-visible]:ring-4 [&_button:focus-visible]:ring-[#102e46] ${tv ? "space-y-6 text-2xl lg:text-3xl" : "space-y-5 text-lg"}`}>
     {error && <p role="alert" className="rounded-lg bg-peligro-fondo p-3 text-peligro-texto">{error}</p>}
     {!tv ? <div className="flex flex-wrap items-center gap-4">
       <button type="button" onClick={habilitarSonido} className="rounded-lg border border-borde px-4 py-2">{sonido ? "Sonido activado" : "Activar sonido"}</button>
