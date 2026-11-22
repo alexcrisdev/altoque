@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" fill="none">
+  <rect width="480" height="360" fill="#E4F4FC"/>
+  <circle cx="240" cy="170" r="112" fill="#F1FAFD"/>
+  <circle cx="240" cy="170" r="82" stroke="#B5D7E5" stroke-width="3"/>
+  <path d="M180 190h120M193 181a47 47 0 0 1 94 0M240 123v11" stroke="#08766C" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="240" cy="115" r="6" fill="#08766C"/>
+  <path d="M136 133v82m-12-82v27c0 13 24 13 24 0v-27m-12 0v29m200-29v82m0-82c-19 12-19 46 0 46" stroke="#102E46" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="240" y="312" text-anchor="middle" fill="#4D6575" font-family="Arial,sans-serif" font-size="16">Imagen de referencia</text>
+</svg>

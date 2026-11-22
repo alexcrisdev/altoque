@@ -91,6 +91,10 @@ async function Contenido({ params, searchParams }: Props) {
         }
         subtitulo={`${acceso.restauranteNombre} · ${acceso.localNombre}`}
       />
+      <div className="rounded-2xl border border-info-borde bg-info-fondo px-5 py-4">
+        <h2 className="text-lg font-bold text-texto">¿Qué te provoca hoy?</h2>
+        <p className="mt-1 text-sm text-texto-suave">Explora los platos, toca uno para ver sus detalles y agrégalo a tu pedido.</p>
+      </div>
 
       <MisPedidos token={token} />
 

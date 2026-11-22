@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { ImagenProducto } from "@/components/imagen-producto";
 import {
   guardarProductoAction,
 } from "@/features/carta/admin-actions";
@@ -15,6 +16,7 @@ export function FormularioProducto({
   categorias: CategoriaAdmin[];
   producto?: ProductoAdmin;
 }) {
+  const [imagen, setImagen] = useState(producto?.image_url ?? "");
   const [estado, accion, pendiente] = useActionState(
     guardarProductoAction,
     estadoInicialProducto,
@@ -76,8 +78,12 @@ export function FormularioProducto({
       </label>
       <label className="grid gap-1">
         URL de imagen (HTTPS)
-        <input name="imageUrl" type="url" defaultValue={producto?.image_url ?? ""} className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" />
+        <input name="imageUrl" type="url" value={imagen} onChange={(evento) => setImagen(evento.target.value)} aria-describedby={producto ? `imagen-ayuda-${producto.id}` : "imagen-ayuda-nuevo"} placeholder="https://…" className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" />
       </label>
+      <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3 rounded-xl bg-superficie-suave p-3">
+        <ImagenProducto src={imagen} nombre="Vista previa del producto" className="h-20 w-24 rounded-lg" />
+        <p id={producto ? `imagen-ayuda-${producto.id}` : "imagen-ayuda-nuevo"} className="text-xs text-texto-suave">Imagen opcional. Pega un enlace HTTPS directo a una foto. Si dejas el campo vacío o la imagen no carga, se mostrará una referencia. Guarda los cambios para actualizar la carta.</p>
+      </div>
       <button disabled={pendiente} className="min-h-11 rounded-xl bg-marca px-4 py-3 font-semibold text-white transition-colors hover:bg-marca-hover disabled:opacity-50">
         {pendiente ? "Guardando…" : producto ? "Guardar cambios" : "Crear producto"}
       </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ComponentProps, type ReactNode } from "react";
+import { useRef, type ComponentProps, type ReactNode, type RefObject } from "react";
 import {
   Boton,
   Insignia,
@@ -14,6 +14,7 @@ import type { ResultadoRegistroPedido } from "./actions";
 import { ALERGENOS, DECLARACION_ALERGIA, validarAlergia, type AlergiaFormulario, type Alergeno } from "./alergias";
 
 type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
+  dialogoRef?: RefObject<HTMLDialogElement | null>;
   pedidosHabilitados: boolean;
   enviando: boolean;
   resultado: ResultadoRegistroPedido | null;
@@ -27,7 +28,8 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
 };
 
 export function PanelCarrito(props: Props) {
-  const dialogo = useRef<HTMLDialogElement>(null);
+  const dialogoInterno = useRef<HTMLDialogElement>(null);
+  const dialogo = props.dialogoRef ?? dialogoInterno;
   const validacionAlergia = validarAlergia(props.alergia);
 
   const unidades = props.items.reduce(
@@ -117,10 +119,11 @@ export function PanelCarrito(props: Props) {
         id="panel-carrito"
         ref={dialogo}
         aria-labelledby="carrito-titulo"
-        className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85dvh] w-full max-w-none overflow-hidden rounded-t-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60 md:inset-y-0 md:left-auto md:right-0 md:h-dvh md:max-h-none md:w-[440px] md:rounded-none md:rounded-l-3xl"
+        className="fixed inset-0 m-auto max-h-[92dvh] w-[calc(100%-1rem)] max-w-2xl overflow-hidden rounded-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60"
       >
-        <div className="flex max-h-[calc(85dvh-2px)] flex-col md:h-full md:max-h-none">
-          <div className="flex shrink-0 justify-end border-b border-borde px-5 py-3">
+        <div className="flex max-h-[calc(92dvh-2px)] flex-col">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-borde bg-marca-suave px-5 py-3">
+            <p className="font-semibold">Revisa y confirma tu pedido</p>
             <Boton
               type="button"
               variante="secundario"
@@ -130,7 +133,7 @@ export function PanelCarrito(props: Props) {
             </Boton>
           </div>
 
-          <div className="min-h-[25dvh] flex-1 overflow-y-auto overscroll-contain md:min-h-0">
+          <div data-carrito-contenido className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <fieldset
               disabled={props.enviando}
               className="p-5 disabled:opacity-60"
@@ -141,9 +144,7 @@ export function PanelCarrito(props: Props) {
 
               <Carrito {...props} enPanel />
             </fieldset>
-          </div>
-
-          <footer className="max-h-[min(50dvh,calc(60dvh-5rem))] shrink-0 space-y-4 overflow-y-auto overscroll-contain border-t border-borde bg-superficie px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:max-h-[60dvh] md:overflow-y-auto">
+          <footer className="space-y-5 border-t border-borde bg-superficie px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <p className="text-sm text-texto-suave">
               {unidades} {unidades === 1 ? "unidad" : "unidades"}
               {" · "}
@@ -337,6 +338,7 @@ export function PanelCarrito(props: Props) {
               Seguir viendo la carta
             </Boton>
           </footer>
+          </div>
         </div>
       </dialog>
     </>
