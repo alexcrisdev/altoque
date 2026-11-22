@@ -1,9 +1,20 @@
 import { defineConfig, devices } from "@playwright/test";
 import { existsSync } from "node:fs";
+import { esSupabaseLocal } from "./scripts/exigir-supabase-local.mjs";
 
 // Node 22 carga el entorno local sin añadir dependencias ni sobrescribir CI.
+// Las variables ya definidas en el proceso (Supabase local) tienen prioridad.
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
-// Next.js lee su propia .env.local. No transmitir la clave privada al worker.
+
+// US-106: el E2E solo corre contra la base local desechable, nunca contra la compartida.
+if (!esSupabaseLocal(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "")) {
+  throw new Error(
+    "El E2E solo corre contra Supabase local (127.0.0.1 o localhost). Levanta `npx supabase start` y define sus variables en el proceso.",
+  );
+}
+
+// La clave privada solo va al servidor Next.js que arranca Playwright, nunca al worker de pruebas.
+const claveServidor = process.env.SUPABASE_SERVICE_ROLE_KEY;
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 for (const nombre of ["E2E_MESA_TOKEN", "E2E_MOSTRADOR_TOKEN"]) {
@@ -34,6 +45,7 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL ? undefined : {
     command: "npm run start",
     url: baseURL,
+    env: claveServidor ? { SUPABASE_SERVICE_ROLE_KEY: claveServidor } : undefined,
     reuseExistingServer: false,
     timeout: 120_000,
   },
