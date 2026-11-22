@@ -39,7 +39,7 @@
   --color-kds-texto: var(--kds-texto);
 
   /* Fuentes configuradas en layout.tsx. */
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
 
   /* Marca y superficies. */
