@@ -71,6 +71,8 @@ function simular(responder: (lectura: Lectura) => Pagina) {
 }
 
 function datosDePrueba(lectura: Lectura): Pagina {
+  const patron = lectura.filtros.find(([op]) => op === "like")?.[2];
+  if (patron !== undefined && patron !== "PRUEBA E2E%") return pagina([]);
   if (lectura.tabla === "order_items") {
     return pagina([{ order_id: pruebaPorNota }, { order_id: pruebaPorNota }, { order_id: "otra-prueba" }]);
   }
@@ -97,13 +99,17 @@ beforeEach(() => vi.resetAllMocks());
 
 describe("US-111", () => {
   it("consulta solo los IDs, por restaurante y prefijo exacto, con orden estable", async () => {
-    const { cliente, lecturas } = simular((lectura) => {
+    const { cliente, lecturas: consultas } = simular((lectura) => {
+      if (!lectura.filtros.some(([op, , valor]) => op === "like" && valor === "PRUEBA E2E%")) {
+        return pagina([]);
+      }
       if (lectura.tabla === "orders") return lectura.rango[0] === 0
         ? pagina([{ id: pruebaPorNombre }], 2)
         : pagina([{ id: pruebaPorNota }], 2);
       return datosDePrueba(lectura);
     });
     const ids = await obtenerIdsPedidosDePrueba(cliente, restaurante);
+    const lecturas = consultas.filter((q) => q.filtros.some(([op, , valor]) => op === "like" && valor === "PRUEBA E2E%"));
     expect(ids).toEqual(new Set([pruebaPorNombre, pruebaPorNota, "otra-prueba"]));
     expect(esPedidoDePrueba("real", ids)).toBe(false);
     expect(lecturas.filter((q) => q.tabla === "orders").map((q) => q.rango)).toEqual([[0, 499], [1, 500]]);
@@ -117,6 +123,36 @@ describe("US-111", () => {
       columnas: "order_id, orders!inner(restaurant_id)", orden: "id",
       filtros: [["eq", "orders.restaurant_id", restaurante], ["like", "observation", "PRUEBA E2E%"]],
     });
+  });
+
+  it.each([
+    ["PRUEBA E2E abc", true],
+    ["Prueba US-020", true],
+    ["Prueba local US-091", true],
+    ["Prueba Checkout snapshot US-097", true],
+    ["Prueba este plato sin sal", false],
+    ["prueba US-020", false],
+    ["Sin ají. Prueba US-020", false],
+  ])("clasifica %j como prueba: %s", async (texto, seExcluye) => {
+    const { cliente, lecturas } = simular((lectura) => {
+      const filtro = lectura.filtros.find(([op]) => op === "like");
+      const patron = String(filtro?.[2]);
+      if (!patron.endsWith("%") || !texto.startsWith(patron.slice(0, -1))) return pagina([]);
+      return pagina(lectura.tabla === "orders" ? [{ id: "por-nombre" }] : [{ order_id: "por-observacion" }]);
+    });
+
+    const ids = await obtenerIdsPedidosDePrueba(cliente, restaurante);
+    expect(esPedidoDePrueba("por-nombre", ids)).toBe(seExcluye);
+    expect(esPedidoDePrueba("por-observacion", ids)).toBe(seExcluye);
+    for (const [tabla, campo, campoRestaurante] of [
+      ["orders", "customer_name", "restaurant_id"],
+      ["order_items", "observation", "orders.restaurant_id"],
+    ]) {
+      const consultas = lecturas.filter((lectura) => lectura.tabla === tabla);
+      expect(consultas.map((q) => q.filtros)).toEqual([
+        "PRUEBA E2E%", "Prueba US-%", "Prueba local US-%", "Prueba Checkout snapshot US-%",
+      ].map((patron) => [["eq", campoRestaurante, restaurante], ["like", campo, patron]]));
+    }
   });
 
   it("conserva cuentas de sesión mixta o vacía y excluye las ligadas solo a pruebas", () => {

@@ -2,7 +2,12 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const PREFIJO_PRUEBA = "PRUEBA E2E";
+const PREFIJOS_PRUEBA = [
+  "PRUEBA E2E",
+  "Prueba US-",
+  "Prueba local US-",
+  "Prueba Checkout snapshot US-",
+];
 const TAMANO_PAGINA = 500;
 const TAMANO_LOTE = 100;
 
@@ -40,17 +45,20 @@ export async function obtenerIdsPedidosDePrueba(
   cliente: SupabaseClient,
   restauranteId: string,
 ): Promise<ReadonlySet<string>> {
-  const patron = `${PREFIJO_PRUEBA}%`;
-  const [pedidos, lineas] = await Promise.all([
-    leerPaginas((desde, hasta) => cliente.from("orders").select("id", { count: "exact" })
-      .eq("restaurant_id", restauranteId).like("customer_name", patron)
-      .order("id").range(desde, hasta)),
-    leerPaginas((desde, hasta) => cliente.from("order_items")
-      .select("order_id, orders!inner(restaurant_id)", { count: "exact" })
-      .eq("orders.restaurant_id", restauranteId).like("observation", patron)
-      .order("id").range(desde, hasta)),
-  ]);
-  return new Set([...pedidos.map((pedido) => pedido.id), ...lineas.map((linea) => linea.order_id)]);
+  const idsPorPrefijo = await Promise.all(PREFIJOS_PRUEBA.map(async (prefijo) => {
+    const patron = `${prefijo}%`;
+    const [pedidos, lineas] = await Promise.all([
+      leerPaginas((desde, hasta) => cliente.from("orders").select("id", { count: "exact" })
+        .eq("restaurant_id", restauranteId).like("customer_name", patron)
+        .order("id").range(desde, hasta)),
+      leerPaginas((desde, hasta) => cliente.from("order_items")
+        .select("order_id, orders!inner(restaurant_id)", { count: "exact" })
+        .eq("orders.restaurant_id", restauranteId).like("observation", patron)
+        .order("id").range(desde, hasta)),
+    ]);
+    return [...pedidos.map((pedido) => pedido.id), ...lineas.map((linea) => linea.order_id)];
+  }));
+  return new Set(idsPorPrefijo.flat());
 }
 
 export function esPedidoDePrueba(id: string, idsDePrueba: ReadonlySet<string>): boolean {
