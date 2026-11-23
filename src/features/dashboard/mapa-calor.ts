@@ -1,6 +1,7 @@
 import "server-only";
 
 import { crearClienteServidor } from "../../lib/supabase/server";
+import { esPedidoDePrueba, obtenerIdsPedidosDePrueba } from "./pedidos-de-prueba";
 import { rangoLimaAUtc } from "./ventas-logica";
 import {
   calcularMapaCalor,
@@ -93,7 +94,11 @@ export async function obtenerMapaCalor(
         }
 
         if (inicio === totalEsperado) {
-          return prepararResultado(pedidos, filtro);
+          const idsDePrueba = await obtenerIdsPedidosDePrueba(supabase, restauranteId);
+          return prepararResultado(
+            pedidos.filter((pedido) => !esPedidoDePrueba(pedido.id, idsDePrueba)),
+            filtro,
+          );
         }
 
         if (data.length === 0) {

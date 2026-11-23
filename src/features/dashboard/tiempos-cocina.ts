@@ -1,6 +1,7 @@
 import "server-only";
 
 import { crearClienteServidor } from "../../lib/supabase/server";
+import { esPedidoDePrueba, obtenerIdsPedidosDePrueba } from "./pedidos-de-prueba";
 import { rangoLimaAUtc } from "./ventas-logica";
 import { calcularTiemposCocina, type EventoCocina, type PedidoCocina } from "./tiempos-cocina-logica";
 
@@ -34,7 +35,9 @@ async function leerTodas<T extends Fila>(consulta: () => Consulta<T>): Promise<T
   }
 }
 
-export async function obtenerTiemposCocina(restauranteId: string, desde: string, hasta: string) {
+export async function obtenerTiemposCocina(
+  restauranteId: string, desde: string, hasta: string, idsDePrueba?: ReadonlySet<string>,
+) {
   const { desdeUtc, hastaUtcExclusivo } = rangoLimaAUtc(desde, hasta);
   if (!restauranteId.trim()) throw new Error("Restaurante no válido.");
   const supabase = await crearClienteServidor();
@@ -42,7 +45,10 @@ export async function obtenerTiemposCocina(restauranteId: string, desde: string,
     .from("order_status_history").select("id, order_id", { count: "exact" })
     .eq("restaurant_id", restauranteId).eq("event", "STATUS").eq("to_status", "IN_PROGRESS")
     .gte("created_at", desdeUtc).lt("created_at", hastaUtcExclusivo));
-  const ids = [...new Set(candidatos.map((evento) => evento.order_id))];
+  if (!candidatos.length) return calcularTiemposCocina([], [], desde, hasta);
+  const marcas = idsDePrueba ?? await obtenerIdsPedidosDePrueba(supabase, restauranteId);
+  const ids = [...new Set(candidatos.map((evento) => evento.order_id))]
+    .filter((id) => !esPedidoDePrueba(id, marcas));
   const historial: EventoCocina[] = [];
   const pedidos: PedidoCocina[] = [];
   // Lotes acotados para las URL. Cada consulta pagina sus filas de 500 en 500.

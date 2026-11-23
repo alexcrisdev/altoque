@@ -1,6 +1,7 @@
 import "server-only";
 
 import { crearClienteServidor } from "../../lib/supabase/server";
+import { filtrarCuentasReales, obtenerIdsPedidosDePrueba } from "./pedidos-de-prueba";
 import {
   calcularResumenVentas,
   rangoLimaAUtc,
@@ -75,7 +76,8 @@ export async function obtenerResumenVentas(
       }
     }
 
-    return calcularResumenVentas(pagos);
+    const idsDePrueba = await obtenerIdsPedidosDePrueba(supabase, restauranteId);
+    return calcularResumenVentas(await filtrarCuentasReales(supabase, restauranteId, pagos, idsDePrueba));
   } catch {
     // No exponemos mensajes internos ni datos de pagos.
     throw new Error(

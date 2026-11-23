@@ -1,6 +1,7 @@
 import "server-only";
 
 import { crearClienteServidor } from "../../lib/supabase/server";
+import { esPedidoDePrueba, obtenerIdsPedidosDePrueba } from "./pedidos-de-prueba";
 import { rangoLimaAUtc } from "./ventas-logica";
 import {
   calcularProductosMasVendidos,
@@ -21,6 +22,7 @@ export async function obtenerTendencias(
   restauranteId: string,
   desde: string,
   hasta: string,
+  idsDePrueba?: ReadonlySet<string>,
 ): Promise<ResumenTendencias> {
   // Un rango inválido no llega a consultar la base.
   const { desdeUtc, hastaUtcExclusivo } = rangoLimaAUtc(
@@ -85,8 +87,10 @@ export async function obtenerTendencias(
 
         if (inicio === totalEsperado) {
           // Los cancelados cuentan por estado, pero no suman al top.
-          const productos = calcularProductosMasVendidos(pedidos);
-          const { porEstado, total } = contarPedidosPorEstado(pedidos);
+          const marcas = idsDePrueba ?? await obtenerIdsPedidosDePrueba(supabase, restauranteId);
+          const reales = pedidos.filter((pedido) => !esPedidoDePrueba(pedido.id, marcas));
+          const productos = calcularProductosMasVendidos(reales);
+          const { porEstado, total } = contarPedidosPorEstado(reales);
 
           return { productos, porEstado, total };
         }
