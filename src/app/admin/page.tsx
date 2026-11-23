@@ -78,7 +78,7 @@ async function AdminPanel() {
       </section>
 
       <nav aria-label="Administración"><ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {secciones.map(({ href, titulo, texto, grupo }) => <li key={href}><Tarjeta className="flex h-full flex-col p-6">
+      {secciones.map(({ href, titulo, texto, grupo }) => <li key={href}><Tarjeta relleno="amplio" className="flex h-full flex-col">
         <span className="mb-3 w-fit rounded-lg bg-marca-suave px-2.5 py-1 text-xs font-semibold text-marca">{grupo}</span>
         <h2 className="text-lg font-bold">{titulo}</h2><p className="mb-6 mt-2 flex-1 text-sm text-texto-suave">{texto}</p>
         <BotonEnlace href={href} variante="secundario" className="w-full">{titulo}</BotonEnlace>

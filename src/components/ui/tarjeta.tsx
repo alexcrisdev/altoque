@@ -1,13 +1,25 @@
 import type { ComponentProps } from "react";
+import {
+  clasesTarjeta,
+  type RellenoTarjeta,
+  type TonoTarjeta,
+} from "./clases";
+
+export type TarjetaProps = ComponentProps<"div"> & {
+  tono?: TonoTarjeta;
+  relleno?: RellenoTarjeta;
+};
 
 export function Tarjeta({
+  tono = "neutro",
+  relleno = "normal",
   className = "",
   ...props
-}: ComponentProps<"div">) {
+}: TarjetaProps) {
   return (
     <div
       {...props}
-      className={`tarjeta rounded-2xl border border-borde bg-superficie p-5 text-texto ${className}`}
+      className={`${clasesTarjeta(tono, relleno)} ${className}`}
     />
   );
 }

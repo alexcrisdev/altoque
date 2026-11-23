@@ -16,7 +16,7 @@ function Indicador({
   const v = comparacion.variacionPct;
   const bueno = v === null || v === 0 ? null : menosEsMejor ? v < 0 : v > 0;
   return (
-    <Tarjeta className="space-y-1 p-4">
+    <Tarjeta relleno="compacto" className="space-y-1">
       <p className="text-sm text-texto-suave">{titulo}</p>
       <p className="text-2xl font-bold tabular-nums">
         {comparacion.hoy === null ? "—" : formato(comparacion.hoy)}

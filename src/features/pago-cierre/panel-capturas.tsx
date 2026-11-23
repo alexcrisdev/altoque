@@ -64,7 +64,7 @@ function TarjetaCaptura({ captura, restauranteId, ahora, actualizar }: {
       <Boton type="button" variante="secundario" onClick={() => { cancelar.current?.(); cancelar.current = null; bloqueado.current = false; setPendiente(null); }}>Deshacer</Boton>
     </div> : <fieldset disabled={enviando} className="flex flex-wrap gap-2">
       <legend className="sr-only">Verificar pago</legend>
-      <Boton type="button" className="bg-exito-fondo! text-exito-texto! border-exito-borde! hover:bg-exito-fondo!" onClick={() => preparar("COMPLETE")}>Llegó completo</Boton>
+      <Boton type="button" variante="exito" onClick={() => preparar("COMPLETE")}>Llegó completo</Boton>
       <Boton type="button" variante="secundario" onClick={() => setOtroMonto(!otroMonto)}>Llegó otro monto</Boton>
       <Boton type="button" variante="peligro" aria-expanded={rechazando} onClick={() => setRechazando(!rechazando)}>No llegó</Boton>
       {rechazando && <div className="w-full space-y-2">
@@ -109,7 +109,7 @@ export function PanelCapturas({ restauranteId, mesero = false }: { restauranteId
     {!mesero && <h2 className="text-xl font-semibold">Por verificar · Yape/Plin</h2>}
     {error && <p role="status">{error}</p>}
     {!mesero && !error && capturas.length === 0 && <p>No hay capturas pendientes.</p>}
-    {mesero ? <div role="status" aria-live="polite">{visibles.map(c => <Tarjeta key={c.id} className="border-aviso-borde bg-aviso-fondo">
+    {mesero ? <div role="status" aria-live="polite">{visibles.map(c => <Tarjeta key={c.id} tono="aviso">
       {c.titulo}: Yape/Plin por verificar hace {Math.floor((ahora - Date.parse(c.creadaEn)) / 60000)} min
     </Tarjeta>)}</div> : visibles.map(c => <TarjetaCaptura key={c.id} captura={c} restauranteId={restauranteId} ahora={ahora} actualizar={() => void actualizar()} />)}
   </section>;
