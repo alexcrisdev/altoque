@@ -8,6 +8,10 @@ import {
 } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock(import("../../src/features/dashboard/pedidos-de-prueba"), async (importOriginal) => ({
+  ...await importOriginal(),
+  obtenerIdsPedidosDePrueba: async () => new Set<string>(),
+}));
 
 vi.mock("../../src/lib/supabase/server", () => ({
   crearClienteServidor: vi.fn(),

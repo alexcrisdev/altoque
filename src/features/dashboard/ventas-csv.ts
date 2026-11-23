@@ -1,6 +1,7 @@
 import "server-only";
 
 import { crearClienteServidor } from "../../lib/supabase/server";
+import { filtrarCuentasReales, obtenerIdsPedidosDePrueba } from "./pedidos-de-prueba";
 import { rangoLimaAUtc } from "./ventas-logica";
 import { fechaHoraLima, type FilaVentaCsv } from "./ventas-csv-logica";
 
@@ -69,7 +70,9 @@ export async function obtenerFilasVentasCsv(
       .gte("confirmed_at", desdeUtc)
       .lt("confirmed_at", hastaUtcExclusivo));
 
-    return pagos.map((pago) => {
+    const idsDePrueba = await obtenerIdsPedidosDePrueba(supabase, restauranteId);
+    const pagosReales = await filtrarCuentasReales(supabase, restauranteId, pagos, idsDePrueba);
+    return pagosReales.map((pago) => {
       const esPagoMesa = pago.table_session_id !== null;
       const esPagoPedido = pago.order_id !== null;
       if (esPagoMesa === esPagoPedido) {
