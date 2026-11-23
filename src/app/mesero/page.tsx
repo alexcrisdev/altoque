@@ -77,7 +77,7 @@ async function MeseroPanel() {
         <p className="mb-4 text-sm text-texto-suave">Primero los listos para entregar, luego los pendientes de aceptar con más de 5 minutos.</p>
         {requierenAtencion.length === 0 ? <MensajeEstado tipo="vacio" titulo="Todo al día" /> :
           <ul className="grid gap-3 md:grid-cols-2">{requierenAtencion.map((pedido) =>
-            <li key={pedido.id}><Tarjeta className={pedido.estado === "READY" ? "border-2 border-exito-borde bg-exito-fondo p-6 text-lg shadow-sm" : ""}>
+            <li key={pedido.id}><Tarjeta tono={pedido.estado === "READY" ? "exito" : "neutro"} relleno={pedido.estado === "READY" ? "amplio" : "normal"} className={pedido.estado === "READY" ? "border-2 text-lg shadow-sm" : ""}>
               <DatosPedido pedido={pedido} ahora={ahora} />
             </Tarjeta></li>)}
           </ul>}
@@ -90,7 +90,7 @@ async function MeseroPanel() {
             const pedidosMesa = grupos.get(mesa.id) ?? [];
             const resumen = resumenMesa(pedidosMesa);
             return <li key={mesa.id}>
-              <Tarjeta className={`space-y-4 border-t-4 ${resumen.listos > 0 ? "border-exito-borde bg-exito-fondo" : mesa.sesion ? "border-t-aviso-borde" : "border-t-exito-borde"}`}>
+              <Tarjeta tono={resumen.listos > 0 ? "exito" : "neutro"} className={`space-y-4 border-t-4 ${resumen.listos > 0 ? "" : mesa.sesion ? "border-t-aviso-borde" : "border-t-exito-borde"}`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-lg font-semibold">Mesa {mesa.numero}</h3>
                   <Insignia tono={mesa.sesion ? "aviso" : "exito"}>

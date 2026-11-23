@@ -2,9 +2,24 @@ export type VarianteBoton =
   | "primario"
   | "secundario"
   | "peligro"
-  | "fantasma";
+  | "fantasma"
+  | "exito";
 
 export type TamanoBoton = "md" | "lg";
+
+export type TonoTarjeta =
+  | "neutro"
+  | "suave"
+  | "exito"
+  | "aviso"
+  | "info"
+  | "peligro";
+
+export type RellenoTarjeta =
+  | "compacto"
+  | "normal"
+  | "amplio"
+  | "destacado";
 
 export type TonoInsignia =
   | "neutro"
@@ -23,6 +38,8 @@ const variantes: Record<VarianteBoton, string> = {
     "border-transparent bg-peligro text-white hover:bg-peligro-hover",
   fantasma:
     "border-transparent bg-transparent text-marca hover:bg-superficie-suave",
+  exito:
+    "border-exito-borde bg-exito-fondo text-exito-texto hover:bg-exito-fondo",
 };
 
 const tamanos: Record<TamanoBoton, string> = {
@@ -43,6 +60,22 @@ const tonos: Record<TonoInsignia, string> = {
     "border-exito-borde bg-exito-fondo text-exito-texto",
   peligro:
     "border-peligro-borde bg-peligro-fondo text-peligro-texto",
+};
+
+const tonosTarjeta: Record<TonoTarjeta, string> = {
+  neutro: "bg-superficie border-borde",
+  suave: "bg-superficie-suave border-borde",
+  exito: "bg-exito-fondo border-exito-borde",
+  aviso: "bg-aviso-fondo border-aviso-borde",
+  info: "bg-info-fondo border-info-borde",
+  peligro: "bg-peligro-fondo border-peligro-borde",
+};
+
+const rellenosTarjeta: Record<RellenoTarjeta, string> = {
+  compacto: "p-4",
+  normal: "p-5",
+  amplio: "p-6",
+  destacado: "p-6 sm:p-9",
 };
 
 function obtenerClase(
@@ -77,5 +110,16 @@ export function clasesInsignia(
     "inline-flex items-center rounded-full border px-3 py-1",
     "text-xs font-semibold",
     obtenerClase(tonos, tono, "neutro"),
+  ].join(" ");
+}
+
+export function clasesTarjeta(
+  tono: unknown = "neutro",
+  relleno: unknown = "normal",
+): string {
+  return [
+    "tarjeta rounded-2xl border text-texto",
+    obtenerClase(tonosTarjeta, tono, "neutro"),
+    obtenerClase(rellenosTarjeta, relleno, "normal"),
   ].join(" ");
 }

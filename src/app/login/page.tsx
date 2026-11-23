@@ -25,7 +25,7 @@ async function LoginForm({
           <div className="mt-10 flex gap-3 text-sm font-medium text-texto-suave"><span>Sala</span><span aria-hidden="true">/</span><span>Cocina</span><span aria-hidden="true">/</span><span>Caja</span></div>
         </div>
       </section>
-      <Tarjeta className="w-full p-6 sm:p-9">
+      <Tarjeta relleno="destacado" className="w-full">
         <EncabezadoPantalla
           titulo="Iniciar sesión en AlToque"
           subtitulo="Acceso para el equipo del restaurante."

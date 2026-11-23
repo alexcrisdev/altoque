@@ -202,7 +202,7 @@ export function AlertasMesero({ restauranteId, mesas, pedidos, solicitudes, actu
     {errorSonido && <p role="status" className="text-sm text-texto-suave">{errorSonido}</p>}
     {error && <p role="status" className="text-sm text-aviso-texto">No pudimos actualizar las alertas. Conservamos los avisos y volveremos a intentarlo.</p>}
     <div role="status" aria-live="polite" aria-atomic="true" className="space-y-2">
-      {avisos.map((aviso) => <Tarjeta key={aviso.id} className="flex flex-wrap items-center justify-between gap-3 border-info-borde bg-info-fondo">
+      {avisos.map((aviso) => <Tarjeta key={aviso.id} tono="info" className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-semibold">{aviso.texto}</p>
         <Boton type="button" variante="fantasma" aria-label={`Cerrar aviso: ${aviso.texto}`}
           onClick={() => setAvisos((actuales) => actuales.filter((actual) => actual.id !== aviso.id))}>Cerrar aviso</Boton>
