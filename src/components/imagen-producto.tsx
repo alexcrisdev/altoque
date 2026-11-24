@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { esUrlImagenProducto } from "../features/carta/foto-producto";
 
 const ALTERNATIVA = "/images/plato-predeterminado.svg";
 
@@ -14,7 +15,7 @@ export function ImagenProducto({ src, nombre, className = "", decorativa = false
   const [fallida, setFallida] = useState<string | null>(null);
   const url = src?.trim() ?? "";
   let valida = false;
-  try { const parsed = new URL(url); valida = parsed.protocol === "https:" && !parsed.username && !parsed.password; } catch { /* Se utiliza la referencia local. */ }
+  try { valida = esUrlImagenProducto(new URL(url)); } catch { /* Se utiliza la referencia local. */ }
   const alternativa = !valida || fallida === url;
   return <Image
     src={alternativa ? ALTERNATIVA : url}
