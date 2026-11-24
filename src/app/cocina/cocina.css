@@ -1,0 +1,49 @@
+.area-cocina .kds-tablero { color: var(--kds-texto); }
+.area-cocina .kds-herramientas { padding: .75rem; border: 1px solid var(--kds-borde); border-radius: .75rem; background: var(--kds-superficie); }
+.area-cocina .kds-herramientas button { min-height: 3rem; }
+.area-cocina .kds-pedido { border-top-width: .375rem; padding: 1rem; line-height: 1.5; }
+.area-cocina .kds-numero { font-size: 1.5em; letter-spacing: -.035em; line-height: 1.2; }
+.area-cocina .kds-numero > span:last-child:not(:first-child) { font-size: .625em; letter-spacing: 0; }
+.area-cocina .kds-plato { font-size: 1.2em; line-height: 1.4; }
+.area-cocina .aviso-alergia-cocina { font-size: 1.15em; letter-spacing: .015em; line-height: 1.5; overflow-wrap: anywhere; }
+.area-cocina .kds-pedido .aviso-alergia-cocina { color: var(--color-superficie); }
+.area-cocina .kds-pedido:hover .kds-accion { text-decoration: underline; text-underline-offset: .2em; }
+.kds-columna {
+  min-width: 0;
+  padding: .875rem;
+  border: 1px solid var(--kds-borde);
+  border-radius: 1rem;
+  background: var(--kds-superficie);
+}
+.kds-columna > h2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .875rem;
+  padding: .625rem .875rem;
+  border-radius: .625rem;
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso-texto);
+  font-size: 1.25em;
+  font-weight: 700;
+}
+.kds-columna[data-cola="listos"] > h2 { background: var(--color-exito-fondo); color: var(--color-exito-texto); }
+.kds-columna > h2 span {
+  min-width: 2ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.kds-cola-vacia {
+  padding: 1.25rem .75rem;
+  border: 1px dashed var(--kds-borde);
+  border-radius: .625rem;
+  color: var(--kds-texto-suave);
+  text-align: center;
+}
+.area-cocina section[aria-label="Resumen pendiente"] { border-left: 4px solid var(--kds-texto-suave); }
+.area-cocina section[aria-label="Resumen pendiente"] li { padding: .5rem .75rem; border: 1px solid var(--kds-borde); border-radius: .75rem; }
+@media (max-width: 639px) {
+  .area-cocina .kds-herramientas button { flex: 1 1 auto; }
+  .area-cocina .kds-numero { font-size: 1.35em; }
+}

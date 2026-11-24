@@ -29,7 +29,7 @@ export function DetalleProducto({
     <dialog
       ref={dialogoRef}
       aria-labelledby="detalle-producto-titulo"
-      className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-borde bg-superficie p-6 text-texto shadow-xl backdrop:bg-black/50"
+      className="detalle-producto fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-borde bg-superficie p-6 text-texto"
     >
       <form method="dialog" className="mb-4 flex justify-end">
         <Boton type="submit" variante="secundario">
@@ -52,7 +52,7 @@ export function DetalleProducto({
             {producto.name}
           </h2>
 
-          <p className="text-lg font-semibold text-texto">
+          <p className="text-2xl font-bold tabular-nums text-marca">
             {formatearPrecio(producto.price)}
           </p>
 

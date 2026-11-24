@@ -16,10 +16,10 @@ export function NavegacionPanel({ area }: { area: keyof typeof destinos }) {
   const parametros = useSearchParams();
   // El modo TV conserva toda la pantalla para los pedidos.
   if (area === "cocina" && parametros.get("modo") === "tv") return null;
-  return <div className={`navegacion-panel ${area === "cocina" ? "navegacion-oscura" : ""}`}>
-    <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-8 gap-y-3 px-4 py-4 sm:px-6 lg:px-8">
+  return <div className={`navegacion-panel navegacion-${area} ${area === "cocina" ? "navegacion-oscura" : ""}`}>
+    <div className="navegacion-interior mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-8 gap-y-3 px-4 py-4 sm:px-6 lg:px-8">
       <Link href={`/${area}`} aria-label={`AlToque · ${area}`} className="shrink-0 rounded-lg"><Marca inversa={area === "cocina"} /></Link>
-      <nav aria-label={`Navegación de ${area}`} className="min-w-0 flex-1 overflow-x-auto">
+      <nav aria-label={`Navegación de ${area}`} className="min-w-0 flex-1 overflow-x-auto p-1">
         <ul className="flex w-max min-w-full gap-1">
           {destinos[area].map(([href, texto]) => {
             const activo = href === `/${area}`

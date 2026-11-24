@@ -37,13 +37,13 @@ export function TicketPedido({
   return (
     <section
       aria-label="Tu pedido"
-      className={`rounded-2xl p-5 text-white shadow-sm ${
+      className={`pedido-ticket rounded-2xl p-6 text-superficie ${
         cancelado ? "bg-peligro-texto" : "bg-marca-hover"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm opacity-90">Tu pedido</p>
-        <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-semibold">
+        <span className="rounded-full bg-superficie text-texto px-3 py-1 text-sm font-semibold">
           {estadoTexto}
         </span>
       </div>
@@ -67,10 +67,10 @@ export function TicketPedido({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={avance}
-          className="mt-4 h-2 overflow-hidden rounded-full bg-white/30"
+          className="mt-4 h-2 overflow-hidden rounded-full bg-marino"
         >
           <div
-            className="h-full rounded-full bg-white transition-[width] duration-500"
+            className="h-full rounded-full bg-superficie"
             style={{ width: `${avance}%` }}
           />
         </div>

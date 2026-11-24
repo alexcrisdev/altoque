@@ -86,6 +86,7 @@ export function BotonCerrarSesion({
       <Boton
         type="submit"
         variante="secundario"
+        className="boton-cerrar-sesion"
         disabled={pendiente}
       >
         {pendiente ? "Cerrando…" : "Cerrar sesión"}

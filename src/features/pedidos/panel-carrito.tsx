@@ -113,7 +113,7 @@ export function PanelCarrito(props: Props) {
   return (
     <>
       {unidades > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="acceso-carrito fixed inset-x-0 bottom-0 z-30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-md">
             <Boton
               type="button"
@@ -123,7 +123,7 @@ export function PanelCarrito(props: Props) {
               aria-haspopup="dialog"
               aria-controls="panel-carrito"
               aria-label={`Ver carrito: ${unidades} unidades, total ${totalFormateado}`}
-              className="w-full shadow-xl shadow-black/30"
+              className="w-full"
             >
               <span className="flex w-full items-center justify-between gap-3">
                 <span className="flex items-center gap-3">
@@ -142,7 +142,7 @@ export function PanelCarrito(props: Props) {
                     />
                   </svg>
 
-                  <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-white/20 px-2 text-sm font-bold">
+                  <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-marca-hover px-2 text-sm font-bold">
                     {unidades}
                   </span>
 
@@ -165,7 +165,7 @@ export function PanelCarrito(props: Props) {
           if (confirmado) props.onCerrarConfirmado?.();
         }}
         aria-labelledby="carrito-titulo"
-        className="fixed inset-x-0 top-[var(--carrito-centro,50%)] bottom-auto m-0 mx-auto max-h-[calc(var(--carrito-alto,100dvh)-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-y-1/2 overflow-hidden rounded-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60"
+        className="panel-carrito fixed inset-x-0 top-[var(--carrito-centro,50%)] bottom-auto m-0 mx-auto max-h-[calc(var(--carrito-alto,100dvh)-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-y-1/2 overflow-hidden rounded-3xl border border-borde bg-superficie p-0 text-texto"
       >
         <div className="flex max-h-[calc(var(--carrito-alto,100dvh)-1rem-2px)] flex-col">
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-borde bg-marca-suave px-5 py-3">
@@ -316,7 +316,7 @@ export function PanelCarrito(props: Props) {
               )
             )}
 
-            <fieldset disabled={props.enviando} className="space-y-3 rounded-xl border border-borde p-4 disabled:opacity-60">
+            <fieldset disabled={props.enviando} className="space-y-3 rounded-xl border border-aviso-borde bg-aviso-fondo p-4 disabled:opacity-60">
               <legend className="px-1 font-semibold">¿Alguien tiene alergias?</legend>
               <div className="flex gap-3">
                 {([ ["NONE", "No"], ["YES", "Sí"] ] as const).map(([respuesta, etiqueta]) => (
@@ -377,7 +377,7 @@ export function PanelCarrito(props: Props) {
           <footer className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-borde bg-superficie px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <div aria-live="polite" aria-atomic="true" className="min-w-0">
               <span className="block text-sm text-texto-suave">Total</span>
-              <span className="block font-bold">{totalFormateado}</span>
+              <span className="block text-xl font-bold tabular-nums">{totalFormateado}</span>
             </div>
             <Boton
               type="button"

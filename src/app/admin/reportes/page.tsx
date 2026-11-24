@@ -16,6 +16,7 @@ import {
 import { consultarPrediccionMananaAction } from "@/features/dashboard/prediccion-actions";
 import { TarjetaPrediccion } from "@/features/dashboard/tarjeta-prediccion";
 import { MapaCalorPanel } from "@/features/dashboard/mapa-calor-panel";
+import { ReportesSecciones } from "@/features/dashboard/reportes-secciones";
 import { ESTADOS_TENDENCIAS } from "@/features/dashboard/tendencias-logica";
 import {
   ETIQUETA_ESTADO,
@@ -112,8 +113,6 @@ async function ContenidoReportes({
         subtitulo="Ventas confirmadas y ticket promedio del restaurante."
       />
 
-      <TarjetaPrediccion resultado={resultadoPrediccion} />
-
       <Tarjeta>
         <form
           action="/admin/reportes"
@@ -161,6 +160,8 @@ async function ContenidoReportes({
         </p>
       </Tarjeta>
 
+      <ReportesSecciones
+        ventas={<>
       {!resultado.ok ? (
         <MensajeEstado
           tipo="error"
@@ -261,6 +262,9 @@ async function ContenidoReportes({
         </details>
       </Tarjeta>
 
+        </>}
+        tendencias={<>
+      <TarjetaPrediccion resultado={resultadoPrediccion} />
       <section
         aria-labelledby="tendencias-titulo"
         className="space-y-4"
@@ -418,13 +422,14 @@ async function ContenidoReportes({
         </Tarjeta>
       </section>
 
-      <MapaCalorPanel
+        </>}
+        mapaCalor={<MapaCalorPanel
         key={`${desde}:${hasta}`}
         desde={desde}
         hasta={hasta}
-      />
+        />}
 
-      <section aria-labelledby="tiempos-cocina-titulo" className="space-y-4">
+        cocina={<section aria-labelledby="tiempos-cocina-titulo" className="space-y-4">
         <h2 id="tiempos-cocina-titulo" className="text-xl font-bold">
           Tiempos de preparación en cocina
         </h2>
@@ -457,7 +462,7 @@ async function ContenidoReportes({
               ["Por plato", resultadoTiempos.resumen.porPlato],
             ] as const).map(([titulo, filas]) => (
               <Tarjeta key={titulo}>
-                <div className="overflow-x-auto">
+                <div role="region" aria-label={titulo} tabIndex={0} className="tabla-gestion overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <caption className="pb-3 text-left text-lg font-bold">{titulo}</caption>
                     <thead><tr>
@@ -480,7 +485,8 @@ async function ContenidoReportes({
             ))}
           </>
         )}
-      </section>
+        </section>}
+      />
     </div>
   );
 }

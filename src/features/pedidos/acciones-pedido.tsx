@@ -42,7 +42,7 @@ export function AccionesPedido({ pedidoId, estado, roles, items }: { pedidoId: s
 
   if (!puedeEditar && !puedeCancelar) return null;
   return (
-    <section className="mt-8 rounded-xl border p-5" aria-label="Acciones del pedido">
+    <section className="mt-8 rounded-2xl border border-borde bg-superficie p-5 sm:p-6" aria-label="Acciones del pedido">
       <h2 className="text-xl font-semibold">Modificar pedido</h2>
       {puedeEditar && <>
         <ul className="mt-4 divide-y">
@@ -71,7 +71,7 @@ export function AccionesPedido({ pedidoId, estado, roles, items }: { pedidoId: s
         <button type="button" disabled={guardando || (requiereMotivoModificacion(estado) && !motivo.trim())} onClick={guardar} className="mt-4 min-h-11 rounded-lg bg-marca px-4 py-2 font-medium text-white disabled:opacity-50">{guardando ? "Guardando…" : "Guardar cambios"}</button>
       </>}
       {puedeCancelar && <div className="mt-4">
-        <button type="button" disabled={guardando} onClick={cancelar} className="min-h-11 rounded-lg border border-red-300 px-4 py-2 text-red-800 disabled:opacity-50">Cancelar pedido</button>
+        <button type="button" disabled={guardando} onClick={cancelar} className="min-h-11 rounded-lg border border-peligro-borde px-4 py-2 text-peligro-texto disabled:opacity-50">Cancelar pedido</button>
       </div>}
       {mensaje && <p role="status" className="mt-3">{mensaje}</p>}
     </section>

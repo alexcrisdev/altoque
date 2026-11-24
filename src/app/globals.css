@@ -96,104 +96,119 @@
 
   /* Esquinas de botones y tarjetas. */
   --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
+  --radius-2xl: 0.875rem;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--color-texto);
   font-family: var(--font-sans);
-  line-height: 1.6;
+  line-height: 1.5;
+  overflow-wrap: break-word;
 }
 
-/* Base accesible y controles compartidos; las clases de cada vista prevalecen. */
 @layer base {
-  html { scroll-padding-top: 6rem; }
-  ::selection { background: #BCECE9; color: #102E46; }
-  :focus-visible { outline: 3px solid var(--v2-coral); outline-offset: 3px; }
+  html { scroll-padding-top: 7rem; scroll-padding-bottom: 7rem; }
+  ::selection { background: var(--color-marca-suave); color: var(--color-marino); }
+  :focus-visible { outline: 3px solid var(--color-marca); outline-offset: 3px; }
+  h1, h2, h3 { line-height: 1.25; }
   button, summary, select { cursor: pointer; }
   button:disabled { cursor: not-allowed; }
   input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]):not([type="file"]), select, textarea {
-    min-height: 2.75rem;
+    min-height: 2.875rem;
     max-width: 100%;
-    border: 1px solid #819BAB;
+    border: 1px solid var(--color-texto-suave);
     border-radius: .75rem;
-    background: white;
-    padding: .65rem .85rem;
-    color: var(--foreground);
+    background: var(--color-superficie);
+    padding: .75rem .875rem;
+    color: var(--color-texto);
     font-size: 1rem;
-    transition: border-color .15s, box-shadow .15s;
+    line-height: 1.5;
+    transition: border-color .15s;
   }
-  input:focus-visible, select:focus-visible, textarea:focus-visible {
-    border-color: var(--v2-coral);
-    box-shadow: 0 0 0 3px #D9EFFA;
-  }
-  input[type="checkbox"], input[type="radio"] { accent-color: var(--v2-coral); }
-  input::placeholder, textarea::placeholder { color: #617989; }
-  table { border-collapse: collapse; }
-  thead { background: var(--v2-gris-frio); color: var(--foreground); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--color-marca); }
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--color-marca); width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
+  input::placeholder, textarea::placeholder { color: var(--color-texto-suave); opacity: 1; }
+  table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  thead { background: var(--color-superficie-suave); color: var(--color-texto); }
   th { font-weight: 600; }
   th, td { vertical-align: top; }
-  tbody tr:hover { background: #F1FAFD; }
-  dialog::backdrop { background: #102E46A6; backdrop-filter: blur(3px); }
+  tbody tr:hover { background: var(--color-superficie-suave); }
+  dialog::backdrop { background: var(--color-marino); }
   summary { border-radius: .65rem; }
 }
 
-.tarjeta { box-shadow: 0 2px 3px #102E4604, 0 8px 24px #102E4605; }
-:where(input, select, textarea):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([aria-invalid="true"]) { border-color: #7892A4; }
-:where(input, select, textarea):focus-visible { outline-color: var(--v2-coral); }
-.navegacion-panel { border-bottom: 1px solid var(--v2-borde); background: white; }
-.enlace-panel { display: block; min-height: 44px; padding: .6rem .85rem; border-radius: .65rem; color: #4D6575; font-size: .875rem; font-weight: 600; white-space: nowrap; }
-.enlace-panel:hover { background: var(--v2-gris-frio); color: var(--foreground); }
-.enlace-panel[aria-current="page"] { color: #075477; background: #E4F4FC; }
+/* Relieve discreto con los colores existentes de Costa azul. */
+.tarjeta { box-shadow: none; }
+.tarjeta.p-5 { padding: 1rem; }
+.tarjeta.p-6 { padding: 1.25rem; }
+.ui-boton { line-height: 1.4; transition-duration: 160ms; }
+.ui-boton.bg-peligro { background: var(--color-peligro-texto); }
+.ui-boton.bg-peligro:hover { background: var(--color-peligro-hover); }
+.ui-boton.boton-cerrar-sesion:not(:disabled):is(:hover, :focus-visible) {
+  background: var(--color-peligro-texto);
+  border-color: var(--color-peligro-texto);
+  color: var(--color-superficie);
+}
+.encabezado-pantalla { padding-bottom: 1rem; border-bottom: 1px solid var(--color-borde); }
+.encabezado-pantalla h1 { letter-spacing: -.04em; }
+.mensaje-estado { padding-block: 1rem; }
+.mensaje-estado > span[aria-hidden="true"] { margin-bottom: .5rem; }
+.superficie-formulario { border: 1px solid var(--color-borde); border-radius: .875rem; background: var(--color-superficie); padding: 1rem; }
+.ayuda-discreta > summary { min-height: 44px; padding: .625rem .25rem; color: var(--color-marca-hover); font-size: .875rem; font-weight: 600; }
+.ayuda-discreta > summary:hover { text-decoration: underline; text-underline-offset: .2em; }
+.ayuda-discreta > :not(summary) { margin-top: .5rem; }
+.salto-contenido { position: fixed; top: .5rem; left: .5rem; z-index: 100; transform: translateY(-180%); border-radius: .75rem; padding: .75rem 1rem; color: var(--color-superficie); background: var(--color-marino); }
+.salto-contenido:focus { transform: translateY(0); }
+
+.navegacion-panel { border-bottom: 1px solid var(--color-borde); background: var(--color-superficie); }
+.enlace-panel { display: block; min-height: 44px; padding: .625rem .75rem; border-radius: .5rem; color: var(--color-texto-suave); font-size: .875rem; font-weight: 600; white-space: nowrap; }
+.navegacion-interior { padding-block: .75rem; row-gap: .5rem; }
+.enlace-panel:hover { background: var(--color-superficie-suave); color: var(--color-texto); }
+.enlace-panel[aria-current="page"] { color: var(--color-marca-hover); background: var(--color-marca-suave); box-shadow: inset 0 -3px var(--color-marca); }
 .navegacion-oscura { background: var(--kds-fondo); border-color: var(--kds-borde); }
 .navegacion-oscura .enlace-panel, .navegacion-oscura .text-texto-suave { color: var(--kds-texto-suave); }
-.navegacion-oscura .enlace-panel:hover, .navegacion-oscura .enlace-panel[aria-current="page"] { background: var(--kds-superficie); color: white; }
+.navegacion-oscura .enlace-panel:hover, .navegacion-oscura .enlace-panel[aria-current="page"] { background: var(--kds-superficie); color: var(--kds-texto); }
+.navegacion-oscura :focus-visible { outline-color: var(--kds-texto); }
 .area-gestion > main { max-width: 1280px; }
 .area-gestion > main.vista-configuracion { max-width: 900px; }
 .area-caja > main { max-width: 1200px; }
-.area-gestion > main, .area-caja > main, .area-operativa > main { padding-top: 2rem; padding-bottom: 3rem; }
-.encabezado-pantalla { padding-bottom: 1.25rem; border-bottom: 1px solid var(--v2-borde); }
+.area-gestion > main, .area-caja > main, .area-operativa > main { padding-top: 1.25rem; padding-bottom: 2rem; }
 .area-gestion h2, .area-caja h2, .area-operativa h2 { letter-spacing: -.025em; }
-.area-gestion table td, .area-gestion table th { padding: .85rem 1rem; }
-.superficie-formulario { border: 1px solid var(--v2-borde); border-radius: 1rem; background: white; padding: 1.5rem; }
-.carta-producto { min-height: 154px; align-items: center; border-radius: 1.1rem; box-shadow: 0 3px 12px #102E4604; }
-.carta-producto:hover { box-shadow: 0 6px 20px #102E460C; }
-.carta-categorias a { border-radius: 999px; background: white; }
-.carta-categorias a:hover { background: var(--v2-coral-suave); }
-.indicador-gestion { border-top: 3px solid var(--v2-salvia); }
-.indicador-gestion > p { font-variant-numeric: tabular-nums; font-size: clamp(1.75rem, 3vw, 2.25rem); letter-spacing: -.035em; }
-.salto-contenido { position: fixed; top: .5rem; left: .5rem; z-index: 100; transform: translateY(-180%); border-radius: .5rem; padding: .75rem 1rem; color: white; background: var(--foreground); }
-.salto-contenido:focus { transform: translateY(0); }
+.area-gestion table td, .area-gestion table th { padding: .625rem .75rem; }
+.carta-producto { min-height: 154px; align-items: center; border-radius: 1.1rem; }
+.carta-categorias a { border-radius: 999px; background: var(--color-superficie); }
+.carta-categorias a:hover { background: var(--color-marca-suave); }
+.indicador-gestion { border-top: 3px solid var(--color-marca); }
+.indicador-gestion > p { font-variant-numeric: tabular-nums; font-size: clamp(1.5rem, 1.25rem + 1vw, 2rem); letter-spacing: -.035em; }
 
 @media (max-width: 639px) {
   .navegacion-panel nav { flex-basis: 100%; }
   .area-gestion > main, .area-caja > main { padding-left: 1rem; padding-right: 1rem; }
   .superficie-formulario { padding: 1rem; }
 }
+@media (pointer: coarse) {
+  :where(button, summary, nav a, label:has(input[type="checkbox"], input[type="radio"])) { min-height: 44px; }
+  :where(button) { min-width: 44px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .animate-spin, .animate-pulse { animation: none; }
 }
 
-[data-kds] {
-  color-scheme: dark;
-}
-
-[data-kds] .bg-superficie {
-  background-color: var(--kds-superficie);
-}
-
-[data-kds] .border-borde {
-  border-color: var(--kds-borde);
-}
-
-[data-kds] .text-texto {
-  color: var(--kds-texto);
-}
-
-[data-kds] .text-texto-suave {
-  color: var(--kds-texto-suave);
-}
-
-[data-kds] .encabezado-pantalla { border-color: var(--kds-borde); }
+[data-kds] { color-scheme: dark; }
+[data-kds] .bg-superficie { background-color: var(--kds-superficie); }
+[data-kds] .border-borde, [data-kds] .encabezado-pantalla { border-color: var(--kds-borde); }
+[data-kds] .text-texto { color: var(--kds-texto); }
+[data-kds] .text-texto-suave { color: var(--kds-texto-suave); }
 [data-kds] .tarjeta { box-shadow: none; }
+[data-kds] :focus-visible { outline-color: var(--kds-texto); }
+
+/* Controles identificables también sobre superficies claras. */
+:where(input, select, textarea):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([aria-invalid="true"]) { border-color: var(--color-texto-suave); }
+:where(input, select, textarea):focus-visible { border-color: var(--color-marca); }
+.detalle-pedido { min-width: 0; }
+.detalle-pedido > ul > li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.detalle-pedido > ul > li > span:last-child { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+@media (forced-colors: active) {
+  .enlace-panel[aria-current="page"] { text-decoration: underline; text-underline-offset: .25em; }
+}

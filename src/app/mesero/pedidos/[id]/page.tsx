@@ -26,15 +26,15 @@ async function DetalleMesero({ params }: PageProps<"/mesero/pedidos/[id]">) {
   const roles = membresias.filter((m) => m.restaurantId === restauranteId).map((m) => m.rol);
   const incidencias = await listarIncidencias(pedido.id);
 
-  return <main id="contenido-principal" className="mx-auto max-w-3xl p-6">
+  return <main id="contenido-principal" className="detalle-pedido mx-auto w-full max-w-3xl p-6">
     <Link href="/mesero" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">← Panel mesero</Link>
     <h1 className="mt-4 text-3xl font-bold">Pedido n.º {pedido.numero}</h1>
-    <p className="mt-2 text-slate-600">{describirDestino(pedido)} · {ETIQUETA_ESTADO[pedido.estado]}</p>
+    <p className="mt-2 text-texto-suave">{describirDestino(pedido)} · {ETIQUETA_ESTADO[pedido.estado]}</p>
     <AccionesPedido pedidoId={pedido.id} estado={pedido.estado} roles={roles} items={pedido.items} />
     <IncidenciasPanel pedidoId={pedido.id} estado={pedido.estado} incidencias={incidencias} />
     <h2 className="mt-8 text-xl font-semibold">Productos</h2>
-    <ul className="mt-3 divide-y rounded-lg border">{pedido.items.map((item) => <li key={item.id} className="p-3">{item.nombre} × {item.cantidad}{item.observacion && <p className="text-sm text-slate-600">{item.observacion}</p>}</li>)}</ul>
-    <p className="mt-3 text-right font-semibold">Total: {new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(pedido.totalCentimos / 100)}</p>
+    <ul className="mt-3 divide-y divide-borde rounded-2xl border border-borde bg-superficie">{pedido.items.map((item) => <li key={item.id} className="p-3">{item.nombre} × {item.cantidad}{item.observacion && <p className="text-sm text-texto-suave">{item.observacion}</p>}</li>)}</ul>
+    <p className="mt-4 rounded-xl bg-marca-suave p-4 text-right text-xl font-bold tabular-nums">Total: {new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(pedido.totalCentimos / 100)}</p>
   </main>;
 }
 
