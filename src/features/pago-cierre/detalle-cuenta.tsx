@@ -73,7 +73,7 @@ export function DetalleCuenta({
   const saldo = cuenta.saldoCentimos;
 
   return (
-    <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1.25fr_1fr]">
+    <div className="detalle-cuenta mt-6 grid items-start gap-6 lg:grid-cols-[1.25fr_1fr]">
       {cuenta.comprobante?.is_test && <section aria-label="Boleta de prueba" className="rounded-xl border border-info-borde bg-info-fondo p-4 text-texto lg:col-span-2">
         <Insignia tono="info">Boleta {cuenta.comprobante.series}-{cuenta.comprobante.number} (prueba)</Insignia>
         {cuenta.comprobante.status === "EMITIDO" && cuenta.comprobante.pdf_url
@@ -93,9 +93,10 @@ export function DetalleCuenta({
                   <span>N.º {pedido.numero} · {hora(pedido.creadoEn)}</span>
                   <span className="text-sm font-normal text-texto-suave">{ETIQUETA_ESTADO[pedido.estado]}</span>
                 </p>
-                <table className="mt-2 w-full text-sm">
+                <div tabIndex={0} role="region" aria-label={`Consumos del pedido ${pedido.numero}`} className="tabla-consumos mt-3 overflow-x-auto rounded-lg">
+                <table className="w-full text-sm">
                   <thead className="sr-only">
-                    <tr><th>Producto</th><th>Precio unitario</th><th>Importe</th></tr>
+                    <tr><th scope="col">Producto</th><th scope="col">Precio unitario</th><th scope="col">Importe</th></tr>
                   </thead>
                   <tbody>
                     {pedido.lineas.map((linea, i) => (
@@ -109,7 +110,7 @@ export function DetalleCuenta({
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
       <AvisoAlergia alergia={pedido.alergia} />
                 <p className="mt-2 text-right font-semibold">Subtotal {soles(pedido.totalCentimos)}</p>
               </li>
@@ -151,8 +152,8 @@ export function DetalleCuenta({
           <dd className="text-right">{soles(cuenta.consumoCentimos)}</dd>
           <dt>Pagado</dt>
           <dd className="text-right">− {soles(cuenta.pagadoCentimos)}</dd>
-          <dt className="pt-2 text-lg font-bold">Saldo pendiente</dt>
-          <dd className={`pt-2 text-right text-lg font-bold ${saldo > 0 ? "text-peligro-texto" : "text-exito-texto"}`}>
+          <dt className="pt-3 text-xl font-bold">Saldo pendiente</dt>
+          <dd className={`pt-3 text-right text-xl font-bold ${saldo > 0 ? "text-peligro-texto" : "text-exito-texto"}`}>
             {soles(Math.max(saldo, 0))}
           </dd>
         </dl>

@@ -6,8 +6,12 @@ import {
   Tarjeta,
 } from "@/components/ui";
 import { iniciarSesion } from "@/features/auth/actions";
+import { CampoContrasena } from "@/features/auth/campo-contrasena";
 import { Marca } from "@/components/marca";
 import Link from "next/link";
+import Image from "next/image";
+import mesaPeruana from "../../../public/images/mesa-peruana.webp";
+import "../acceso.css";
 
 async function LoginForm({
   searchParams,
@@ -15,7 +19,7 @@ async function LoginForm({
   const { error } = await searchParams;
 
   return (
-    <main id="contenido-principal" className="mx-auto grid min-h-screen w-full max-w-6xl content-center items-center gap-8 px-5 py-8 sm:px-8 lg:grid-cols-2 lg:gap-24">
+    <main id="contenido-principal" className="acceso-equipo mx-auto grid min-h-dvh w-full max-w-6xl content-center items-center gap-8 px-5 py-8 sm:px-8 lg:grid-cols-2 lg:gap-16">
       <section className="lg:py-12">
         <Link href="/" aria-label="AlToque · Inicio" className="inline-flex rounded-lg"><Marca /></Link>
         <div className="mt-10 hidden lg:block">
@@ -23,9 +27,10 @@ async function LoginForm({
           <h2 className="mt-3 text-5xl font-bold leading-tight tracking-tight">Cada mesa cuenta.<br />Cada detalle también.</h2>
           <p className="mt-6 max-w-sm text-lg text-texto-suave">Coordina la sala, la cocina y los cobros para que cada pedido llegue a buen puerto.</p>
           <div className="mt-10 flex gap-3 text-sm font-medium text-texto-suave"><span>Sala</span><span aria-hidden="true">/</span><span>Cocina</span><span aria-hidden="true">/</span><span>Caja</span></div>
+          <Image src={mesaPeruana} alt="" sizes="(min-width: 1024px) 460px, 1px" className="mt-5 aspect-[5/2] w-full rounded-xl object-cover" />
         </div>
       </section>
-      <Tarjeta relleno="destacado" className="w-full">
+      <Tarjeta relleno="destacado" className="acceso-formulario w-full">
         <EncabezadoPantalla
           titulo="Iniciar sesión en AlToque"
           subtitulo="Acceso para el equipo del restaurante."
@@ -42,29 +47,25 @@ async function LoginForm({
           action={iniciarSesion}
           className="mt-6 grid gap-4"
         >
-          <label className="grid gap-2 text-sm font-medium">
+          <label htmlFor="login-email" className="grid gap-2 text-sm font-medium">
             Correo
 
             <input
+              id="login-email"
               name="email"
               type="email"
               autoComplete="username"
+              spellCheck={false}
+              enterKeyHint="next"
               required
               className="min-h-11 w-full rounded-xl border border-borde bg-superficie px-3 py-2 text-base text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium">
-            Contraseña
-
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="min-h-11 w-full rounded-xl border border-borde bg-superficie px-3 py-2 text-base text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
-            />
-          </label>
+          <div className="grid gap-2 text-sm font-medium">
+            <label htmlFor="login-password">Contraseña</label>
+            <CampoContrasena />
+          </div>
 
           <Boton
             type="submit"

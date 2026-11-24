@@ -80,7 +80,7 @@ export function FormularioStock({
   }
 
   return (
-    <form action={accion} className="mt-5 grid gap-4">
+    <form action={accion} className="stock-formulario mt-5 grid gap-5">
       <input type="hidden" name="fecha" value={fecha} />
 
       <p className="text-sm text-texto-suave">
@@ -138,7 +138,7 @@ export function FormularioStock({
             return (
               <li
                 key={campo.productoId}
-                className="grid items-center gap-3 rounded-xl border border-borde bg-superficie p-4 sm:grid-cols-[minmax(0,1fr)_12rem]"
+                className="grid items-center gap-3 rounded-xl border border-borde bg-superficie p-4 sm:grid-cols-[minmax(0,1fr)_10rem]"
               >
                 <div className="min-w-0 space-y-2">
                   <p className="break-words font-semibold">
@@ -227,9 +227,11 @@ export function FormularioStock({
           })}
         </ul>
 
-        <Boton type="submit" className="w-fit">
-          {pendiente ? "Guardando…" : "Guardar"}
-        </Boton>
+        <div className="barra-guardar-stock">
+          <Boton type="submit" className="w-fit">
+            {pendiente ? "Guardando…" : "Guardar"}
+          </Boton>
+        </div>
       </fieldset>
 
       {estado.mensaje && (

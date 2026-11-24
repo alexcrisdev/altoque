@@ -16,12 +16,13 @@ export function ActividadVista({ resultado }: { resultado: ResultadoActividad })
         {!tiempos ? (
           <p className="text-sm text-texto-suave">—</p>
         ) : (
+          <div role="region" aria-label="Tiempos por etapa (hoy)" tabIndex={0} className="tabla-gestion overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-texto-suave">
-                <th className="py-1 font-normal">Etapa</th>
-                <th className="py-1 text-right font-normal">Prom.</th>
-                <th className="py-1 text-right font-normal">Mediana</th>
+                <th scope="col" className="py-1 font-normal">Etapa</th>
+                <th scope="col" className="py-1 text-right font-normal">Prom.</th>
+                <th scope="col" className="py-1 text-right font-normal">Mediana</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-borde">
@@ -40,7 +41,7 @@ export function ActividadVista({ resultado }: { resultado: ResultadoActividad })
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Tarjeta>
 

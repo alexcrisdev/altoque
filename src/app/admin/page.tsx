@@ -35,13 +35,13 @@ async function AdminPanel() {
   ]);
 
   return (
-    <main id="contenido-principal" className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 sm:px-6">
       <EncabezadoPantalla
         titulo="Panel administrador"
         subtitulo="La jornada en vivo, la actividad y los próximos pasos de tu restaurante."
         acciones={
           <form action={cerrarSesion}>
-            <Boton type="submit" variante="secundario">
+            <Boton type="submit" variante="secundario" className="boton-cerrar-sesion">
               Cerrar sesión
             </Boton>
           </form>
@@ -54,7 +54,7 @@ async function AdminPanel() {
             Hoy en tu restaurante
           </h2>
           <span className="inline-flex items-center gap-2 rounded-full bg-exito-fondo px-3 py-1 text-sm font-semibold text-exito-texto">
-            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-exito-texto motion-safe:animate-pulse" />
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-exito-texto" />
             En vivo
           </span>
         </div>
@@ -70,18 +70,23 @@ async function AdminPanel() {
         <TarjetaPrediccion resultado={prediccion} />
       </Tarjeta>
 
-      <section aria-labelledby="actividad-titulo" className="space-y-3">
+      <details className="ayuda-discreta actividad-desplegable">
+        <summary>Ver actividad y tiempos</summary>
+        <section aria-labelledby="actividad-titulo" className="space-y-3">
         <h2 id="actividad-titulo" className="text-xl font-bold">
           Actividad y tiempos
         </h2>
         <ActividadVista resultado={actividad} />
-      </section>
+        </section>
+      </details>
 
-      <nav aria-label="Administración"><ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <nav className="admin-accesos" aria-label="Administración"><ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {secciones.map(({ href, titulo, texto, grupo }) => <li key={href}><Tarjeta relleno="amplio" className="flex h-full flex-col">
-        <span className="mb-3 w-fit rounded-lg bg-marca-suave px-2.5 py-1 text-xs font-semibold text-marca">{grupo}</span>
-        <h2 className="text-lg font-bold">{titulo}</h2><p className="mb-6 mt-2 flex-1 text-sm text-texto-suave">{texto}</p>
-        <BotonEnlace href={href} variante="secundario" className="w-full">{titulo}</BotonEnlace>
+        <h2 className="text-base font-bold"><BotonEnlace href={href} variante="secundario" className="w-full justify-start text-left">{titulo}</BotonEnlace></h2>
+        <details className="ayuda-discreta">
+          <summary>{grupo} · Detalles</summary>
+          <p className="pb-1 text-sm text-texto-suave">{texto}</p>
+        </details>
       </Tarjeta></li>)}
     </ul></nav>
     </main>

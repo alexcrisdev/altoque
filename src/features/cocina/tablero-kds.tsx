@@ -169,7 +169,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
 
   function detalle(pedido: PedidoCocina, numero?: number) {
     return <>
-      <span className="flex flex-wrap items-center justify-between gap-2 font-bold">
+      <span className="kds-numero flex flex-wrap items-center justify-between gap-2 font-bold">
         <span>Pedido N.º {pedido.numero}</span>
         {numero !== undefined && <span className="rounded-lg border px-3 py-1">Tecla {numero}</span>}
       </span>
@@ -178,7 +178,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
       <span className="mt-1 block font-semibold">{ETIQUETA_ESPERA[colorEspera(pedido.creadoEn, ahora)]}</span>
       <AvisoAlergia alergia={pedido.alergia} cocina id={`alergia-${pedido.id}`} />
       {pedido.items.map((item, i) => <span key={i} className="mt-4 block">
-        <span className="block font-bold">{item.cantidad} × {item.nombre}</span>
+        <span className="kds-plato block font-bold">{item.cantidad} × {item.nombre}</span>
         {item.observacion && <span className="mt-1 block rounded-lg bg-aviso-fondo p-2 font-bold text-aviso-texto">Observación: {item.observacion}</span>}
         {!!item.alergenos?.length && <span className="mt-1 block rounded-lg border-2 border-peligro-borde bg-peligro-fondo p-2 font-bold text-peligro-texto">Alérgenos: {item.alergenos.join(", ")}</span>}
       </span>)}
@@ -187,7 +187,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
   }
 
   function tarjeta(pedido: PedidoCocina, lista: boolean) {
-    const clase = `block min-w-0 w-full break-words rounded-xl border-2 p-4 sm:p-5 text-left ${colores[colorEspera(pedido.creadoEn, ahora)]}`;
+    const clase = `kds-pedido block min-w-0 w-full break-words rounded-2xl border-2 p-4 sm:p-5 text-left ${colores[colorEspera(pedido.creadoEn, ahora)]}`;
     return <li key={pedido.id}>
       {!tv && !lista ? <button type="button" className={`${clase} disabled:opacity-60`}
         disabled={guardando} onClick={(evento) => {
@@ -195,7 +195,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
           if (evento.detail > 1) return;
           void guardar(pedido);
         }} aria-label={`Marcar listo el pedido N.º ${pedido.numero}`} aria-describedby={textoAlergia(pedido.alergia) ? `alergia-${pedido.id}` : undefined}>
-        {detalle(pedido, vista.atajos[pedido.id])}<span className="mt-4 block font-bold">{guardando ? "Guardando…" : "Marcar Listo"}</span>
+        {detalle(pedido, vista.atajos[pedido.id])}<span className="kds-accion mt-5 block rounded-xl border-2 border-current p-3 text-center font-bold">{guardando ? "Guardando…" : "Marcar Listo"}</span>
       </button> : <article className={clase}>{detalle(pedido)}{lista && <p className="mt-4 font-bold">Esperando al mesero</p>}</article>}
       {pedido.incidenciasAbiertas.map((incidencia) => <div key={incidencia.id} className="mt-2 rounded-lg bg-aviso-fondo p-3 text-aviso-texto">
         <p className="font-bold">{ETIQUETA_TIPO_INCIDENCIA[incidencia.tipo]}</p><p>{incidencia.descripcion}</p>
@@ -205,9 +205,9 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
     </li>;
   }
 
-  return <div data-kds className={`rounded-2xl px-4 py-5 sm:px-6 [&_button:focus-visible]:outline-4 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-white [&_button:focus-visible]:ring-4 [&_button:focus-visible]:ring-marino ${tv ? "space-y-6 text-2xl lg:text-3xl" : "space-y-5 text-lg"}`}>
+  return <div data-kds className={`kds-tablero rounded-2xl py-5 [&_button:focus-visible]:outline-4 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-white [&_button:focus-visible]:ring-4 [&_button:focus-visible]:ring-marino ${tv ? "space-y-6 text-2xl lg:text-3xl" : "space-y-5 text-lg"}`}>
     {error && <p role="alert" className="rounded-lg bg-peligro-fondo p-3 text-peligro-texto">{error}</p>}
-    {!tv ? <div className="flex flex-wrap items-center gap-4">
+    {!tv ? <div className="kds-herramientas flex flex-wrap items-center gap-3">
       <button type="button" onClick={habilitarSonido} className="rounded-lg border border-borde px-4 py-2">{sonido ? "Sonido activado" : "Activar sonido"}</button>
       <p>Teclas 1–9: Listo · 0: Deshacer</p>
       <button type="button" disabled={guardando} onClick={() => {
@@ -224,16 +224,18 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
       <h2 className="mb-3 text-2xl font-bold">Falta preparar</h2>
       {resumen.length ? <ul className="flex flex-wrap gap-x-8 gap-y-2">{resumen.map((item) => <li key={item.nombre}><strong>{item.cantidad}×</strong> {item.nombre}</li>)}</ul> : <p>Nada pendiente de preparar</p>}
     </section>
-    <div role="status" aria-live="polite">{preparacion.length} en preparación · {listos.length} listos</div>
+    <div role="status" aria-live="polite" className="sr-only">{preparacion.length} en preparación · {listos.length} listos</div>
     {panel.ok && <p><Insignia tono="aviso">{panel.pedidosEsperandoPago} pedidos esperando pago</Insignia></p>}
     {pedidos.filter((p) => p.estado === "CANCELLED" && (vista.cancelados[p.id] ?? 0) > ahora).map((p) => <p key={p.id} role="alert"
-      className="motion-safe:animate-pulse rounded-xl border-2 border-peligro-borde bg-peligro-fondo p-5 font-bold text-peligro-texto">Pedido N.º {p.numero} cancelado — no preparar</p>)}
+      className="rounded-xl border-2 border-peligro-borde bg-peligro-fondo p-5 font-bold text-peligro-texto">Pedido N.º {p.numero} cancelado — no preparar</p>)}
     <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
-      <section aria-label="En preparación"><h2 className="mb-4 flex items-center justify-between border-b border-borde pb-3 text-2xl font-bold">En preparación <span className="rounded-lg bg-superficie px-3 py-1 text-base tabular-nums">{preparacion.length}</span></h2>
-        <ul className="space-y-4">{preparacion.map((p) => tarjeta(p, false))}</ul>{!preparacion.length && <p>Sin pedidos en preparación</p>}
+      <section aria-label="En preparación" className="kds-columna" data-cola="preparacion">
+        <h2>En preparación <span>{preparacion.length}</span></h2>
+        <ul className="space-y-4">{preparacion.map((p) => tarjeta(p, false))}</ul>{!preparacion.length && <p className="kds-cola-vacia">Sin pedidos en preparación</p>}
       </section>
-      <section aria-label="Listos"><h2 className="mb-4 flex items-center justify-between border-b border-borde pb-3 text-2xl font-bold">Listos <span className="rounded-lg bg-superficie px-3 py-1 text-base tabular-nums">{listos.length}</span></h2>
-        <ul className="space-y-4">{listos.map((p) => tarjeta(p, true))}</ul>{!listos.length && <p>Sin pedidos listos</p>}
+      <section aria-label="Listos" className="kds-columna" data-cola="listos">
+        <h2>Listos <span>{listos.length}</span></h2>
+        <ul className="space-y-4">{listos.map((p) => tarjeta(p, true))}</ul>{!listos.length && <p className="kds-cola-vacia">Sin pedidos listos</p>}
       </section>
     </div>
   </div>;

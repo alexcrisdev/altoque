@@ -132,7 +132,7 @@ export function FormularioPedidoAsistido({
   }
 
   return (
-    <div className="mt-6 grid gap-8">
+    <div className="pedido-asistido mt-6 grid items-start gap-6">
       <fieldset
         disabled={enviando}
         className="grid gap-4 rounded-2xl border border-borde bg-superficie p-5 text-texto disabled:opacity-60"

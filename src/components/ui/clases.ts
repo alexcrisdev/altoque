@@ -93,7 +93,7 @@ export function clasesBoton(
   tamano: unknown = "md",
 ): string {
   return [
-    "inline-flex min-h-11 items-center justify-center gap-2",
+    "ui-boton inline-flex min-h-11 items-center justify-center gap-2",
     "rounded-xl border font-semibold text-center transition-colors motion-safe:active:translate-y-px",
     "focus-visible:outline-2 focus-visible:outline-offset-2",
     "focus-visible:outline-marca",
@@ -108,7 +108,7 @@ export function clasesInsignia(
 ): string {
   return [
     "inline-flex items-center rounded-full border px-3 py-1",
-    "text-xs font-semibold",
+    "text-xs font-semibold leading-5",
     obtenerClase(tonos, tono, "neutro"),
   ].join(" ");
 }

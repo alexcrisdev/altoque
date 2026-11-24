@@ -1,0 +1,34 @@
+.area-mesero > main { max-width: 80rem; }
+.area-mesero .mesero-acciones { padding: .75rem; margin-block: 1rem; background: var(--color-marca-suave); border-color: var(--color-info-borde); }
+.area-mesero section[aria-label="Alertas del mesero"] { padding: 1rem; border: 1px solid var(--color-borde); border-radius: .875rem; background: var(--color-superficie); }
+.area-mesero section[aria-labelledby="mesero-atencion"] { border-top: 1px solid var(--color-borde); padding-top: 1rem; }
+.area-mesero :is(section[aria-labelledby="mesero-atencion"], section[aria-labelledby="mesero-mesas"], section[aria-labelledby="mesero-para-llevar"]) { margin-top: 1.25rem; }
+.area-mesero .mesero-cuadricula > li { height: 100%; }
+.area-mesero .mesero-cuadricula > li > .tarjeta { height: 100%; padding: 1rem; }
+.area-mesero .mesero-pedido h3 { font-size: 1rem; line-height: 1.4; }
+.area-mesero .mesero-pedido > .ui-boton { width: 100%; }
+.area-mesero section[aria-labelledby="mesero-mesas"] > ul > li > .tarjeta > div:first-child { padding-bottom: .75rem; border-bottom: 1px solid var(--color-borde); }
+.area-mesero section[aria-labelledby="mesero-mesas"] > ul > li > .tarjeta > div:first-child > span { white-space: normal; }
+.area-mesero .pedido-asistido > fieldset { grid-column: 1 / -1; }
+@media (min-width: 768px) and (min-height: 700px) {
+  .area-mesero .mesero-acciones {
+    position: sticky;
+    top: max(.75rem, env(safe-area-inset-top, 0px));
+    z-index: 20;
+    width: fit-content;
+    max-width: 100%;
+    box-shadow: 0 2px 0 var(--color-borde);
+  }
+}
+@media (min-width: 1280px) {
+  .area-mesero .mesero-cuadricula { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+}
+@media (min-width: 1024px) {
+  .area-mesero main:has(.pedido-asistido) { max-width: 72rem; }
+  .pedido-asistido { grid-template-columns: 1.15fr 1fr; }
+  .pedido-asistido > section:last-child { position: sticky; top: 1.5rem; }
+}
+@media (max-width: 639px) {
+  .area-mesero .mesero-acciones > .ui-boton { flex: 1 1 100%; }
+  .area-mesero section[aria-label="Alertas del mesero"] { padding: 1rem; }
+}
