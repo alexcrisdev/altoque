@@ -1,3 +1,5 @@
+import { esUrlImagenProducto } from "./foto-producto";
+
 export type EntradaProducto = {
   nombre: unknown;
   precio: unknown;
@@ -76,7 +78,7 @@ export function validarProducto(entrada: EntradaProducto): ResultadoValidacionPr
   if (imageUrl) {
     try {
       const url = new URL(imageUrl);
-      if (url.protocol !== "https:" || !url.hostname || url.username || url.password) {
+      if (!esUrlImagenProducto(url)) {
         errores.imageUrl = "La imagen debe tener una URL HTTPS válida.";
       } else {
         imageUrl = url.toString();
