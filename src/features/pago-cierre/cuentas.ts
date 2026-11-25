@@ -1,6 +1,8 @@
 import "server-only";
 import { leerAlergia, type FilaAlergia } from "../pedidos/alergias";
 import { crearClienteServidor } from "../../lib/supabase/server";
+import { crearClienteAdmin } from "../../lib/supabase/admin";
+import { estadoLiberacion, type EstadoLiberacion } from "../mesero/liberacion-logica";
 import { aCentimos } from "../pedidos/validacion";
 import type { EstadoPedido } from "@/features/pedidos/estados";
 import {
@@ -207,7 +209,8 @@ export async function obtenerCuentaParaLlevar(
 // Cuentas por cobrar o por cerrar: todas las mesas con sesión abierta y los pedidos
 // para llevar (no cancelados) sin cierre que tienen saldo, un Yape por verificar
 // o que se pagaron hace poco (US-020).
-export async function listarCuentasAbiertas(restauranteId: string): Promise<CuentaAbierta[]> {
+// US-106: `base` es el panel que mira la lista: caja cobra; /admin/cuentas solo consulta.
+export async function listarCuentasAbiertas(restauranteId: string, base: "/caja" | "/admin/cuentas" = "/caja"): Promise<CuentaAbierta[]> {
   const supabase = await crearClienteServidor();
   const [sesiones, paraLlevar] = await Promise.all([
     supabase.from("table_sessions").select("id, opened_at, closed_at, dining_tables(number)")
@@ -259,7 +262,7 @@ export async function listarCuentasAbiertas(restauranteId: string): Promise<Cuen
       pagos.data.filter((p) => p.table_session_id === sesion.id).map(aPagoCuenta),
     );
     return {
-      href: `/caja/mesa/${sesion.id}`,
+      href: `${base}/mesa/${sesion.id}`,
       titulo: `Mesa ${sesion.dining_tables?.number ?? "?"}`,
       detalle: `${cuenta.pedidos.length} pedido(s)`,
       consumoCentimos: cuenta.consumoCentimos,
@@ -279,7 +282,7 @@ export async function listarCuentasAbiertas(restauranteId: string): Promise<Cuen
         pagos.data.filter((p) => p.order_id === pedido.id).map(aPagoCuenta),
       );
       const fila: CuentaAbierta = {
-        href: `/caja/pedido/${pedido.id}`,
+        href: `${base}/pedido/${pedido.id}`,
         titulo: `Para llevar #${pedido.order_number} – ${pedido.customer_name?.trim() || "Sin nombre"}`,
         detalle: "1 pedido",
         consumoCentimos: cuenta.consumoCentimos,
@@ -295,4 +298,27 @@ export async function listarCuentasAbiertas(restauranteId: string): Promise<Cuen
     .map((cuenta) => cuenta.fila);
 
   return ordenarCuentasCaja([...mesas, ...llevar]);
+}
+
+// US-106: el mesero ya no lee pagos (RLS), pero necesita saber si puede liberar la mesa.
+// Se calcula aquí, en el servidor, con el cliente admin y siempre filtrado por el
+// restaurante de su sesión. Solo sale el estado, sin montos ni pagos.
+export async function estadosLiberacionMesas(
+  restauranteId: string,
+  sesionIds: readonly string[],
+): Promise<Map<string, EstadoLiberacion>> {
+  if (sesionIds.length === 0) return new Map();
+  const supabase = crearClienteAdmin();
+  const [pedidos, pagos] = await Promise.all([
+    supabase.from("orders").select(COLUMNAS_PEDIDO).eq("restaurant_id", restauranteId)
+      .in("table_session_id", [...sesionIds]).overrideTypes<FilaPedido[], { merge: false }>(),
+    supabase.from("payments").select(COLUMNAS_PAGO).eq("restaurant_id", restauranteId)
+      .in("table_session_id", [...sesionIds]).overrideTypes<FilaPago[], { merge: false }>(),
+  ]);
+  if (pedidos.error) fallar("estadosLiberacionMesas.pedidos", pedidos.error);
+  if (pagos.error) fallar("estadosLiberacionMesas.pagos", pagos.error);
+  return new Map(sesionIds.map((sesionId) => [sesionId, estadoLiberacion(calcularCuenta(
+    pedidos.data.filter((p) => p.table_session_id === sesionId).map(aPedidoCuenta),
+    pagos.data.filter((p) => p.table_session_id === sesionId).map(aPagoCuenta),
+  ))]));
 }

@@ -24,21 +24,21 @@ export async function subirCapturaAction(token: unknown, clavePedido: unknown, f
     const bytes = new Uint8Array(await imagen.arrayBuffer());
     const segura = await validarImagenCaptura(bytes, imagen.type);
     await guardarCaptura(cuenta, { clave, wallet, monto, huella, imagen: segura, tipo: "image/jpeg" });
-    revalidatePath("/caja"); revalidatePath("/mesero");
+    revalidatePath("/caja");
     return { ok: true as const, mensaje: "Captura enviada. Caja verificará el ingreso en su Yape/Plin; tu pago aún no está confirmado." };
   } catch (error) {
     return { ok: false as const, mensaje: error instanceof Error ? error.message : "No se pudo enviar la captura." };
   }
 }
-async function accesoCapturas(restauranteId: string, foto = true) {
+// US-106: solo caja ve y verifica capturas Yape/Plin (el mesero ya no consulta cobros).
+async function accesoCapturas(restauranteId: string) {
   const sesion = await obtenerSesion();
-  const roles = foto ? ["CASHIER", "OWNER", "ADMIN"] : ["CASHIER", "OWNER", "ADMIN", "WAITER"];
-  if (!esUuid(restauranteId) || !sesion?.membresias.some(m => m.restaurantId === restauranteId && roles.includes(m.rol))) throw new Error("No tienes permiso para ver estas capturas.");
+  if (!esUuid(restauranteId) || !sesion?.membresias.some(m => m.restaurantId === restauranteId && m.rol === "CASHIER")) throw new Error("No tienes permiso para ver estas capturas.");
 }
-export async function consultarCapturasAction(restauranteId: string, mesero = false) {
-  await accesoCapturas(restauranteId, !mesero);
+export async function consultarCapturasAction(restauranteId: string) {
+  await accesoCapturas(restauranteId);
   // Un fallo de limpieza no debe ocultar pagos por verificar.
-  if (!mesero) await limpiarCapturas(restauranteId).catch(() => console.error("US-102: limpieza pendiente"));
+  await limpiarCapturas(restauranteId).catch(() => console.error("US-102: limpieza pendiente"));
   return listarCapturas(restauranteId);
 }
 export async function fotoCapturaAction(restauranteId: string, id: string) {
@@ -59,13 +59,13 @@ export async function verificarCapturaAction(restauranteId: string, id: string, 
     if (!disponibles.some(c => c.id === id)) throw new Error("La captura ya fue verificada o no pertenece a este restaurante.");
     const pago = await verificarCaptura(id, resultado, centimos, rechazo);
     if (resultado !== "NOT_RECEIVED") programarAvisoPago(pago);
-    revalidatePath("/caja", "layout"); revalidatePath("/mesero");
+    revalidatePath("/caja", "layout");
     return { ok: true as const, mensaje: "Verificación registrada." };
   } catch (error) {
     return { ok: false as const, mensaje: error instanceof Error ? error.message : "No se pudo verificar." };
   }
 }
 export async function totalBilleteraAction(restauranteId: string) {
-  await accesoCapturas(restauranteId, false);
+  await accesoCapturas(restauranteId);
   return totalBilleteraHoy(restauranteId);
 }
