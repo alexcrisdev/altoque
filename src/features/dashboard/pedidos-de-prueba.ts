@@ -2,7 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const PREFIJOS_PRUEBA = [
+// US-145: la misma lista vive en SQL (private.prefijos_pedido_prueba); una prueba exige que coincidan.
+export const PREFIJOS_PRUEBA = [
   "PRUEBA E2E",
   "Prueba US-",
   "Prueba local US-",
