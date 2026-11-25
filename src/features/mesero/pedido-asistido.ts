@@ -1,6 +1,7 @@
 import "server-only";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { LineaValidada } from "@/features/pedidos/validacion";
+import type { AlergiaPedido } from "@/features/pedidos/alergias";
 import { motivoDeError, type MotivoRechazo, type SolicitudAsistida } from "./solicitud-asistida";
 import { mensajeStockInsuficiente } from "@/features/pedidos/stock-mensaje";
 
@@ -39,6 +40,7 @@ export async function guardarPedidoAsistido(
   clave: string,
   solicitud: SolicitudAsistida,
   lineas: LineaValidada[],
+  alergia: AlergiaPedido,
 ): Promise<ResultadoGuardado> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
@@ -48,6 +50,9 @@ export async function guardarPedidoAsistido(
       p_dining_table_id: solicitud.mesaId,
       p_branch_id: solicitud.localId,
       p_idempotency_key: clave,
+      p_alergia_respuesta: alergia.respuesta,
+      p_alergenos: alergia.alergenos,
+      p_alergia_detalle: alergia.detalle,
       p_items: lineas.map((linea) => ({
         productoId: linea.productoId,
         cantidad: linea.cantidad,
