@@ -5,6 +5,7 @@ import type { RefObject } from "react";
 import { Boton, Insignia } from "../../components/ui";
 import { formatearPrecio } from "./formato";
 import type { Producto } from "./tipos";
+import { estaAgotado } from "../pedidos/carrito-logica";
 
 type Props = {
   producto: Producto | null;
@@ -20,6 +21,7 @@ export function DetalleProducto({
   aviso,
 }: Props) {
   const ingredientes = producto?.ingredients?.trim();
+  const agotado = producto ? estaAgotado(producto) : false;
 
   const alergenos = (producto?.allergens ?? [])
     .map((alergeno) => alergeno.trim())
@@ -95,7 +97,7 @@ export function DetalleProducto({
             </section>
           )}
 
-          {!producto.available && (
+          {agotado && (
             <Insignia tono="neutro">
               Agotado
             </Insignia>
@@ -105,11 +107,11 @@ export function DetalleProducto({
             type="button"
             variante="primario"
             tamano="lg"
-            disabled={!producto.available}
+            disabled={agotado}
             onClick={() => onAgregar(producto)}
             className="w-full"
           >
-            {producto.available
+            {!agotado
               ? "Agregar al carrito"
               : "Producto agotado"}
           </Boton>
