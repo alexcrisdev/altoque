@@ -20,12 +20,13 @@ import { obtenerTiemposCocina } from "../../src/features/dashboard/tiempos-cocin
 
 type Filas = Record<string, Record<string, unknown>[]>;
 
-function baseFalsa(tablas: Filas) {
+function baseFalsa(tablas: Filas, alLeerPagina?: (tabla: string, pagina: unknown[]) => void) {
   class Consulta {
     private filas: Record<string, unknown>[];
+    private tabla: string;
     private rango: [number, number] | null = null;
     private limite: number | null = null;
-    constructor(tabla: string) { this.filas = [...(tablas[tabla] ?? [])]; }
+    constructor(tabla: string) { this.tabla = tabla; this.filas = [...(tablas[tabla] ?? [])]; }
     private filtrar(cumple: (f: Record<string, unknown>) => boolean) { this.filas = this.filas.filter(cumple); return this; }
     select() { return this; }
     gte() { return this; }
@@ -43,6 +44,7 @@ function baseFalsa(tablas: Filas) {
       const ordenadas = [...this.filas].sort((a, b) => String(a.id ?? "").localeCompare(String(b.id ?? "")));
       let pagina = this.rango ? ordenadas.slice(this.rango[0], this.rango[1] + 1) : ordenadas;
       if (this.limite !== null) pagina = pagina.slice(0, this.limite);
+      alLeerPagina?.(this.tabla, pagina);
       return Promise.resolve({ data: pagina, count: ordenadas.length, error: null }).then(resolver);
     }
   }
@@ -73,6 +75,28 @@ describe("US-145: panel en vivo sin pedidos de prueba", () => {
     expect(panel.pedidos.hoy).toBe(2); // real-1 y real-2
     expect(panel.ventas.hoy).toBe(2000); // solo los S/ 20 reales
     expect(panel.esperandoPago).toBe(1); // real-2
+  });
+});
+
+describe("US-145: conteo exacto del panel en vivo", () => {
+  it("un pedido que entra mientras se pagina no se cuenta dos veces; los de prueba siguen fuera", async () => {
+    const pedidos: Record<string, unknown>[] = Array.from({ length: 501 }, (_, i) => ({
+      id: `o-${String(i).padStart(3, "0")}`, status: "DELIVERED", table_session_id: null,
+    }));
+    pedidos.push({ id: "prueba-1", status: "DELIVERED", table_session_id: null });
+    let insertado = false;
+    baseFalsa({ orders: pedidos }, (tabla, pagina) => {
+      // Llega un pedido nuevo (id menor) justo después de leer la primera página completa.
+      if (tabla === "orders" && pagina.length === 500 && !insertado) {
+        insertado = true;
+        pedidos.push({ id: "a-nuevo", status: "DELIVERED", table_session_id: null });
+      }
+    });
+    const panel = await obtenerPanelVivo("r1", Date.parse("2026-11-25T17:00:00Z"));
+    expect(insertado).toBe(true);
+    // 501 pedidos reales existentes; el de prueba no cuenta y ninguno se repite.
+    expect(panel.pedidos.hoy).toBe(501);
+    expect(panel.pedidos.ayer).toBe(501);
   });
 });
 
