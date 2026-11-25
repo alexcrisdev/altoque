@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { EncabezadoPantalla, MensajeEstado } from "@/components/ui";
 import { consultarStockConPrediccionAction } from "@/features/carta/stock-prediccion-actions";
 import { FormularioStock } from "./formulario-stock";
+import { requerirPanel } from "@/features/auth/sesion";
 
 export default function StockPage() {
   return (
@@ -21,6 +22,7 @@ export default function StockPage() {
 }
 
 async function ContenidoStock() {
+  await requerirPanel("admin"); // US-106
   const resultado = await consultarStockConPrediccionAction();
 
   if (!resultado.ok) {

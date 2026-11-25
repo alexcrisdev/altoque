@@ -1,10 +1,12 @@
 import { Suspense } from "react";
 import { cerrarSesion } from "@/features/auth/actions";
+import { requerirPanel } from "@/features/auth/sesion";
 import { Boton, EncabezadoPantalla, MensajeEstado } from "@/components/ui";
 import { obtenerKds } from "@/features/cocina/kds-actions";
 import { TableroKds } from "@/features/cocina/tablero-kds";
 
 async function CocinaPanel({ searchParams }: PageProps<"/cocina">) {
+  await requerirPanel("cocina"); // US-106
   const inicial = await obtenerKds();
   const tv = (await searchParams).modo === "tv";
   return <div className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6">
