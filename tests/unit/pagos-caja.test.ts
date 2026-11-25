@@ -114,10 +114,17 @@ describe("acción de cobro en efectivo US-022", () => {
   });
 
   it("para llevar usa el pedido, no la sesión", async () => {
-    sesionCon("OWNER");
+    sesionCon("CASHIER");
     const cliente = clienteConRpc({ data: { pago_id: "p1", estado: "CONFIRMED", vuelto: 0 }, error: null });
     await registrarPagoEfectivoAction({ tipo: "PARA_LLEVAR", id: sesionId }, "12", "12", clave);
     expect(cliente.rpc.mock.calls[0][1]).toMatchObject({ p_sesion_id: null, p_pedido_id: sesionId });
+  });
+
+  it.each(["WAITER", "OWNER", "ADMIN"])("US-106: %s no cobra y no llega a la base", async (rol) => {
+    sesionCon(rol);
+    const cliente = clienteConRpc({ data: null, error: null });
+    expect(await registrarPagoEfectivoAction(mesa, "10", "10", clave)).toEqual({ ok: false, mensaje: mensajeErrorPago("FORBIDDEN") });
+    expect(cliente.rpc).not.toHaveBeenCalled();
   });
 
   it("cocina no puede cobrar y no llega a la base", async () => {
@@ -168,7 +175,7 @@ describe("Yape: referencia y validación US-023", () => {
   });
 
   it.each([
-    [["CASHIER"], true], [["OWNER"], true], [["ADMIN"], true],
+    [["CASHIER"], true], [["OWNER"], false], [["ADMIN"], false],
     [["WAITER"], false], [["KITCHEN"], false], [[], false],
   ])("verifica Yape con roles %j: %s", (roles, esperado) => {
     expect(puedeVerificarPagos(roles)).toBe(esperado);
@@ -177,7 +184,7 @@ describe("Yape: referencia y validación US-023", () => {
 
 describe("acciones de Yape US-023", () => {
   it("registra el Yape como pendiente con la referencia limpia", async () => {
-    sesionCon("WAITER");
+    sesionCon("CASHIER");
     const cliente = clienteConRpc({ data: { pago_id: "p1", estado: "PENDING", vuelto: null }, error: null });
     expect(await registrarPagoYapeAction(mesa, "10", " op-555 ", clave)).toEqual({ ok: true });
     expect(cliente.rpc).toHaveBeenCalledWith("registrar_pago", expect.objectContaining({
@@ -210,7 +217,7 @@ describe("acciones de Yape US-023", () => {
   });
 
   it("muestra el aviso si otra persona ya lo verificó", async () => {
-    sesionCon("OWNER");
+    sesionCon("CASHIER");
     const cliente = { rpc: vi.fn().mockResolvedValue({ data: null, error: { message: "ALREADY_VERIFIED" } }) };
     vi.mocked(crearClienteServidor).mockResolvedValue(cliente as never);
     expect(await verificarPagoAction(mesa, clave, false)).toEqual({ ok: false, mensaje: mensajeErrorPago("ALREADY_VERIFIED") });
@@ -277,7 +284,7 @@ describe("acción de pago con tarjeta US-024", () => {
   });
 
   it("rechazado: se registra y avisa que la cuenta sigue pendiente", async () => {
-    sesionCon("OWNER");
+    sesionCon("CASHIER");
     const cliente = clienteConRpc({ data: { pago_id: "p1", estado: "FAILED", vuelto: null }, error: null });
     expect(await registrarPagoTarjetaAction(mesa, "10", "004512", false, clave)).toEqual({ ok: true, aprobado: false });
     expect(cliente.rpc.mock.calls[0][1]).toMatchObject({ p_metodo: "CARD", p_aprobado: false });

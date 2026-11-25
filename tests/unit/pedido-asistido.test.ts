@@ -74,7 +74,7 @@ describe("registrarPedidoAsistidoAction", () => {
 
     await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, items, sinAlergia))
       .resolves.toEqual({ ok: true, numero: 77 });
-    expect(requerirRol).toHaveBeenCalledWith(["WAITER", "OWNER", "ADMIN"]);
+    expect(requerirRol).toHaveBeenCalledWith(["WAITER"]);
     expect(validarPedido).toHaveBeenCalledWith("restaurante-1", items);
     expect(guardarPedidoAsistido).toHaveBeenCalledWith(
       "restaurante-1", clave, { modalidad: "DINE_IN", mesaId: MESA, localId: null }, lineas,

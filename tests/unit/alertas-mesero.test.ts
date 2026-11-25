@@ -124,7 +124,7 @@ describe("atender una solicitud", () => {
   it("verifica rol, usa la sesión del mesero y revalida su panel", async () => {
     rpcMesero.mockResolvedValue({ error: null });
     expect(await atenderSolicitudAction(solicitudId)).toEqual({ ok: true, mensaje: "Solicitud atendida." });
-    expect(requerirRol).toHaveBeenCalledExactlyOnceWith(["WAITER", "OWNER", "ADMIN"]);
+    expect(requerirRol).toHaveBeenCalledExactlyOnceWith(["WAITER"]);
     expect(rpcMesero).toHaveBeenCalledExactlyOnceWith("atender_solicitud_ayuda", { p_solicitud_id: solicitudId });
     expect(crearClienteAdmin).not.toHaveBeenCalled();
     expect(revalidatePath).toHaveBeenCalledWith("/mesero");

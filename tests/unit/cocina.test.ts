@@ -207,7 +207,7 @@ describe("autorización del panel", () => {
     sesion();
     const cliente = consulta();
     const resultado = await obtenerPanelCocina();
-    expect(requerirRol).toHaveBeenCalledExactlyOnceWith(["KITCHEN", "OWNER", "ADMIN"]);
+    expect(requerirRol).toHaveBeenCalledExactlyOnceWith(["KITCHEN"]);
     expect(cliente.eq).toHaveBeenCalledWith("restaurant_id", restauranteId);
     expect(resultado).toMatchObject({ ok: true, restauranteId, pedidos: [{ id: "pedido-1" }] });
     if (!resultado.ok) throw new Error("Se esperaba una lectura correcta");

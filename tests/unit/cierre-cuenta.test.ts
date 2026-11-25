@@ -179,7 +179,7 @@ describe("US-020: acción cerrarCuentaAction", () => {
   });
 
   it("para llevar: manda el pedido", async () => {
-    sesionCon("WAITER");
+    sesionCon("CASHIER");
     const cliente = clienteConRpc({ data: { cierre_id: "c", tipo: "ORDINARY" }, error: null });
     await cerrarCuentaAction({ tipo: "PARA_LLEVAR", id: sesionId }, null);
     expect(cliente.rpc.mock.calls[0][1]).toMatchObject({ p_sesion_id: null, p_pedido_id: sesionId });
@@ -190,6 +190,14 @@ describe("US-020: acción cerrarCuentaAction", () => {
     const cliente = clienteConRpc({ data: { cierre_id: "c", tipo: "EXCEPTION" }, error: null });
     await expect(cerrarCuentaAction(mesa, `  ${motivoValido}  `)).resolves.toEqual({ ok: true, tipo: "EXCEPTION" });
     expect(cliente.rpc.mock.calls[0][1]).toMatchObject({ p_motivo: motivoValido });
+  });
+
+  it.each(["WAITER", "OWNER", "ADMIN"])("US-106: %s no hace el cierre normal (es de caja)", async (rol) => {
+    sesionCon(rol);
+    const cliente = { rpc: vi.fn() };
+    vi.mocked(crearClienteServidor).mockResolvedValue(cliente as never);
+    expect(await cerrarCuentaAction(mesa, null)).toEqual({ ok: false, mensaje: mensajeErrorCierre("FORBIDDEN") });
+    expect(cliente.rpc).not.toHaveBeenCalled();
   });
 
   it("un cajero no puede mandar una excepción", async () => {

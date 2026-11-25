@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { test, MESA_NUMERO, TOKEN_MESA, TOKEN_MOSTRADOR, prepararCarrito, confirmarYVerificar, RESTAURANTE } from "./ayuda";
-import { saldoVisible, cuentaPropia, entregarPropio, pagarEfectivo, pagarParaLlevarEnCaja, cerrarOrdinaria, prepararRecuperacion, registrarPedidoMeseroPropio, textoSoles } from "./pago-ayuda";
+import { saldoVisible, cuentaPropia, entregarPropio, pagarEfectivo, pagarParaLlevarEnCaja, cerrarOrdinaria, prepararRecuperacion, registrarPedidoMeseroPropio, rutaAdmin, textoSoles } from "./pago-ayuda";
 
 test.setTimeout(180_000);
 test.use({ actionTimeout: 20_000 });
@@ -103,8 +103,12 @@ test("CP-030-12: caja no autoriza excepción; admin cierra con motivo", async ({
   const caja = await pedido.staff("caja");
   await caja.goto(p.ruta);
   await expect(caja.getByRole("button", { name: "Cerrar con excepción", exact: true })).toHaveCount(0);
+  // US-106: el admin no entra a caja; autoriza la excepción desde /admin/cuentas.
   const admin = await pedido.staff("admin");
   await admin.goto(p.ruta);
+  await expect(admin).toHaveURL(/\/sin-acceso$/);
+  await admin.goto(rutaAdmin(p.ruta));
+  await expect(admin.getByRole("heading", { name: "Registrar pago", exact: true })).toHaveCount(0);
   const motivo = `PRUEBA E2E US-030: cortesía de aceptación ${pedido.marca}`;
   await admin.getByLabel("Motivo de la excepción").fill(motivo);
   await admin.getByRole("button", { name: "Cerrar con excepción", exact: true }).click();
@@ -125,11 +129,12 @@ test("CP-030-13: para llevar pagado y cerrado rechaza nuevos pagos", async ({ pa
   await cerrarOrdinaria(caja);
   await caja.reload();
   await expect(caja.getByRole("heading", { name: "Registrar pago", exact: true })).toHaveCount(0);
-  // Intento directo con usuario normal: el servidor también debe rechazarlo.
+  // Intento directo con usuario normal (caja): el servidor también debe rechazarlo.
+  const cajaApi = await pedido.api("caja");
   const anteriores = await pedido.admin.from("payments").select("id", { count: "exact", head: true })
     .eq("restaurant_id", RESTAURANTE).eq("order_id", p.id);
   expect(anteriores.error).toBeNull();
-  const resultado = await pedido.admin.rpc("registrar_pago", {
+  const resultado = await cajaApi.rpc("registrar_pago", {
     p_sesion_id: null, p_pedido_id: p.id, p_metodo: "CASH", p_monto: "0.01",
     p_recibido: "0.01", p_referencia: null, p_aprobado: null, p_clave: randomUUID(),
   });
