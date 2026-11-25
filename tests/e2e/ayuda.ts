@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 import { aceptarDialogoDeAccion } from "./dialogos";
 import {
+  cerrarSesionDemo,
   correosDemo as correos,
   iniciarSesion,
 } from "./sesion-demo.mjs";
@@ -532,6 +533,16 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
             );
           }
         }
+      }
+
+      // US-106 (Fase C): cerrar la sesión de cada cuenta de prueba antes de cerrar su
+      // navegador, también si la prueba falló.
+      const salidas = await Promise.allSettled(
+        contextos.map((c) => cerrarSesionDemo(c)),
+      );
+
+      if (salidas.some((s) => s.status === "rejected")) {
+        errores.push("No se pudieron cerrar todas las sesiones de prueba.");
       }
 
       const cierres = await Promise.allSettled(

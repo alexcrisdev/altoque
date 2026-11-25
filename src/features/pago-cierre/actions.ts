@@ -3,6 +3,7 @@
 import { leerCorreoBoleta } from "./comprobante-logica";
 import { revalidatePath } from "next/cache";
 import { obtenerSesion } from "../auth/sesion";
+import { registrarAccesoDenegado } from "../auth/registro-accesos";
 import { ROLES_POR_PANEL, puedeEntrar } from "../auth/permisos";
 import { esUuid } from "../mesero/solicitud-asistida";
 import {
@@ -34,7 +35,11 @@ export type RespuestaPago =
 // US-106: solo caja registra pagos (el mesero ya no cobra; dueño y admin solo consultan).
 async function puedeCobrar() {
   const sesion = await obtenerSesion();
-  return !!sesion && puedeEntrar(sesion.membresias.map((m) => m.rol), "caja");
+  if (!sesion) return false;
+  const roles = sesion.membresias.map((m) => m.rol);
+  if (puedeEntrar(roles, "caja")) return true;
+  await registrarAccesoDenegado(roles);
+  return false;
 }
 
 function datosValidos(cuenta: CuentaACobrar, clave: unknown): clave is string {
@@ -138,6 +143,7 @@ export async function verificarPagoAction(
 ): Promise<{ ok: true } | { ok: false; mensaje: string }> {
   const sesion = await obtenerSesion();
   if (!sesion || !puedeVerificarPagos(sesion.membresias.map((m) => m.rol))) {
+    if (sesion) await registrarAccesoDenegado(sesion.membresias.map((m) => m.rol));
     return { ok: false, mensaje: "Solo caja puede verificar pagos Yape." };
   }
   if (!esUuid(pagoId) || typeof confirmar !== "boolean" || !cuenta || !esUuid(cuenta.id)) {
@@ -165,6 +171,7 @@ export async function cerrarCuentaAction(
   const panel = motivoLimpio === null ? "caja" : "admin";
   const membresia = sesion?.membresias.find((m) => ROLES_POR_PANEL[panel].includes(m.rol));
   if (!sesion || !membresia) {
+    if (sesion) await registrarAccesoDenegado(sesion.membresias.map((m) => m.rol));
     return { ok: false, mensaje: mensajeErrorCierre(panel === "admin" ? "EXCEPTION_FORBIDDEN" : "FORBIDDEN") };
   }
   if (!cuenta || (cuenta.tipo !== "MESA" && cuenta.tipo !== "PARA_LLEVAR") || !esUuid(cuenta.id)) {

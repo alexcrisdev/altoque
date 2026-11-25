@@ -104,7 +104,7 @@ afterAll(async () => {
     }
   } finally {
     await stockPrueba.restaurar().catch((error) => errores.push(String(error)));
-    await Promise.all(Object.values(c).map((cliente) => cliente.auth.signOut()));
+    await Promise.all(Object.values(c).map((cliente) => cliente.auth.signOut({ scope: "local" })));
   }
   if (errores.length) throw new Error(errores.join("; "));
 }, 30_000);

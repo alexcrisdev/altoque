@@ -87,7 +87,7 @@ afterAll(async () => {
   } catch { errores.push("Falló la limpieza de US-017; revisar el pedido y la sesión de prueba."); }
   finally {
     await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-    await Promise.all([mesero?.auth.signOut(), cocina?.auth.signOut(), polleria?.auth.signOut(), admin?.auth.signOut()]); }
+    await Promise.all([mesero?.auth.signOut({ scope: "local" }), cocina?.auth.signOut({ scope: "local" }), polleria?.auth.signOut({ scope: "local" }), admin?.auth.signOut({ scope: "local" })]); }
   if (errores.length) throw new Error(errores.join("; "));
 }, 30_000);
 

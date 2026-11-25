@@ -117,7 +117,7 @@ afterAll(async () => {
     }
   } finally {
     await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-    await Promise.all([mesero?.auth.signOut(), caja?.auth.signOut(), cocina?.auth.signOut(), duenoPolleria?.auth.signOut()]);
+    await Promise.all([mesero?.auth.signOut({ scope: "local" }), caja?.auth.signOut({ scope: "local" }), cocina?.auth.signOut({ scope: "local" }), duenoPolleria?.auth.signOut({ scope: "local" })]);
   }
   if (errores.length) throw new Error(errores.join("; "));
 }, 30_000);

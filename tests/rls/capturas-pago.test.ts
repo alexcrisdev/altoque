@@ -81,7 +81,7 @@ describe.skipIf(!local)("US-102: capturas, RLS y US-094 (solo Supabase local)", 
       if (original) revisar(await admin.from("restaurants").update(original).eq("id",restaurante));
     } finally {
       await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-      await Promise.all([caja,ajeno,mesero].filter(Boolean).map(c => c.auth.signOut()));
+      await Promise.all([caja,ajeno,mesero].filter(Boolean).map(c => c.auth.signOut({ scope: "local" })));
     }
     if (errores.length) throw new Error(errores.join("\n"));
   }, 30000);
