@@ -262,7 +262,7 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
       }
     } finally {
       await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-      await Promise.all(clientes.map((actual) => actual.auth.signOut()));
+      await Promise.all(clientes.map((actual) => actual.auth.signOut({ scope: "local" })));
     }
     if (errores.length) throw new Error(`Limpieza US-085: ${errores.join("; ")}`);
   }, 30_000);

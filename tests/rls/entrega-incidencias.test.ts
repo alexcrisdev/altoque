@@ -99,7 +99,7 @@ afterAll(async () => {
     erroresLimpieza.push(`Falló el cierre de la sesión de prueba: ${String(error)}`);
   } finally {
     await stockPrueba.restaurar().catch(error => erroresLimpieza.push(String(error)));
-    await Promise.all([mesero?.auth.signOut(), cocina?.auth.signOut(), duenoPolleria?.auth.signOut()]);
+    await Promise.all([mesero?.auth.signOut({ scope: "local" }), cocina?.auth.signOut({ scope: "local" }), duenoPolleria?.auth.signOut({ scope: "local" })]);
   }
   if (erroresLimpieza.length) throw new Error(erroresLimpieza.join("; "));
 }, 30_000);

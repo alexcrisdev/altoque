@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { iniciarSesion, type RolDemo } from "./ayuda";
+import { cerrarSesionDemo } from "./sesion-demo.mjs";
+
+// US-106 (Fase C): cada prueba cierra la sesión que abrió, aunque falle.
+test.afterEach(async ({ context }) => { await cerrarSesionDemo(context); });
 
 const roles: [RolDemo, string, string][] = [
   ["mesero", "/mesero", "Panel mesero"],

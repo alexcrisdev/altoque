@@ -85,7 +85,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await Promise.all(
-    clientes.map((cliente) => cliente.auth.signOut()),
+    clientes.map((cliente) => cliente.auth.signOut({ scope: "local" })),
   );
 }, 30_000);
 
