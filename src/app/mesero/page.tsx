@@ -32,7 +32,7 @@ function DatosPedido({ pedido, ahora }: { pedido: PedidoActivo; ahora: string })
       {` · ${textoAntiguedad(minutosDesde(pedido.creadoEn, ahora))}`}
       {pedido.asistido ? " · Registrado por mesero" : " · Desde QR"}
     </p>
-      <AvisoAlergia alergia={pedido.alergia} />
+    <AvisoAlergia alergia={pedido.alergia} cocina />
     {pedido.estado === "READY" && <p className="font-bold text-exito-texto">Listo para entregar</p>}
     <BotonEnlace href={`/mesero/pedidos/${pedido.id}`} variante="secundario" aria-label={`Ver pedido N.º ${pedido.numero}`}>
       Ver pedido

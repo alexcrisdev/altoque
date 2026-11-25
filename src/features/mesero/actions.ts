@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { requerirRol } from "@/features/auth/sesion";
 import type { ResultadoRegistroPedido } from "@/features/pedidos/actions";
 import { validarPedido } from "@/features/pedidos/validar-pedido";
+import { validarAlergia } from "../pedidos/alergias";
 import { buscarPedidoAsistido, guardarPedidoAsistido } from "./pedido-asistido";
 import { abrirSesion, cerrarSesion } from "./sesiones";
 import { esUuid, mensajeRechazo, validarSolicitudAsistida } from "./solicitud-asistida";
@@ -78,6 +79,7 @@ export async function registrarPedidoAsistidoAction(
   clave: string,
   solicitud: unknown,
   items: unknown,
+  declaracionAlergia: unknown,
 ): Promise<ResultadoRegistroPedido> {
   const sesion = await requerirRol(ROLES_MESERO);
   const restauranteId = obtenerRestaurante(sesion);
@@ -90,6 +92,9 @@ export async function registrarPedidoAsistidoAction(
   if (!datos) {
     return { ok: false, mensaje: "Elige una mesa con sesión abierta o un local para llevar." };
   }
+
+  const alergia = validarAlergia(declaracionAlergia);
+  if (!alergia.ok) return { ok: false, mensaje: alergia.mensaje };
 
   try {
     const previo = await buscarPedidoAsistido(sesion.usuario.id, clave);
@@ -105,7 +110,7 @@ export async function registrarPedidoAsistidoAction(
       : { ok: false, mensaje: "El pedido contiene datos inválidos." };
   }
 
-  const resultado = await guardarPedidoAsistido(restauranteId, clave, datos, validacion.lineas);
+  const resultado = await guardarPedidoAsistido(restauranteId, clave, datos, validacion.lineas, alergia.alergia);
   if (!resultado.ok) return { ok: false, mensaje: resultado.mensaje ?? mensajeRechazo(resultado.motivo) };
   return { ok: true, numero: resultado.numero };
 }
