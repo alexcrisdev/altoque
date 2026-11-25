@@ -10,7 +10,7 @@ import { abrirSesion, cerrarSesion } from "./sesiones";
 import { esUuid, mensajeRechazo, validarSolicitudAsistida } from "./solicitud-asistida";
 
 type EstadoAccion = { tipo: "inicial" | "exito" | "error"; mensaje: string };
-const ROLES_MESERO = ["WAITER", "OWNER", "ADMIN"] as const;
+const ROLES_MESERO = ["WAITER"] as const; // US-106: solo el mesero abre, libera y toma pedidos
 
 function obtenerRestaurante(sesion: Awaited<ReturnType<typeof requerirRol>>): string {
   const membresia = sesion.membresias.find((m) => ROLES_MESERO.includes(m.rol as (typeof ROLES_MESERO)[number]));

@@ -23,10 +23,12 @@ export const TONO_ESTADO: Record<EstadoPedido, TonoEstado> = {
 
 export const ESTADOS_ACTIVOS: EstadoPedido[] = ["PENDING", "ACCEPTED", "IN_PROGRESS", "READY"];
 
+// US-106: preparar, listo y deshacer son de cocina; entregar, del mesero. Cancelar lo
+// hace el mesero o, como excepción con motivo, el dueño o el admin desde /admin.
 const rolesPorTransicion: Partial<Record<`${EstadoPedido}:${EstadoPedido}`, Rol[]>> = {
-  "READY:IN_PROGRESS": ["KITCHEN", "OWNER", "ADMIN"],
-  "IN_PROGRESS:READY": ["KITCHEN", "OWNER", "ADMIN"],
-  "READY:DELIVERED": ["WAITER", "OWNER", "ADMIN"],
+  "READY:IN_PROGRESS": ["KITCHEN"],
+  "IN_PROGRESS:READY": ["KITCHEN"],
+  "READY:DELIVERED": ["WAITER"],
   "PENDING:CANCELLED": ["WAITER", "OWNER", "ADMIN"],
   "ACCEPTED:CANCELLED": ["WAITER", "OWNER", "ADMIN"],
   "IN_PROGRESS:CANCELLED": ["WAITER", "OWNER", "ADMIN"],

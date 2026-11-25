@@ -39,7 +39,7 @@ export async function atenderSolicitudAction(id: string): Promise<ResultadoAccio
   if (typeof id !== "string" || !UUID.test(id)) {
     return { ok: false, mensaje: "No se pudo identificar la solicitud." };
   }
-  await requerirRol(["WAITER", "OWNER", "ADMIN"]);
+  await requerirRol(["WAITER"]); // US-106
   try {
     // La RPC usa auth.uid() y vuelve a comprobar el restaurante de la solicitud.
     const resultado = await atenderSolicitud(id);

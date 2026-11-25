@@ -18,7 +18,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // READY/DELIVERED/CANCELLED no se editan y nunca se permite dejar el pedido vacío.
 
 export function puedeModificar(estado: EstadoPedido, roles: Rol[]): boolean {
-  if (estado === "PENDING" || estado === "ACCEPTED") return roles.some((r) => ["WAITER", "OWNER", "ADMIN"].includes(r));
+  // US-106: el mesero modifica pedidos pendientes; en preparación, solo dueño o admin (con motivo).
+  if (estado === "PENDING" || estado === "ACCEPTED") return roles.includes("WAITER");
   if (estado === "IN_PROGRESS") return roles.some((r) => r === "OWNER" || r === "ADMIN");
   return false;
 }

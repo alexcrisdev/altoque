@@ -19,12 +19,13 @@ export async function cambiarEstadoPedido(
   if (!/^[0-9a-f-]{36}$/i.test(pedidoId) || !estados.includes(nuevoEstado)) {
     return { ok: false, mensaje: "Los datos del pedido no son válidos." };
   }
+  // US-106: la misma matriz que estados.ts y cambiar_estado_pedido.
   const rolesNecesarios: Record<EstadoPedido, Rol[]> = {
     PENDING: [],
     ACCEPTED: [],
-    IN_PROGRESS: ["KITCHEN", "OWNER", "ADMIN"],
-    READY: ["KITCHEN", "OWNER", "ADMIN"],
-    DELIVERED: ["WAITER", "OWNER", "ADMIN"],
+    IN_PROGRESS: ["KITCHEN"],
+    READY: ["KITCHEN"],
+    DELIVERED: ["WAITER"],
     CANCELLED: ["WAITER", "OWNER", "ADMIN"],
   };
   const rolesUsuario = sesion.membresias.map((m) => m.rol);
