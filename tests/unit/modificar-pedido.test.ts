@@ -12,8 +12,8 @@ const items: ItemModificable[] = [
 
 describe("modificación de pedidos", () => {
   it.each<[EstadoPedido, Rol[], boolean]>([
-    ["PENDING", ["WAITER"], true], ["PENDING", ["OWNER"], true], ["PENDING", ["ADMIN"], true], ["PENDING", ["KITCHEN"], false],
-    ["ACCEPTED", ["WAITER"], true], ["ACCEPTED", ["OWNER"], true], ["ACCEPTED", ["ADMIN"], true], ["ACCEPTED", ["CASHIER"], false],
+    ["PENDING", ["WAITER"], true], ["PENDING", ["OWNER"], false], ["PENDING", ["ADMIN"], false], ["PENDING", ["KITCHEN"], false],
+    ["ACCEPTED", ["WAITER"], true], ["ACCEPTED", ["OWNER"], false], ["ACCEPTED", ["ADMIN"], false], ["ACCEPTED", ["CASHIER"], false],
     ["IN_PROGRESS", ["WAITER"], false], ["IN_PROGRESS", ["OWNER"], true], ["IN_PROGRESS", ["ADMIN"], true], ["IN_PROGRESS", ["KITCHEN"], false],
     ["READY", ["ADMIN"], false], ["DELIVERED", ["OWNER"], false], ["CANCELLED", ["ADMIN"], false],
   ])("permiso %s / %s = %s", (estado, roles, esperado) => expect(puedeModificar(estado, roles)).toBe(esperado));

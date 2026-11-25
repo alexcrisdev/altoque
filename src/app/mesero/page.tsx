@@ -1,5 +1,4 @@
 import { AvisoAlergia } from "../../features/pedidos/aviso-alergia";
-import { PanelCapturas } from "../../features/pago-cierre/panel-capturas";
 import { Suspense } from "react";
 import { Boton, BotonEnlace, EncabezadoPantalla, Insignia, MensajeEstado, Tarjeta } from "@/components/ui";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
@@ -7,10 +6,12 @@ import { ContenidoConservado } from "@/features/cocina/contenido-conservado";
 import { AlertasMesero } from "@/features/mesero/alertas-mesero";
 import { textoAntiguedad } from "@/features/mesero/alertas-logica";
 import { cerrarSesion } from "@/features/auth/actions";
+import { requerirPanel } from "@/features/auth/sesion";
 import { obtenerPanelMesero } from "@/features/mesero/panel-actions";
 import { agruparPorMesa, GRUPO_PARA_LLEVAR, minutosDesde, pedidosQueRequierenAtencion, resumenMesa } from "@/features/mesero/panel-logica";
 import type { PedidoActivo } from "@/features/mesero/pedidos-activos";
 import { ETIQUETA_ESTADO, TONO_ESTADO } from "@/features/pedidos/estados";
+import { TEXTO_LIBERACION } from "@/features/mesero/liberacion-logica";
 import { BotonAbrirSesion, BotonCerrarSesion } from "./acciones-sesion";
 
 const horaLima = new Intl.DateTimeFormat("es-PE", {
@@ -41,11 +42,13 @@ function DatosPedido({ pedido, ahora }: { pedido: PedidoActivo; ahora: string })
 }
 
 async function MeseroPanel() {
+  await requerirPanel("mesero"); // US-106
   const resultado = await obtenerPanelMesero();
   const mesas = resultado.ok ? resultado.mesas : [];
   const pedidos = resultado.ok ? resultado.pedidos : [];
   const grupos = agruparPorMesa(pedidos);
   const ahora = resultado.ok ? resultado.actualizadoEn : "";
+  const liberacion = resultado.ok ? resultado.liberacion : {};
   const requierenAtencion = pedidosQueRequierenAtencion(pedidos, ahora);
   const paraLlevar = grupos.get(GRUPO_PARA_LLEVAR) ?? [];
 
@@ -53,7 +56,6 @@ async function MeseroPanel() {
     <EncabezadoPantalla titulo="Panel mesero" subtitulo="Organiza la atención de mesas y pedidos activos."
       acciones={<form action={cerrarSesion}><Boton type="submit" variante="secundario" className="boton-cerrar-sesion">Cerrar sesión</Boton></form>} />
     <ActualizacionAutomatica segundos={10} />
-    <PanelCapturas restauranteId={resultado.restauranteId} mesero />
     <div className="mesero-acciones my-5 flex flex-wrap gap-3 rounded-2xl border border-borde bg-superficie p-4">
       <BotonEnlace href="/mesero/pedido">Registrar pedido asistido</BotonEnlace>
       <BotonEnlace href="/mesero" variante="secundario">Actualizar panel</BotonEnlace>
@@ -112,6 +114,9 @@ async function MeseroPanel() {
                     </li>)}
                   </ul> : <p className="text-sm text-texto-suave">Sin pedidos activos.</p>}
                 </>}
+                {mesa.sesion && liberacion[mesa.sesion.id] && <p className="text-sm font-semibold" data-liberacion={liberacion[mesa.sesion.id]}>
+                  {TEXTO_LIBERACION[liberacion[mesa.sesion.id]]}
+                </p>}
                 {mesa.sesion ? <BotonCerrarSesion sesionId={mesa.sesion.id} /> : <BotonAbrirSesion mesaId={mesa.id} />}
               </Tarjeta>
             </li>;

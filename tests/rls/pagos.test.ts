@@ -237,9 +237,15 @@ describe("RPC registrar_pago en efectivo (US-022)", () => {
     expect(await pagadoConfirmado()).toBe(200); // sigue igual que antes del rechazo
   });
 
-  it("tarjeta aprobada: baja el saldo; un mesero también puede registrarla (US-024)", async () => {
+  it("US-106: el mesero ya no registra pagos (FORBIDDEN) y el saldo no cambia", async () => {
+    const intento = await pagarTarjeta(mesero!, 100, "PRUEBA-POS-MESERO", true);
+    expect(intento.error?.message).toContain("FORBIDDEN");
+    expect(await pagadoConfirmado()).toBe(200);
+  });
+
+  it("tarjeta aprobada: baja el saldo (US-024, la registra caja)", async () => {
     expect(totalCentimos).toBeGreaterThan(300);
-    const { data, error } = await pagarTarjeta(mesero!, 100, "PRUEBA-POS-2", true);
+    const { data, error } = await pagarTarjeta(caja!, 100, "PRUEBA-POS-2", true);
     expect(error).toBeNull();
     expect(data!.estado).toBe("CONFIRMED");
     expect(await pagadoConfirmado()).toBe(300);

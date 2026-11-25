@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { puedeGestionarIncidencias, puedeMarcarEntregado, validarIncidencia } from "../../src/features/pedidos/incidencias";
+import { puedeGestionarIncidencias, puedeGestionarTipoIncidencia, puedeMarcarEntregado, validarIncidencia } from "../../src/features/pedidos/incidencias";
 import type { EstadoPedido } from "../../src/features/pedidos/estados";
 import type { Rol } from "../../src/features/auth/permisos";
 
@@ -34,10 +34,26 @@ describe("puedeMarcarEntregado", () => {
 });
 
 describe("permisos de incidencias", () => {
-  it.each<Rol>(["WAITER", "KITCHEN", "OWNER", "ADMIN"])("permite gestionar al rol %s", (rol) => {
+  it.each<Rol>(["WAITER", "KITCHEN"])("permite gestionar al rol %s", (rol) => {
     expect(puedeGestionarIncidencias([rol])).toBe(true);
   });
-  it.each<Rol>(["CASHIER"])("no permite gestionar al rol %s", (rol) => {
+  it.each<Rol>(["CASHIER", "OWNER", "ADMIN"])("no permite gestionar al rol %s", (rol) => {
     expect(puedeGestionarIncidencias([rol])).toBe(false);
+  });
+});
+
+describe("US-106: tipos de incidencia por rol", () => {
+  it("el mesero maneja reclamos del cliente, no los de preparación", () => {
+    expect(puedeGestionarTipoIncidencia(["WAITER"], "RECLAMO")).toBe(true);
+    expect(puedeGestionarTipoIncidencia(["WAITER"], "SIN_INGREDIENTES")).toBe(false);
+  });
+  it("cocina maneja los de preparación, no los reclamos", () => {
+    expect(puedeGestionarTipoIncidencia(["KITCHEN"], "PROBLEMA_PREPARACION")).toBe(true);
+    expect(puedeGestionarTipoIncidencia(["KITCHEN"], "FALTANTE")).toBe(false);
+  });
+  it("«Otro» vale para mesero y cocina; dueño y admin solo consultan", () => {
+    expect(puedeGestionarTipoIncidencia(["WAITER"], "OTRO")).toBe(true);
+    expect(puedeGestionarTipoIncidencia(["KITCHEN"], "OTRO")).toBe(true);
+    expect(puedeGestionarTipoIncidencia(["OWNER", "ADMIN"], "OTRO")).toBe(false);
   });
 });

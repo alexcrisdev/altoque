@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requerirRol } from "@/features/auth/sesion";
+import { requerirPanel } from "@/features/auth/sesion";
 import { obtenerHistorialPedido } from "@/features/pedidos/historial";
 import { describirDestino } from "@/features/pedidos/modalidad";
 import { obtenerDetallePedido } from "@/features/pedidos/pedidos-admin";
@@ -21,8 +21,8 @@ function fechaLima(fecha: string) {
 async function DetallePedido({ params }: PageProps<"/admin/pedidos/[id]">) {
   const { id } = await params;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) notFound();
-  const sesion = await requerirRol(["OWNER", "ADMIN"]);
-  const restauranteId = sesion.membresias.find((m) => m.rol === "OWNER" || m.rol === "ADMIN")!.restaurantId;
+  // US-106: dueño y admin consultan; como excepción (con motivo) cancelan o modifican en preparación.
+  const { restauranteId, roles } = await requerirPanel("admin");
   const pedido = await obtenerDetallePedido(restauranteId, id);
   if (!pedido) notFound();
   const historial = await obtenerHistorialPedido(pedido.id);
@@ -33,7 +33,7 @@ async function DetallePedido({ params }: PageProps<"/admin/pedidos/[id]">) {
       <Link href="/admin/pedidos" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">← Volver a pedidos</Link>
       <h1 className="mt-4 text-3xl font-bold">Pedido n.º {pedido.numero}</h1>
       <p className="mt-2 text-texto-suave">{fechaLima(pedido.creadoEn)} · {describirDestino(pedido)} · {ETIQUETA_ESTADO[pedido.estado]}</p>
-      <AccionesPedido pedidoId={pedido.id} estado={pedido.estado} roles={sesion.membresias.filter((m) => m.restaurantId === restauranteId).map((m) => m.rol)} items={pedido.items} />
+      <AccionesPedido pedidoId={pedido.id} estado={pedido.estado} roles={roles} items={pedido.items} />
       <IncidenciasPanel pedidoId={pedido.id} estado={pedido.estado} incidencias={incidencias} soloLectura />
       <h2 className="mt-8 text-xl font-semibold">Productos</h2>
       <ul className="mt-3 divide-y divide-borde rounded-2xl border border-borde bg-superficie">
