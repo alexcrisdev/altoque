@@ -48,7 +48,25 @@ async function seguro<T>(nombre: string, tarea: () => Promise<T>): Promise<T | n
   }
 }
 
-type PagoFila = PagoVenta & PagoHora;
+type PagoFila = PagoVenta & PagoHora & { id: string };
+
+// US-145 (US-111): conteo exacto. Se pagina por «id mayor que el último leído», no por
+// posición: si entra un pedido o pago mientras se pagina, ninguna fila se cuenta dos veces
+// ni se salta (con range, una fila nueva desplaza las siguientes de página).
+const TAMANO_PAGINA = 500;
+async function leerPorId<T extends { id: string }>(
+  nombre: string,
+  pagina: (despuesDe: string | null) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const filas: T[] = [];
+  for (let despuesDe: string | null = null; ;) {
+    const { data, error } = await pagina(despuesDe);
+    if (error || !data) throw new Error(nombre);
+    filas.push(...data);
+    if (data.length < TAMANO_PAGINA) return filas;
+    despuesDe = data[data.length - 1].id;
+  }
+}
 
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
 
@@ -56,34 +74,30 @@ async function pagosDelDia(
   supabase: Cliente, restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>,
 ): Promise<PagoFila[]> {
   const { desdeUtc, hastaUtcExclusivo } = rangoLimaAUtc(fecha, fecha);
-  const filas: PagoFila[] = [];
-  while (true) {
-    const { data, error } = await supabase.from("payments")
-      .select("table_session_id, order_id, method, status, amount, confirmed_at")
+  const filas = await leerPorId("pagos", (despuesDe) => {
+    let consulta = supabase.from("payments")
+      .select("id, table_session_id, order_id, method, status, amount, confirmed_at")
       .eq("restaurant_id", restauranteId).eq("status", "CONFIRMED")
-      .gte("confirmed_at", desdeUtc).lt("confirmed_at", hastaUtcExclusivo)
-      .order("id").range(filas.length, filas.length + 499)
-      .overrideTypes<PagoFila[], { merge: false }>();
-    if (error || !data) throw new Error("pagos");
-    filas.push(...data);
-    if (data.length < 500) return filtrarCuentasReales(supabase, restauranteId, filas, idsDePrueba);
-  }
+      .gte("confirmed_at", desdeUtc).lt("confirmed_at", hastaUtcExclusivo);
+    if (despuesDe) consulta = consulta.gt("id", despuesDe);
+    return consulta.order("id").limit(TAMANO_PAGINA).overrideTypes<PagoFila[], { merge: false }>();
+  });
+  return filtrarCuentasReales(supabase, restauranteId, filas, idsDePrueba);
 }
 
 async function pedidosDelDia(
   supabase: Cliente, restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>,
 ): Promise<number> {
   const { desdeUtc, hastaUtcExclusivo } = rangoLimaAUtc(fecha, fecha);
-  let total = 0;
-  for (let posicion = 0; ; posicion += 500) {
-    const { data, error } = await supabase.from("orders").select("id")
+  const pedidos = await leerPorId("pedidos", (despuesDe) => {
+    let consulta = supabase.from("orders").select("id")
       .eq("restaurant_id", restauranteId).neq("status", "CANCELLED")
-      .gte("created_at", desdeUtc).lt("created_at", hastaUtcExclusivo)
-      .order("id").range(posicion, posicion + 499);
-    if (error || !data) throw new Error("pedidos");
-    total += data.filter((pedido) => !esPedidoDePrueba(pedido.id, idsDePrueba)).length;
-    if (data.length < 500) return total;
-  }
+      .gte("created_at", desdeUtc).lt("created_at", hastaUtcExclusivo);
+    if (despuesDe) consulta = consulta.gt("id", despuesDe);
+    return consulta.order("id").limit(TAMANO_PAGINA);
+  });
+  // Sin cancelados (filtro de arriba) ni pedidos de prueba (regla de US-111).
+  return pedidos.filter((pedido) => !esPedidoDePrueba(pedido.id, idsDePrueba)).length;
 }
 
 async function cocinaMinutos(restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>): Promise<number | null> {
@@ -97,15 +111,13 @@ async function satisfaccion(restauranteId: string, fecha: string, idsDePrueba: R
 }
 
 async function pedidosPendientes(supabase: Cliente, restauranteId: string, idsDePrueba: ReadonlySet<string>) {
-  const pendientes: { id: string; table_session_id: string | null }[] = [];
-  for (let posicion = 0; ; posicion += 500) {
-    const { data, error } = await supabase.from("orders").select("id, table_session_id")
-      .eq("restaurant_id", restauranteId).eq("status", "PENDING")
-      .order("id").range(posicion, posicion + 499);
-    if (error || !data) throw new Error("pedidos pendientes");
-    pendientes.push(...data.filter((pedido) => !esPedidoDePrueba(pedido.id, idsDePrueba)));
-    if (data.length < 500) return pendientes;
-  }
+  const pendientes = await leerPorId("pedidos pendientes", (despuesDe) => {
+    let consulta = supabase.from("orders").select("id, table_session_id")
+      .eq("restaurant_id", restauranteId).eq("status", "PENDING");
+    if (despuesDe) consulta = consulta.gt("id", despuesDe);
+    return consulta.order("id").limit(TAMANO_PAGINA);
+  });
+  return pendientes.filter((pedido) => !esPedidoDePrueba(pedido.id, idsDePrueba));
 }
 
 async function mesas(supabase: Cliente, restauranteId: string, idsDePrueba: ReadonlySet<string>) {
