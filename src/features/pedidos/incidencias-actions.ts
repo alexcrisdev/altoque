@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { obtenerSesion } from "@/features/auth/sesion";
+import { registrarAccesoDenegado } from "@/features/auth/registro-accesos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import {
   mensajeErrorIncidencia,
@@ -16,6 +17,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function rolesAutorizados(pedidoId: string) {
   const sesion = await obtenerSesion();
   const roles = sesion?.membresias.map((m) => m.rol) ?? [];
+  if (sesion && !puedeGestionarIncidencias(roles)) await registrarAccesoDenegado(roles);
   if (!puedeGestionarIncidencias(roles) || !UUID.test(pedidoId)) return null;
   return roles;
 }
@@ -25,7 +27,10 @@ export async function registrarIncidenciaAction(pedidoId: string, tipo: unknown,
   if (!roles) return { ok: false as const, mensaje: mensajeErrorIncidencia("FORBIDDEN") };
   const invalido = validarIncidencia(tipo, descripcion);
   if (invalido) return { ok: false as const, mensaje: invalido };
-  if (!puedeGestionarTipoIncidencia(roles, tipo as TipoIncidencia)) return { ok: false as const, mensaje: mensajeErrorIncidencia("FORBIDDEN") };
+  if (!puedeGestionarTipoIncidencia(roles, tipo as TipoIncidencia)) {
+    await registrarAccesoDenegado(roles);
+    return { ok: false as const, mensaje: mensajeErrorIncidencia("FORBIDDEN") };
+  }
   const supabase = await crearClienteServidor();
   const { error } = await supabase.rpc("registrar_incidencia", { p_pedido_id: pedidoId, p_tipo: tipo as string, p_descripcion: (descripcion as string).trim() });
   if (error) {

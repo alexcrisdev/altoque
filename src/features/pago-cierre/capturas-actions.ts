@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { obtenerSesion } from "../auth/sesion";
+import { registrarAccesoDenegado } from "../auth/registro-accesos";
 import { esUuid } from "../mesero/solicitud-asistida";
 import { resolverCuentaOnline } from "./pago-online";
 import { parsearSoles } from "./pago-logica";
@@ -33,7 +34,10 @@ export async function subirCapturaAction(token: unknown, clavePedido: unknown, f
 // US-106: solo caja ve y verifica capturas Yape/Plin (el mesero ya no consulta cobros).
 async function accesoCapturas(restauranteId: string) {
   const sesion = await obtenerSesion();
-  if (!esUuid(restauranteId) || !sesion?.membresias.some(m => m.restaurantId === restauranteId && m.rol === "CASHIER")) throw new Error("No tienes permiso para ver estas capturas.");
+  if (!esUuid(restauranteId) || !sesion?.membresias.some(m => m.restaurantId === restauranteId && m.rol === "CASHIER")) {
+    if (sesion) await registrarAccesoDenegado(sesion.membresias.map((m) => m.rol));
+    throw new Error("No tienes permiso para ver estas capturas.");
+  }
 }
 export async function consultarCapturasAction(restauranteId: string) {
   await accesoCapturas(restauranteId);

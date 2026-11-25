@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { guardarEstadoPedido } from "./estado-servidor";
 import { obtenerSesion } from "../auth/sesion";
+import { registrarAccesoDenegado } from "../auth/registro-accesos";
 import type { Rol } from "../auth/permisos";
 import { mensajeErrorEstado, type EstadoPedido } from "./estados";
 
@@ -30,6 +31,7 @@ export async function cambiarEstadoPedido(
   };
   const rolesUsuario = sesion.membresias.map((m) => m.rol);
   if (!rolesNecesarios[nuevoEstado].some((rol) => rolesUsuario.includes(rol))) {
+    await registrarAccesoDenegado(rolesUsuario);
     return { ok: false, mensaje: mensajeErrorEstado("FORBIDDEN") };
   }
 
