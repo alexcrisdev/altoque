@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import Image from "next/image";
+import { ImagenProducto } from "../../components/imagen-producto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Boton,
@@ -10,6 +10,7 @@ import {
   clasesBoton,
 } from "../../components/ui";
 import { formatearPrecio } from "./formato";
+import { ordenarProductos } from "./orden-productos";
 import { DetalleProducto } from "./detalle-producto";
 import { PanelCarrito } from "../pedidos/panel-carrito";
 import { ALERGIA_INICIAL, validarAlergia, type AlergiaFormulario } from "../pedidos/alergias";
@@ -77,6 +78,7 @@ export function CartaInteractiva({
     null,
   );
   const dialogo = useRef<HTMLDialogElement>(null);
+  const enlacePedidoConfirmado = useRef<HTMLAnchorElement>(null);
 
   const [items, setItems] = useState<ItemCarrito[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -115,13 +117,18 @@ export function CartaInteractiva({
   >(new Map());
   const consultandoStock = useRef(false);
 
+  // Mantiene la posición mientras se consulta el stock; al recargar se vuelve a ordenar.
+  const categoriasOrdenadas = useMemo(
+    () => categorias.map((categoria) => ({ ...categoria, productos: ordenarProductos(categoria.productos) })),
+    [categorias],
+  );
   const categoriasVivas = useMemo(
     () =>
-      categorias.map((categoria) => ({
+      categoriasOrdenadas.map((categoria) => ({
         ...categoria,
         productos: aplicarDisponibilidad(categoria.productos, disponibilidad),
       })),
-    [categorias, disponibilidad],
+    [categoriasOrdenadas, disponibilidad],
   );
 
   const productos = useMemo(
@@ -390,7 +397,7 @@ export function CartaInteractiva({
     <div className="pt-4 pb-28">
       <nav
         aria-label="Categorías de la carta"
-        className="sticky top-0 z-20 -mx-4 mb-6 flex gap-2 overflow-x-auto border-b border-borde bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6"
+        className="carta-categorias sticky top-0 z-20 -mx-4 mb-4 flex gap-2 overflow-x-auto border-y border-borde bg-superficie px-4 py-2 sm:-mx-6 sm:px-6"
       >
         {categorias.map((categoria) => (
           <a
@@ -403,7 +410,7 @@ export function CartaInteractiva({
         ))}
       </nav>
 
-      <div className="space-y-8">
+      <div className="space-y-5">
         {categoriasVivas.map((categoria) => (
           <section
             key={categoria.id}
@@ -413,12 +420,12 @@ export function CartaInteractiva({
           >
             <h2
               id={`titulo-${categoria.id}`}
-              className="mb-3 text-xl font-bold text-texto"
+              className="mb-3 border-l-4 border-acento pl-3 text-xl font-bold tracking-tight text-texto"
             >
               {categoria.name}
             </h2>
 
-            <ul className="grid gap-3 md:grid-cols-2">
+            <ul className="carta-listado grid grid-cols-2 gap-2">
               {categoria.productos.map((producto) => {
                 const agotado = estaAgotado(producto);
                 const enCarrito =
@@ -433,27 +440,23 @@ export function CartaInteractiva({
                   producto.quedan <= POCAS_UNIDADES;
 
                 return (
-                <li key={producto.id} className="relative">
+                <li key={producto.id} className="relative min-w-0">
                   <Boton
                     type="button"
                     variante="secundario"
                     tamano="lg"
                     onClick={() => abrirDetalle(producto)}
                     aria-haspopup="dialog"
-                    className={`w-full gap-4 pr-16 text-left ${
-                      agotado ? "opacity-60 grayscale" : ""
+                    className={`carta-producto h-full w-full gap-3 pr-16 text-left max-sm:!flex-col max-sm:!items-stretch max-sm:!p-3 sm:gap-4 ${
+                      agotado ? "bg-superficie-suave" : ""
                     }`}
                   >
-                    {producto.image_url && (
-                      <Image
+                      <ImagenProducto
                         src={producto.image_url}
-                        alt={producto.name}
-                        width={88}
-                        height={88}
-                        unoptimized
-                        className="h-22 w-22 shrink-0 rounded-xl object-cover"
+                        nombre={producto.name}
+                        decorativa
+                        className="h-20 w-20 shrink-0 rounded-xl max-sm:!h-24 max-sm:!w-full sm:h-28 sm:w-28"
                       />
-                    )}
 
                     <span className="min-w-0 flex-1 space-y-2 text-left">
                       <span className="block break-words font-semibold">
@@ -461,12 +464,12 @@ export function CartaInteractiva({
                       </span>
 
                       {producto.description && (
-                        <span className="block break-words text-sm font-normal text-texto-suave">
+                        <span className="carta-descripcion block break-words text-sm font-normal text-texto-suave">
                           {producto.description}
                         </span>
                       )}
 
-                      <span className="block font-semibold">
+                      <span className="block text-lg font-bold tabular-nums text-marca">
                         {formatearPrecio(producto.price)}
                       </span>
 
@@ -517,7 +520,11 @@ export function CartaInteractiva({
         pedidosHabilitados={pedidosHabilitados}
         enviando={enviando}
         resultado={resultado}
+        seguimientoHref={claveConfirmada
+          ? `/m/${encodeURIComponent(token)}/pedido/${encodeURIComponent(claveConfirmada)}`
+          : null}
         onConfirmar={confirmar}
+        onCerrarConfirmado={() => enlacePedidoConfirmado.current?.focus()}
         alergia={alergia}
         onAlergia={(valor) => cambiarOpciones(() => setAlergia(valor))}
         faltaDato={faltaDato}
@@ -554,6 +561,7 @@ export function CartaInteractiva({
 
           {claveConfirmada && (
             <BotonEnlace
+              ref={enlacePedidoConfirmado}
               href={`/m/${encodeURIComponent(token)}/pedido/${encodeURIComponent(claveConfirmada)}`}
               variante="primario"
               className="mt-4 w-full"
@@ -576,7 +584,7 @@ export function CartaInteractiva({
         aria-atomic="true"
         className={
           aviso
-            ? "pointer-events-none fixed inset-x-4 bottom-24 z-40 mx-auto max-w-md rounded-xl border border-borde bg-superficie px-4 py-3 text-sm font-medium text-texto shadow-lg"
+            ? "pointer-events-none fixed inset-x-4 bottom-24 z-40 mx-auto max-w-md rounded-xl border border-borde bg-superficie px-4 py-3 text-sm font-medium text-texto"
             : "sr-only"
         }
       >

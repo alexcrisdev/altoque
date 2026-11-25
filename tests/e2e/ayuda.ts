@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 import { aceptarDialogoDeAccion } from "./dialogos";
 import {
+  cerrarSesionDemo,
   correosDemo as correos,
   iniciarSesion,
 } from "./sesion-demo.mjs";
@@ -48,7 +49,8 @@ function variable(nombre: string) {
 }
 
 // Usuario normal con RLS para verificar y limpiar los pedidos propios.
-async function clienteAdminDemo() {
+// US-106: cada paso opera con la cuenta de su rol (mesero, caja…); admin solo consulta y limpia.
+async function clienteAdminDemo(rol: RolDemo = "admin") {
   const cliente = createClient(
     variable("NEXT_PUBLIC_SUPABASE_URL"),
     variable("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
@@ -61,13 +63,13 @@ async function clienteAdminDemo() {
   );
 
   const { error } = await cliente.auth.signInWithPassword({
-    email: correos.admin,
+    email: correos[rol],
     password: variable("DEMO_PASSWORD"),
   });
 
   if (error) {
     throw new Error(
-      "No se pudo autenticar admin demo para verificar y limpiar E2E.",
+      `No se pudo autenticar ${rol} demo para el E2E.`,
     );
   }
 
@@ -201,6 +203,8 @@ export async function cerrarMesa(
 export type EntornoPedido = {
   marca: string;
   admin: SupabaseClient;
+  // US-106: cliente de API con la cuenta del rol que hace el paso (se cierra al terminar).
+  api: (rol: RolDemo) => Promise<SupabaseClient>;
   staff: (rol: RolDemo) => Promise<Page>;
   abrirMesa: () => Promise<void>;
   alLimpiar: (tarea: () => Promise<void>) => void;
@@ -233,6 +237,13 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
     const contextos: BrowserContext[] = [];
     const paginas = new Map<RolDemo, Page>();
     const tareasLimpieza: (() => Promise<void>)[] = [];
+    const clientesApi = new Map<RolDemo, SupabaseClient>();
+
+    async function api(rol: RolDemo) {
+      if (rol === "admin") return admin;
+      if (!clientesApi.has(rol)) clientesApi.set(rol, await clienteAdminDemo(rol));
+      return clientesApi.get(rol)!;
+    }
 
     let sesionPropia: string | undefined;
     let intentoAbrir = false;
@@ -276,6 +287,7 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
       await ejecutar({
         marca,
         admin,
+        api,
         staff,
         alLimpiar: (tarea) => tareasLimpieza.push(tarea),
         prepararStock: async () => {
@@ -523,6 +535,16 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
         }
       }
 
+      // US-106 (Fase C): cerrar la sesión de cada cuenta de prueba antes de cerrar su
+      // navegador, también si la prueba falló.
+      const salidas = await Promise.allSettled(
+        contextos.map((c) => cerrarSesionDemo(c)),
+      );
+
+      if (salidas.some((s) => s.status === "rejected")) {
+        errores.push("No se pudieron cerrar todas las sesiones de prueba.");
+      }
+
       const cierres = await Promise.allSettled(
         contextos.map((c) => c.close()),
       );
@@ -538,6 +560,8 @@ export const test = base.extend<{ pedido: EntornoPedido }>({
       }
 
       try {
+        // Solo la sesión local de cada cliente: "global" cerraría también los navegadores.
+        for (const cliente of clientesApi.values()) await cliente.auth.signOut({ scope: "local" });
         const { error } = await admin.auth.signOut({
           scope: "local",
         });

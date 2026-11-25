@@ -9,7 +9,7 @@ import { cuentaPropia, pagarParaLlevarEnCaja, prepararRecuperacion } from "./pag
 test.setTimeout(90_000);
 
 test("US-082: caja distingue mesa libre y ocupada e impide ofrecer una segunda apertura", async ({ pedido }) => {
-  expect(MESA_NUMERO, "US-082 utiliza exclusivamente la mesa demo reservada").toBe(5);
+  expect(MESA_NUMERO, "US-082 utiliza exclusivamente la Mesa 5 del seed local").toBe(5);
   const caja = await pedido.staff("caja");
   const mesas = caja.getByRole("region", { name: "Mesas", exact: true });
   const mesa = mesas.getByRole("listitem").filter({ has: caja.getByRole("heading", { name: `Mesa ${MESA_NUMERO}`, exact: true }) });
@@ -31,11 +31,13 @@ test("US-082: caja distingue mesa libre y ocupada e impide ofrecer una segunda a
   expect(error).toBeNull();
   expect(data).toHaveLength(1);
   expect(href).toBe(`/caja/mesa/${data![0].id}`);
-  const { data: usuario, error: errorUsuario } = await pedido.admin.auth.getUser();
+  // US-106: solo el mesero abre mesas; con su cuenta se prueba que no hay una segunda sesión.
+  const mesero = await pedido.api("mesero");
+  const { data: usuario, error: errorUsuario } = await mesero.auth.getUser();
   expect(errorUsuario).toBeNull();
   expect(usuario.user).toBeTruthy();
   const intentoId = randomUUID();
-  const intento = await pedido.admin.from("table_sessions").insert({
+  const intento = await mesero.from("table_sessions").insert({
     id: intentoId, restaurant_id: RESTAURANTE, branch_id: data![0].branch_id,
     dining_table_id: data![0].dining_table_id, opened_by: usuario.user!.id,
   });
@@ -44,7 +46,7 @@ test("US-082: caja distingue mesa libre y ocupada e impide ofrecer una segunda a
   } finally {
     // Si faltase la protección en el entorno, no dejar una segunda sesión propia.
     if (!intento.error) {
-      const limpieza = await pedido.admin.from("table_sessions")
+      const limpieza = await mesero.from("table_sessions")
         .update({ closed_at: new Date().toISOString(), closed_by: usuario.user!.id })
         .eq("restaurant_id", RESTAURANTE).eq("id", intentoId);
       expect(limpieza.error).toBeNull();

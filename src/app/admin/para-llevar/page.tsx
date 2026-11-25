@@ -14,11 +14,12 @@ async function ConfigParaLlevar() {
 
 export default function ParaLlevarPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl p-8">
+    <main id="contenido-principal" className="vista-configuracion mx-auto w-full max-w-3xl p-8">
       <Link href="/admin" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">
         ← Panel administrador
       </Link>
       <h1 className="mt-2 text-3xl font-bold">Pedidos para llevar</h1>
+      <p className="mb-6 mt-2 text-texto-suave">Define los datos que necesitas para identificar y entregar cada pedido del mostrador.</p>
       <Suspense fallback={<p role="status" aria-busy="true" className="mt-6">Cargando…</p>}>
         <ConfigParaLlevar />
       </Suspense>

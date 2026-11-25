@@ -9,6 +9,7 @@ import {
   editarProducto,
 } from "./admin-productos";
 import { validarProducto } from "./validar-producto";
+import { descartarFotoProducto, subirFotoProducto } from "./fotos-productos-datos";
 
 // Forma de UUID sin exigir versión: los IDs del seed no son v4 y Postgres valida el resto.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -25,6 +26,7 @@ async function restauranteDelAdmin(): Promise<string> {
 export type EstadoFormularioProducto = {
   tipo: "inicial" | "exito" | "error";
   mensaje: string;
+  imagenGuardada?: string | null;
 };
 
 function entradaFormulario(formData: FormData) {
@@ -44,7 +46,10 @@ export async function guardarProductoAction(
   formData: FormData,
 ): Promise<EstadoFormularioProducto> {
   const restauranteId = await restauranteDelAdmin();
-  const validacion = validarProducto(entradaFormulario(formData));
+  const foto = formData.get("fotoProducto");
+  const archivo = foto instanceof File && (foto.name || foto.size) ? foto : null;
+  const entrada = entradaFormulario(formData);
+  const validacion = validarProducto(archivo ? { ...entrada, imageUrl: null } : entrada);
   if (!validacion.ok) {
     return {
       tipo: "error",
@@ -57,9 +62,18 @@ export async function guardarProductoAction(
     return { tipo: "error", mensaje: "No se pudo identificar el producto." };
   }
 
+  const subida = archivo ? await subirFotoProducto(restauranteId, archivo) : null;
+  if (subida && !subida.ok) return { tipo: "error", mensaje: subida.mensaje };
+
+  const producto = {
+    ...validacion.producto,
+    imageUrl: subida?.url ?? validacion.producto.imageUrl,
+  };
   const resultado = productoId
-    ? await editarProducto(restauranteId, productoId, validacion.producto)
-    : await crearProducto(restauranteId, validacion.producto);
+    ? await editarProducto(restauranteId, productoId, producto)
+    : await crearProducto(restauranteId, producto);
+
+  if (subida && resultado !== "OK") await descartarFotoProducto(subida.ruta);
 
   if (resultado === "DUPLICADO") {
     return { tipo: "error", mensaje: "Ya existe un producto con ese nombre." };
@@ -75,6 +89,7 @@ export async function guardarProductoAction(
   return {
     tipo: "exito",
     mensaje: productoId ? "Producto actualizado." : "Producto creado.",
+    imagenGuardada: producto.imageUrl,
   };
 }
 

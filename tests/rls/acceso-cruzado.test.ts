@@ -15,7 +15,11 @@ beforeAll(async () => {
   if (error) throw new Error("No se pudo iniciar sesión con el dueño demo");
 }, 30_000);
 
-afterAll(async () => { await owner?.auth.signOut(); });
+// US-106 (Fase C): toda sesión de prueba se cierra en afterAll, aunque una prueba falle.
+const sesionesAdmin: SupabaseClient[] = [];
+afterAll(async () => {
+  await Promise.all([owner, ...sesionesAdmin].map((cliente) => cliente?.auth.signOut({ scope: "local" })));
+});
 
 describe("aislamiento por restaurante", () => {
   it("US-012: aísla pedidos y sesiones de mesa entre Pollería y Cevichería", async () => {
@@ -38,7 +42,7 @@ describe("aislamiento por restaurante", () => {
       expect(propiasSesiones.error).toBeNull();
       expect(propiosPedidos.data?.length, "Prepara un pedido demo en Cevichería antes de probar US-012").toBeGreaterThan(0);
       expect(propiasSesiones.data?.length, "Prepara una sesión de mesa demo antes de probar US-012").toBeGreaterThan(0);
-    } finally { await polleria.auth.signOut(); }
+    } finally { await polleria.auth.signOut({ scope: "local" }); }
   }, 30_000);
 
   it("permite lo propio y bloquea lectura y cambios en Pollería", async () => {
@@ -75,6 +79,7 @@ describe("aislamiento por restaurante", () => {
 
   it("impide que ADMIN se ascienda a OWNER", async () => {
     const admin = createClient(url!, anonKey!, { auth: { persistSession: false, autoRefreshToken: false } });
+    sesionesAdmin.push(admin);
     const { error: loginError } = await admin.auth.signInWithPassword({ email: "admin@demo.altoque.pe", password: password! });
     expect(loginError).toBeNull();
     const { data: { user } } = await admin.auth.getUser();
@@ -107,11 +112,11 @@ describe("aislamiento por restaurante", () => {
       .eq("id", membership!.id)
       .single();
     expect(unchanged?.role_id).toBe(adminRoleId);
-    await admin.auth.signOut();
   }, 30_000);
 
   it("impide que ADMIN borre el restaurante", async () => {
     const admin = createClient(url!, anonKey!, { auth: { persistSession: false, autoRefreshToken: false } });
+    sesionesAdmin.push(admin);
     const { error: loginError } = await admin.auth.signInWithPassword({ email: "admin@demo.altoque.pe", password: password! });
     expect(loginError).toBeNull();
 
@@ -128,6 +133,5 @@ describe("aislamiento por restaurante", () => {
       .single();
     expect(error).toBeNull();
     expect(restaurant?.id).toBe(cevicheriaId);
-    await admin.auth.signOut();
   }, 30_000);
 });

@@ -29,13 +29,13 @@ jobs:
     name: 2. Integración
     needs: ci
     uses: ./.github/workflows/integracion.yml
-    secrets: inherit # credenciales de la base demo (las mismas de los PR)
+    # US-106: sin secretos; levanta su propia Supabase local desechable.
 
   e2e:
     name: 3. E2E
     needs: integracion
     uses: ./.github/workflows/e2e.yml
-    secrets: inherit # usuarios demo y QR reservados de Mesa 5 y mostrador
+    # US-106: sin secretos; usuarios demo, Mesa 5 y mostrador salen del seed local.
 
   seguridad:
     name: 4. Seguridad

@@ -141,7 +141,7 @@ describe("autorización del panel mesero", () => {
   it("obtiene ambos conjuntos desde la membresía autorizada", async () => {
     sesion(); const cliente = consulta();
     const resultado = await obtenerPanelMesero();
-    expect(requerirRol).toHaveBeenCalledExactlyOnceWith(["WAITER", "OWNER", "ADMIN"]);
+    expect(requerirRol).toHaveBeenCalledExactlyOnceWith(["WAITER"]);
     expect(listarMesasConSesion).toHaveBeenCalledExactlyOnceWith("cevicheria");
     expect(cliente.eq).toHaveBeenCalledWith("restaurant_id", "cevicheria");
     expect(resultado).toMatchObject({ ok: true, mesas: [], pedidos: [{ id: "pedido-1" }] });

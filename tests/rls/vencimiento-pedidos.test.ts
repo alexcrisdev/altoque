@@ -145,7 +145,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       }
     } finally {
       await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-      await servicio?.auth.signOut();
+      await servicio?.auth.signOut({ scope: "local" });
     }
     if (errores.length) throw new Error(`Limpieza US-097: ${errores.join("; ")}`);
   }, 30_000);

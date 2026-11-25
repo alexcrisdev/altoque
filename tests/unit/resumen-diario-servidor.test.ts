@@ -79,6 +79,7 @@ function simular(
       const consulta = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
+        like: vi.fn().mockReturnThis(),
         neq: vi.fn().mockReturnThis(),
         gte: vi.fn().mockReturnThis(),
         lt: vi.fn().mockReturnThis(),
@@ -94,6 +95,10 @@ function simular(
           respuesta,
         );
       }
+      if (tabla === "orders") consulta.range.mockImplementation(() => {
+        const columnas = consulta.select.mock.lastCall?.[0];
+        return columnas === "id" ? Promise.resolve(pagina()) : consulta;
+      });
 
       return [tabla, consulta];
     }),
@@ -108,12 +113,20 @@ function simular(
     }),
   };
 
+  const lineasDePrueba = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    like: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    range: vi.fn().mockResolvedValue(pagina()),
+  };
+
   const cliente = {
-    from: vi.fn((tabla: string) =>
-      tabla === "restaurants"
-        ? restaurante
-        : tablas[tabla],
-    ),
+    from: vi.fn((tabla: string) => {
+      if (tabla === "restaurants") return restaurante;
+      if (tabla === "order_items") return lineasDePrueba;
+      return tablas[tabla];
+    }),
   };
 
   vi.mocked(crearClienteAdmin).mockReturnValue(

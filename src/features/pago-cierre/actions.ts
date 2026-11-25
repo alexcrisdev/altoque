@@ -3,7 +3,8 @@
 import { leerCorreoBoleta } from "./comprobante-logica";
 import { revalidatePath } from "next/cache";
 import { obtenerSesion } from "../auth/sesion";
-import { tienePermiso } from "../auth/permisos";
+import { registrarAccesoDenegado } from "../auth/registro-accesos";
+import { ROLES_POR_PANEL, puedeEntrar } from "../auth/permisos";
 import { esUuid } from "../mesero/solicitud-asistida";
 import {
   mensajeErrorPago,
@@ -31,9 +32,14 @@ export type RespuestaPago =
   | { ok: true; vueltoCentimos: number }
   | { ok: false; mensaje: string };
 
+// US-106: solo caja registra pagos (el mesero ya no cobra; dueño y admin solo consultan).
 async function puedeCobrar() {
   const sesion = await obtenerSesion();
-  return !!sesion && sesion.membresias.some((m) => tienePermiso(m.rol, "registrar_pagos"));
+  if (!sesion) return false;
+  const roles = sesion.membresias.map((m) => m.rol);
+  if (puedeEntrar(roles, "caja")) return true;
+  await registrarAccesoDenegado(roles);
+  return false;
 }
 
 function datosValidos(cuenta: CuentaACobrar, clave: unknown): clave is string {
@@ -137,7 +143,8 @@ export async function verificarPagoAction(
 ): Promise<{ ok: true } | { ok: false; mensaje: string }> {
   const sesion = await obtenerSesion();
   if (!sesion || !puedeVerificarPagos(sesion.membresias.map((m) => m.rol))) {
-    return { ok: false, mensaje: "Solo caja, el dueño o el administrador pueden verificar pagos Yape." };
+    if (sesion) await registrarAccesoDenegado(sesion.membresias.map((m) => m.rol));
+    return { ok: false, mensaje: "Solo caja puede verificar pagos Yape." };
   }
   if (!esUuid(pagoId) || typeof confirmar !== "boolean" || !cuenta || !esUuid(cuenta.id)) {
     return { ok: false, mensaje: mensajeErrorPago("INVALID_PAYMENT") };
@@ -151,20 +158,26 @@ export async function verificarPagoAction(
 }
 
 // US-020: cerrar la cuenta. Sin motivo es un cierre ordinario (saldo en cero); con
-// motivo es una excepción que solo autorizan el dueño o el admin. La base vuelve a
-// revisar saldo, pagos por verificar y permisos, y guarda quién, cuándo e importes.
+// motivo es una excepción. La base vuelve a revisar saldo, pagos por verificar y
+// permisos, y guarda quién, cuándo e importes.
+// US-106: el cierre ordinario es de caja; la excepción, solo del dueño o el admin
+// (desde /admin/cuentas).
 export async function cerrarCuentaAction(
   cuenta: CuentaACobrar,
   motivo: unknown,
 ): Promise<{ ok: true; tipo: TipoCierre } | { ok: false; mensaje: string }> {
   const sesion = await obtenerSesion();
-  const membresia = sesion?.membresias.find((m) => tienePermiso(m.rol, "registrar_pagos"));
-  if (!sesion || !membresia) return { ok: false, mensaje: mensajeErrorCierre("FORBIDDEN") };
+  const motivoLimpio = normalizarMotivo(motivo);
+  const panel = motivoLimpio === null ? "caja" : "admin";
+  const membresia = sesion?.membresias.find((m) => ROLES_POR_PANEL[panel].includes(m.rol));
+  if (!sesion || !membresia) {
+    if (sesion) await registrarAccesoDenegado(sesion.membresias.map((m) => m.rol));
+    return { ok: false, mensaje: mensajeErrorCierre(panel === "admin" ? "EXCEPTION_FORBIDDEN" : "FORBIDDEN") };
+  }
   if (!cuenta || (cuenta.tipo !== "MESA" && cuenta.tipo !== "PARA_LLEVAR") || !esUuid(cuenta.id)) {
     return { ok: false, mensaje: mensajeErrorCierre("INVALID_CLOSURE") };
   }
 
-  const motivoLimpio = normalizarMotivo(motivo);
   if (motivoLimpio !== null) {
     const roles = sesion.membresias.filter((m) => m.restaurantId === membresia.restaurantId).map((m) => m.rol);
     if (!puedeAutorizarExcepcion(roles)) return { ok: false, mensaje: mensajeErrorCierre("EXCEPTION_FORBIDDEN") };
@@ -176,6 +189,7 @@ export async function cerrarCuentaAction(
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorCierre(resultado.codigo) };
   await limpiarCapturas(membresia.restaurantId, cuenta).catch(() => console.error("US-102: limpieza del cierre pendiente"));
   refrescarCaja(cuenta);
+  revalidatePath("/admin/cuentas", "layout");
   if (cuenta.tipo === "MESA") revalidatePath("/mesero");
   return { ok: true, tipo: resultado.tipo };
 }

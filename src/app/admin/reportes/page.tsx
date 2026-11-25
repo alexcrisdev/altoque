@@ -16,7 +16,9 @@ import {
 import { consultarPrediccionMananaAction } from "@/features/dashboard/prediccion-actions";
 import { TarjetaPrediccion } from "@/features/dashboard/tarjeta-prediccion";
 import { MapaCalorPanel } from "@/features/dashboard/mapa-calor-panel";
+import { ReportesSecciones } from "@/features/dashboard/reportes-secciones";
 import { ESTADOS_TENDENCIAS } from "@/features/dashboard/tendencias-logica";
+import { MINIMO_PEDIDOS_PARA_COMPARAR } from "@/features/dashboard/tiempos-cocina-logica";
 import {
   ETIQUETA_ESTADO,
   TONO_ESTADO,
@@ -47,7 +49,7 @@ function fechaActualLima(): string {
 
 export default function PaginaReportes({ searchParams }: Props) {
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
       <Suspense
         fallback={
           <MensajeEstado
@@ -112,8 +114,6 @@ async function ContenidoReportes({
         subtitulo="Ventas confirmadas y ticket promedio del restaurante."
       />
 
-      <TarjetaPrediccion resultado={resultadoPrediccion} />
-
       <Tarjeta>
         <form
           action="/admin/reportes"
@@ -161,6 +161,8 @@ async function ContenidoReportes({
         </p>
       </Tarjeta>
 
+      <ReportesSecciones
+        ventas={<>
       {!resultado.ok ? (
         <MensajeEstado
           tipo="error"
@@ -231,9 +233,9 @@ async function ContenidoReportes({
       )}
 
       <Tarjeta>
-        <h2 className="text-lg font-bold">
+        <details><summary className="min-h-11 py-2 text-sm font-semibold text-marca"><h2 className="inline text-base font-semibold">
           Cómo se calculan los indicadores
-        </h2>
+        </h2></summary>
 
         <div className="mt-3 space-y-3 text-sm text-texto-suave">
           <p>
@@ -258,8 +260,12 @@ async function ContenidoReportes({
             usan céntimos y el promedio se redondea al céntimo más cercano.
           </p>
         </div>
+        </details>
       </Tarjeta>
 
+        </>}
+        tendencias={<>
+      <TarjetaPrediccion resultado={resultadoPrediccion} />
       <section
         aria-labelledby="tendencias-titulo"
         className="space-y-4"
@@ -377,9 +383,9 @@ async function ContenidoReportes({
         )}
 
         <Tarjeta>
-          <h3 className="text-lg font-bold">
+          <details><summary className="min-h-11 py-2 text-sm font-semibold text-marca"><h3 className="inline text-base font-semibold">
             Cómo se calculan las tendencias
-          </h3>
+          </h3></summary>
 
           <div className="mt-3 space-y-3 text-sm text-texto-suave">
             <p>
@@ -413,49 +419,109 @@ async function ContenidoReportes({
               sus cantidades no tienen que coincidir.
             </p>
           </div>
+          </details>
         </Tarjeta>
       </section>
 
-      <MapaCalorPanel
+        </>}
+        mapaCalor={<MapaCalorPanel
         key={`${desde}:${hasta}`}
         desde={desde}
         hasta={hasta}
-      />
+        />}
 
-      <section aria-labelledby="tiempos-cocina-titulo" className="space-y-4">
+        cocina={<section aria-labelledby="tiempos-cocina-titulo" className="space-y-4">
         <h2 id="tiempos-cocina-titulo" className="text-xl font-bold">
-          Tiempos de preparación en cocina
+          Tiempos por etapa
         </h2>
         <p className="text-sm text-texto-suave">
-          Desde la primera entrada a preparación hasta el último Listo definitivo.
-          El periodo, los días y las franjas de una hora usan la entrada a preparación
-          en hora de Lima. Se excluyen cancelados y pedidos sin finalizar.
+          El rango toma la hora de inicio de cada etapa en Lima. La mediana es el tiempo central
+          y el P90 es el tiempo en el que terminó al menos el 90 % de los pedidos medidos.
         </p>
         {!resultadoTiempos.ok ? (
-          <MensajeEstado tipo="error" titulo="No pudimos mostrar los tiempos de cocina"
+          <MensajeEstado tipo="error" titulo="No pudimos mostrar los tiempos por etapa"
             descripcion={resultadoTiempos.mensaje} />
-        ) : !resultadoTiempos.resumen.total ? (
-          <MensajeEstado tipo="vacio" titulo="No hay pedidos con tiempos válidos en este rango"
-            descripcion="Selecciona un periodo con pedidos finalizados y un historial completo." />
+        ) : !resultadoTiempos.resumen.etapas ? (
+          <MensajeEstado tipo="vacio" titulo="No hay tiempos por etapa en este rango" />
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Indicador titulo="Pedidos medidos" valor={String(resultadoTiempos.resumen.total.pedidos)} />
-              <Indicador titulo="Tiempo promedio" valor={minutosCocina(resultadoTiempos.resumen.total.promedioMs)} />
-              <Indicador titulo="Tiempo máximo" valor={minutosCocina(resultadoTiempos.resumen.total.maximoMs)} />
+              {([
+                ["Espera de pago", "Hasta que el pago habilita la preparación.", resultadoTiempos.resumen.etapas.pago],
+                ["Preparación", "Desde el primer ingreso a cocina hasta el último Listo.", resultadoTiempos.resumen.etapas.preparacion],
+                ["Entrega", "Desde el último Listo hasta la entrega.", resultadoTiempos.resumen.etapas.entrega],
+              ] as const).map(([titulo, descripcion, etapa]) => (
+                <Tarjeta key={titulo}>
+                  <h3 className="font-bold">{titulo}</h3>
+                  <p className="mt-1 text-sm text-texto-suave">{descripcion}</p>
+                  <p className="mt-3 text-sm tabular-nums">Pedidos medidos: {etapa.pedidos}</p>
+                  {etapa.pedidos < MINIMO_PEDIDOS_PARA_COMPARAR || etapa.medianaMs === null || etapa.p90Ms === null ? (
+                    <p className="mt-2 text-sm text-texto-suave">
+                      Datos insuficientes. Se necesitan {MINIMO_PEDIDOS_PARA_COMPARAR} pedidos medidos.
+                    </p>
+                  ) : (
+                    <dl className="mt-2 grid grid-cols-2 gap-2 text-sm tabular-nums">
+                      <div>
+                        <dt className="text-texto-suave">Mediana</dt>
+                        <dd className="font-bold">{minutosCocina(etapa.medianaMs)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-texto-suave">P90</dt>
+                        <dd className="font-bold">{minutosCocina(etapa.p90Ms)}</dd>
+                      </div>
+                    </dl>
+                  )}
+                </Tarjeta>
+              ))}
             </div>
-            <p className="text-sm text-texto-suave">
-              Por plato se muestra el tiempo completo de los pedidos que contienen ese producto,
-              no una medición individual de su elaboración. Cada nombre de plato cuenta una sola
-              vez por pedido, independientemente de sus unidades.
-            </p>
+
+            <Tarjeta>
+              <h3 id="tiempos-cocina-platos" className="text-lg font-bold">Pedidos que incluyen este plato</h3>
+              <p className="mt-1 text-sm text-texto-suave">
+                Se mide la preparación del pedido completo. Cada plato cuenta una vez por pedido.
+                Los platos con suficientes datos se ordenan de mayor a menor mediana.
+              </p>
+              {resultadoTiempos.resumen.etapas.porPlato.length === 0 ? (
+                <p className="mt-3 text-sm text-texto-suave">No hay pedidos con preparación medida en este rango.</p>
+              ) : (
+                <div role="region" aria-labelledby="tiempos-cocina-platos" tabIndex={0} className="tabla-gestion mt-3 overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead><tr>
+                      <th scope="col" className="p-2">Plato</th>
+                      <th scope="col" className="p-2">Pedidos medidos</th>
+                      <th scope="col" className="p-2">Mediana</th>
+                      <th scope="col" className="p-2">P90</th>
+                    </tr></thead>
+                    <tbody>{resultadoTiempos.resumen.etapas.porPlato.toSorted((a, b) => {
+                      const aSuficiente = a.pedidos >= MINIMO_PEDIDOS_PARA_COMPARAR;
+                      const bSuficiente = b.pedidos >= MINIMO_PEDIDOS_PARA_COMPARAR;
+                      if (!aSuficiente && !bSuficiente) return a.nombre.localeCompare(b.nombre, "es");
+                      return Number(bSuficiente) - Number(aSuficiente);
+                    }).map((fila) => (
+                      <tr key={fila.nombre} className="border-t border-borde">
+                        <th scope="row" className="p-2 font-medium">{fila.nombre}</th>
+                        <td className="p-2 tabular-nums">{fila.pedidos}</td>
+                        {fila.pedidos < MINIMO_PEDIDOS_PARA_COMPARAR || fila.medianaMs === null || fila.p90Ms === null ? (
+                          <td colSpan={2} className="p-2 text-texto-suave">Datos insuficientes</td>
+                        ) : (
+                          <>
+                            <td className="p-2 tabular-nums">{minutosCocina(fila.medianaMs)}</td>
+                            <td className="p-2 tabular-nums">{minutosCocina(fila.p90Ms)}</td>
+                          </>
+                        )}
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              )}
+            </Tarjeta>
+
             {([
-              ["Por día", resultadoTiempos.resumen.porDia],
-              ["Por franja horaria", resultadoTiempos.resumen.porFranja],
-              ["Por plato", resultadoTiempos.resumen.porPlato],
-            ] as const).map(([titulo, filas]) => (
+              ["Preparación por día", resultadoTiempos.resumen.porDia],
+              ["Preparación por franja horaria", resultadoTiempos.resumen.porFranja],
+            ] as const).map(([titulo, filas]) => filas.length > 0 && (
               <Tarjeta key={titulo}>
-                <div className="overflow-x-auto">
+                <div role="region" aria-label={titulo} tabIndex={0} className="tabla-gestion overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <caption className="pb-3 text-left text-lg font-bold">{titulo}</caption>
                     <thead><tr>
@@ -468,8 +534,14 @@ async function ContenidoReportes({
                       <tr key={fila.nombre} className="border-t border-borde">
                         <th scope="row" className="p-2 font-medium">{fila.nombre}</th>
                         <td className="p-2">{fila.pedidos}</td>
-                        <td className="p-2">{minutosCocina(fila.promedioMs)}</td>
-                        <td className="p-2">{minutosCocina(fila.maximoMs)}</td>
+                        {fila.pedidos < MINIMO_PEDIDOS_PARA_COMPARAR ? (
+                          <td colSpan={2} className="p-2 text-texto-suave">Datos insuficientes</td>
+                        ) : (
+                          <>
+                            <td className="p-2">{minutosCocina(fila.promedioMs)}</td>
+                            <td className="p-2">{minutosCocina(fila.maximoMs)}</td>
+                          </>
+                        )}
                       </tr>
                     ))}</tbody>
                   </table>
@@ -478,7 +550,8 @@ async function ContenidoReportes({
             ))}
           </>
         )}
-      </section>
+        </section>}
+      />
     </div>
   );
 }
@@ -497,7 +570,7 @@ function Indicador({
   valor: string;
 }) {
   return (
-    <Tarjeta>
+    <Tarjeta className="indicador-gestion">
       <h2 className="text-sm font-medium text-texto-suave">
         {titulo}
       </h2>

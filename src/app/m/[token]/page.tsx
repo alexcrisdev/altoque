@@ -1,3 +1,4 @@
+import "../../cliente.css";
 import { Suspense } from "react";
 import {
   EncabezadoPantalla,
@@ -11,6 +12,7 @@ import { obtenerConfigParaLlevar } from "@/features/pedidos/para-llevar";
 import { MisPedidos } from "@/features/pedidos/mis-pedidos";
 import { BotonLlamarMesero } from "@/features/mesero/boton-llamar-mesero";
 import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
+import { Marca } from "@/components/marca";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -19,7 +21,8 @@ type Props = {
 
 export default function PaginaQr({ params, searchParams }: Props) {
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="experiencia-cliente mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+      <div className="mb-4 flex items-center justify-between border-b border-borde pb-3"><Marca /><span className="text-sm font-medium text-texto-suave">Carta digital</span></div>
       <Suspense
         fallback={
           <MensajeEstado
@@ -89,17 +92,27 @@ async function Contenido({ params, searchParams }: Props) {
         }
         subtitulo={`${acceso.restauranteNombre} · ${acceso.localNombre}`}
       />
+      <div className="bienvenida-carta rounded-2xl border border-info-borde bg-info-fondo px-5 py-4">
+        <h2 className="text-lg font-bold text-texto">¿Qué te provoca hoy?</h2>
+        <details className="ayuda-discreta">
+          <summary>Cómo pedir</summary>
+          <p className="text-sm text-texto-suave">Explora los platos, toca uno para ver sus detalles y agrégalo a tu pedido.</p>
+        </details>
+      </div>
 
       <MisPedidos token={token} />
 
       {/* US-076: saldo de la mesa y pago con tarjeta online. */}
       {sesionId !== null && <CuentaCliente token={token} clave={null} pago={pago} sesion={sesion} />}
 
-      <Tarjeta>
-        <p className="text-sm text-texto-suave">
+      <Tarjeta className="ayuda-mesero flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <details className="ayuda-discreta min-w-0">
+          <summary>Atención con mesero</summary>
+          <p className="text-sm text-texto-suave">
           ¿Prefieres que te atiendan? Llama al mesero y él registra
           tu pedido desde su panel.
-        </p>
+          </p>
+        </details>
         {(acceso.modalidad === "TAKEAWAY" || sesionId !== null) && <BotonLlamarMesero token={token} />}
       </Tarjeta>
 

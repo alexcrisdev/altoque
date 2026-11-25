@@ -6,6 +6,7 @@ vi.mock("../../src/features/cocina/kds-actions", () => ({ obtenerKds: vi.fn(), c
 vi.mock("../../src/features/cocina/reportar-incidencia", () => ({ ReportarIncidencia: () => null, MarcarIncidenciaResuelta: () => null }));
 vi.mock("../../src/features/pago-cierre/verificar-pago", () => ({ VerificarPago: () => null }));
 import { TableroKds } from "../../src/features/cocina/tablero-kds";
+import { AvisoAlergia } from "../../src/features/pedidos/aviso-alergia";
 import { DetalleCuenta } from "../../src/features/pago-cierre/detalle-cuenta";
 import { calcularCuenta } from "../../src/features/pago-cierre/cuenta-logica";
 import type { PedidoCocina } from "../../src/features/cocina/tipos";
@@ -17,6 +18,22 @@ const pedido: PedidoCocina = { id: "p1", numero: 91, creadoEn: new Date(ahora).t
   items: [{ nombre: "Plato", cantidad: 1, observacion: null, alergenos: ["Pescado"] }], incidenciasAbiertas: [] };
 
 describe("US-091: avisos visibles al personal", () => {
+  it("muestra el aviso de cocina con identificador, ancho completo e icono decorativo", () => {
+    const html = renderToStaticMarkup(createElement(AvisoAlergia, { alergia: pedido.alergia, cocina: true, id: "alergia-p1" }));
+    expect(html).toContain('id="alergia-p1"');
+    expect(html).toContain("w-full");
+    expect(html).toContain('aria-hidden="true">⚠ ');
+    expect(html).toContain("Alergia: Maní — Evitar contacto");
+  });
+  it("muestra la franja para una alergia declarada y la omite cuando no hay alergias", () => {
+    const conAlergia = renderToStaticMarkup(createElement(AvisoAlergia, { alergia: pedido.alergia, cocina: true }));
+    const sinAlergia = renderToStaticMarkup(createElement(AvisoAlergia, {
+      alergia: { respuesta: "NONE", alergenos: [], detalle: null }, cocina: true,
+    }));
+    expect(conAlergia).toContain("bg-peligro-texto");
+    expect(conAlergia).toContain("Alergia: Maní — Evitar contacto");
+    expect(sinAlergia).toBe("");
+  });
   it.each([true, false])("KDS muestra la declaración separada del producto (TV %s)", tv => {
     const html = renderToStaticMarkup(createElement(TableroKds, { inicial: { ok: true, restauranteId: "r1", pedidos: [pedido], actualizadoEn: ahora, pedidosEsperandoPago: 0 }, tv }));
     expect(html).toContain("Alergia: Maní — Evitar contacto");

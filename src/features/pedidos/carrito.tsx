@@ -1,6 +1,7 @@
 "use client";
 
 import { Boton, Insignia, MensajeEstado } from "../../components/ui";
+import { ImagenProducto } from "../../components/imagen-producto";
 import { formatearPrecio } from "../carta/formato";
 import type { Producto } from "../carta/tipos";
 import type { ItemCarrito } from "./tipos";
@@ -102,16 +103,25 @@ export function Carrito({
               return (
                 <li
                   key={item.productoId}
-                  className="space-y-3 border-b border-borde pb-4"
+                  className="linea-carrito space-y-3 rounded-xl border border-borde bg-superficie p-4"
                   data-problema-stock={problema?.tipo}
                 >
-                  <h3 className="break-words font-semibold">
-                    {producto.name}
-                  </h3>
-
-                  <p className="text-sm text-texto-suave">
-                    Precio unitario: {formatearPrecio(producto.price)}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <ImagenProducto
+                      src={producto.image_url}
+                      nombre={producto.name}
+                      decorativa
+                      className="size-14 shrink-0 rounded-lg sm:size-16"
+                    />
+                    <div className="min-w-0">
+                      <h3 className="break-words font-semibold">
+                        {producto.name}
+                      </h3>
+                      <p className="mt-1 text-sm text-texto-suave">
+                        Precio unitario: {formatearPrecio(producto.price)}
+                      </p>
+                    </div>
+                  </div>
 
                   {problema?.tipo === "AGOTADO" && (
                     <div role="status" className="flex flex-wrap items-center gap-3 rounded-xl bg-aviso-fondo p-3 text-aviso-texto">
@@ -241,7 +251,7 @@ export function Carrito({
                     </div>
                   )}
 
-                  <p className="font-semibold">
+                  <p className="text-right font-semibold tabular-nums">
                     Subtotal: {formatearPrecio(subtotal / 100)}
                   </p>
                 </li>

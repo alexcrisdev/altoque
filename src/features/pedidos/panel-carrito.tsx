@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
 import {
   Boton,
+  BotonEnlace,
   Insignia,
   MensajeEstado,
   Tarjeta,
@@ -17,7 +18,9 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
   pedidosHabilitados: boolean;
   enviando: boolean;
   resultado: ResultadoRegistroPedido | null;
+  seguimientoHref?: string | null;
   onConfirmar: () => void;
+  onCerrarConfirmado?: () => void;
   alergia: AlergiaFormulario;
   onAlergia: (alergia: AlergiaFormulario) => void;
   // US-002: selector de modalidad y datos para llevar.
@@ -28,7 +31,49 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
 
 export function PanelCarrito(props: Props) {
   const dialogo = useRef<HTMLDialogElement>(null);
+  const enlaceSeguimiento = useRef<HTMLAnchorElement>(null);
   const validacionAlergia = validarAlergia(props.alergia);
+  const confirmado = props.resultado?.ok ? props.resultado : null;
+  const seguimiento = confirmado && props.seguimientoHref;
+
+  useEffect(() => {
+    if (seguimiento && dialogo.current?.open) {
+      enlaceSeguimiento.current?.focus({ preventScroll: true });
+    }
+  }, [seguimiento]);
+
+  useEffect(() => {
+    const panel = dialogo.current;
+    const viewport = window.visualViewport;
+    let cuadro = 0;
+
+    function ajustarEspacioVisible() {
+      if (!panel) return;
+      const alto = viewport?.height ?? window.innerHeight;
+      const inicio = viewport?.offsetTop ?? 0;
+      panel.style.setProperty("--carrito-alto", `${alto}px`);
+      panel.style.setProperty("--carrito-centro", `${inicio + alto / 2}px`);
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(() => {
+        const activo = document.activeElement;
+        if (panel.open && activo instanceof HTMLElement &&
+          panel.contains(activo) && activo.matches("input, textarea, select")) {
+          activo.scrollIntoView({ block: "nearest" });
+        }
+      });
+    }
+
+    ajustarEspacioVisible();
+    viewport?.addEventListener("resize", ajustarEspacioVisible);
+    viewport?.addEventListener("scroll", ajustarEspacioVisible);
+    window.addEventListener("resize", ajustarEspacioVisible);
+    return () => {
+      cancelAnimationFrame(cuadro);
+      viewport?.removeEventListener("resize", ajustarEspacioVisible);
+      viewport?.removeEventListener("scroll", ajustarEspacioVisible);
+      window.removeEventListener("resize", ajustarEspacioVisible);
+    };
+  }, [dialogo]);
 
   const unidades = props.items.reduce(
     (total, item) => total + item.cantidad,
@@ -68,7 +113,7 @@ export function PanelCarrito(props: Props) {
   return (
     <>
       {unidades > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="acceso-carrito fixed inset-x-0 bottom-0 z-30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-md">
             <Boton
               type="button"
@@ -78,7 +123,7 @@ export function PanelCarrito(props: Props) {
               aria-haspopup="dialog"
               aria-controls="panel-carrito"
               aria-label={`Ver carrito: ${unidades} unidades, total ${totalFormateado}`}
-              className="w-full shadow-xl shadow-black/30"
+              className="w-full"
             >
               <span className="flex w-full items-center justify-between gap-3">
                 <span className="flex items-center gap-3">
@@ -97,7 +142,7 @@ export function PanelCarrito(props: Props) {
                     />
                   </svg>
 
-                  <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-white/20 px-2 text-sm font-bold">
+                  <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-marca-hover px-2 text-sm font-bold">
                     {unidades}
                   </span>
 
@@ -116,11 +161,15 @@ export function PanelCarrito(props: Props) {
       <dialog
         id="panel-carrito"
         ref={dialogo}
+        onClose={() => {
+          if (confirmado) props.onCerrarConfirmado?.();
+        }}
         aria-labelledby="carrito-titulo"
-        className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85dvh] w-full max-w-none overflow-hidden rounded-t-3xl border border-borde bg-superficie p-0 text-texto shadow-2xl backdrop:bg-black/60 md:inset-y-0 md:left-auto md:right-0 md:h-dvh md:max-h-none md:w-[440px] md:rounded-none md:rounded-l-3xl"
+        className="panel-carrito fixed inset-x-0 top-[var(--carrito-centro,50%)] bottom-auto m-0 mx-auto max-h-[calc(var(--carrito-alto,100dvh)-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-y-1/2 overflow-hidden rounded-3xl border border-borde bg-superficie p-0 text-texto"
       >
-        <div className="flex max-h-[calc(85dvh-2px)] flex-col md:h-full md:max-h-none">
-          <div className="flex shrink-0 justify-end border-b border-borde px-5 py-3">
+        <div className="flex max-h-[calc(var(--carrito-alto,100dvh)-1rem-2px)] flex-col">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-borde bg-marca-suave px-5 py-3">
+            <p className="font-semibold">{confirmado ? "Pedido recibido" : "Revisa y confirma tu pedido"}</p>
             <Boton
               type="button"
               variante="secundario"
@@ -130,7 +179,29 @@ export function PanelCarrito(props: Props) {
             </Boton>
           </div>
 
-          <div className="min-h-[25dvh] flex-1 overflow-y-auto overscroll-contain md:min-h-0">
+          {seguimiento ? (
+            <>
+              <div data-carrito-confirmado className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
+                <h2 id="carrito-titulo" className="sr-only">Tu carrito</h2>
+                <div role="status" className="space-y-3">
+                  <Insignia tono="exito">Pedido confirmado</Insignia>
+                  <p className="text-xl font-bold">Tu número de pedido es {confirmado.numero}</p>
+                  <p>Recibimos tu pedido. Consulta su avance en el seguimiento.</p>
+                </div>
+                <p className="text-sm text-texto-suave">
+                  Si falta pagar, en el seguimiento verás el estado del pago.
+                  También puedes pagar en caja para que comencemos a preparar tu pedido.
+                </p>
+              </div>
+              <footer className="shrink-0 border-t border-borde bg-superficie px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <BotonEnlace ref={enlaceSeguimiento} href={seguimiento} tamano="lg" className="w-full">
+                  Ver el estado de mi pedido
+                </BotonEnlace>
+              </footer>
+            </>
+          ) : (
+          <>
+          <div data-carrito-contenido className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-py-4">
             <fieldset
               disabled={props.enviando}
               className="p-5 disabled:opacity-60"
@@ -141,29 +212,13 @@ export function PanelCarrito(props: Props) {
 
               <Carrito {...props} enPanel />
             </fieldset>
-          </div>
-
-          <footer className="max-h-[min(50dvh,calc(60dvh-5rem))] shrink-0 space-y-4 overflow-y-auto overscroll-contain border-t border-borde bg-superficie px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:max-h-[60dvh] md:overflow-y-auto">
+          <div className="space-y-5 border-t border-borde px-5 py-5">
             <p className="text-sm text-texto-suave">
               {unidades} {unidades === 1 ? "unidad" : "unidades"}
               {" · "}
               {props.items.length}{" "}
               {props.items.length === 1 ? "producto" : "productos"}
             </p>
-
-            <div
-              aria-live="polite"
-              aria-atomic="true"
-              className="flex items-center justify-between gap-3"
-            >
-              <span className="text-lg font-semibold">
-                Total
-              </span>
-
-              <span className="text-xl font-bold">
-                {totalFormateado}
-              </span>
-            </div>
 
             {props.opciones && (
               <fieldset
@@ -261,7 +316,7 @@ export function PanelCarrito(props: Props) {
               )
             )}
 
-            <fieldset disabled={props.enviando} className="space-y-3 rounded-xl border border-borde p-4 disabled:opacity-60">
+            <fieldset disabled={props.enviando} className="space-y-3 rounded-xl border border-aviso-borde bg-aviso-fondo p-4 disabled:opacity-60">
               <legend className="px-1 font-semibold">¿Alguien tiene alergias?</legend>
               <div className="flex gap-3">
                 {([ ["NONE", "No"], ["YES", "Sí"] ] as const).map(([respuesta, etiqueta]) => (
@@ -309,8 +364,26 @@ export function PanelCarrito(props: Props) {
 
             <Boton
               type="button"
+              variante="secundario"
+              tamano="lg"
+              onClick={cerrarCarrito}
+              className="w-full"
+            >
+              Seguir viendo la carta
+            </Boton>
+          </div>
+          </div>
+
+          <footer className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-borde bg-superficie px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div aria-live="polite" aria-atomic="true" className="min-w-0">
+              <span className="block text-sm text-texto-suave">Total</span>
+              <span className="block text-xl font-bold tabular-nums">{totalFormateado}</span>
+            </div>
+            <Boton
+              type="button"
               variante="primario"
               tamano="lg"
+              cargando={props.enviando}
               onClick={props.onConfirmar}
               disabled={
                 props.enviando ||
@@ -320,23 +393,16 @@ export function PanelCarrito(props: Props) {
                 hayProblemasStock ||
                 Boolean(props.faltaDato) || !validacionAlergia.ok
               }
-              className="w-full"
+              className="w-full disabled:pointer-events-auto! disabled:cursor-not-allowed aria-busy:cursor-wait"
             >
               {props.enviando
                 ? "Confirmando pedido..."
                 : "Confirmar pedido"}
             </Boton>
 
-            <Boton
-              type="button"
-              variante="secundario"
-              tamano="lg"
-              onClick={cerrarCarrito}
-              className="w-full"
-            >
-              Seguir viendo la carta
-            </Boton>
           </footer>
+          </>
+          )}
         </div>
       </dialog>
     </>

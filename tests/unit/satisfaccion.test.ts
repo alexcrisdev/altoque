@@ -10,7 +10,13 @@ function preparar(filas: { service_stars: number; waiter_stars: number }[], erro
   const q = { select: vi.fn(), eq: vi.fn(), gte: vi.fn(), lt: vi.fn(), order: vi.fn(), range: vi.fn() };
   for (const metodo of ["select", "eq", "gte", "lt", "order"] as const) q[metodo].mockReturnValue(q);
   q.range.mockResolvedValue({ data: filas, error });
-  vi.mocked(crearClienteServidor).mockResolvedValue({ from: vi.fn(() => q) } as never);
+  const marcas = {
+    select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), like: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(), range: vi.fn().mockResolvedValue({ data: [], count: 0, error: null }),
+  };
+  vi.mocked(crearClienteServidor).mockResolvedValue({
+    from: vi.fn((tabla: string) => tabla === "order_ratings" ? q : marcas),
+  } as never);
   return q;
 }
 

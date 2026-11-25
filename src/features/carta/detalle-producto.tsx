@@ -1,10 +1,11 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenProducto } from "../../components/imagen-producto";
 import type { RefObject } from "react";
 import { Boton, Insignia } from "../../components/ui";
 import { formatearPrecio } from "./formato";
 import type { Producto } from "./tipos";
+import { estaAgotado } from "../pedidos/carrito-logica";
 
 type Props = {
   producto: Producto | null;
@@ -20,6 +21,7 @@ export function DetalleProducto({
   aviso,
 }: Props) {
   const ingredientes = producto?.ingredients?.trim();
+  const agotado = producto ? estaAgotado(producto) : false;
 
   const alergenos = (producto?.allergens ?? [])
     .map((alergeno) => alergeno.trim())
@@ -29,7 +31,7 @@ export function DetalleProducto({
     <dialog
       ref={dialogoRef}
       aria-labelledby="detalle-producto-titulo"
-      className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-borde bg-superficie p-6 text-texto shadow-xl backdrop:bg-black/50"
+      className="detalle-producto fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-borde bg-superficie p-6 text-texto"
     >
       <form method="dialog" className="mb-4 flex justify-end">
         <Boton type="submit" variante="secundario">
@@ -39,16 +41,11 @@ export function DetalleProducto({
 
       {producto && (
         <div className="space-y-4">
-          {producto.image_url && (
-            <Image
+            <ImagenProducto
               src={producto.image_url}
-              alt={producto.name}
-              width={600}
-              height={400}
-              unoptimized
-              className="max-h-72 w-full rounded-xl object-cover"
+              nombre={producto.name}
+              className="aspect-[4/3] max-h-64 w-full rounded-xl"
             />
-          )}
 
           <h2
             id="detalle-producto-titulo"
@@ -57,7 +54,7 @@ export function DetalleProducto({
             {producto.name}
           </h2>
 
-          <p className="text-lg font-semibold text-texto">
+          <p className="text-2xl font-bold tabular-nums text-marca">
             {formatearPrecio(producto.price)}
           </p>
 
@@ -100,7 +97,7 @@ export function DetalleProducto({
             </section>
           )}
 
-          {!producto.available && (
+          {agotado && (
             <Insignia tono="neutro">
               Agotado
             </Insignia>
@@ -110,11 +107,11 @@ export function DetalleProducto({
             type="button"
             variante="primario"
             tamano="lg"
-            disabled={!producto.available}
+            disabled={agotado}
             onClick={() => onAgregar(producto)}
             className="w-full"
           >
-            {producto.available
+            {!agotado
               ? "Agregar al carrito"
               : "Producto agotado"}
           </Boton>

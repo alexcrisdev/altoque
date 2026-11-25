@@ -12,14 +12,14 @@ export function EncabezadoPantalla({
   acciones,
 }: EncabezadoPantallaProps) {
   return (
-    <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="encabezado-pantalla mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h1 className="break-words text-2xl font-bold text-texto">
+        <h1 className="break-words text-2xl font-bold leading-tight tracking-tight text-texto sm:text-3xl">
           {titulo}
         </h1>
 
         {subtitulo && (
-          <p className="mt-2 text-sm text-texto-suave">
+          <p className="mt-1 max-w-2xl text-sm leading-normal text-texto-suave">
             {subtitulo}
           </p>
         )}

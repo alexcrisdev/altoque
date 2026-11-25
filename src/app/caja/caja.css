@@ -1,0 +1,20 @@
+.area-caja .caja-distribucion { margin-top: 1.25rem; gap: 1rem; }
+.area-caja .caja-distribucion > section { padding: 1rem; }
+.area-caja .cuenta-enlace { border-left: 4px solid var(--color-marca); align-items: flex-start; }
+.area-caja .cuenta-enlace { padding: .875rem; gap: .75rem; border-radius: .75rem; }
+.area-caja .cuenta-enlace:hover { background: var(--color-marca-suave); }
+.area-caja section[aria-label="Cobros por billetera de hoy"] { border-left: 4px solid var(--color-marca); }
+.area-caja section[aria-label="Resumen de la cuenta"] { padding: 1rem; border-top: 3px solid var(--color-marca); }
+.area-caja .formulario-cobro { max-width: 44rem; padding: 1rem; }
+.formulario-cobro :where(form) { padding-top: .5rem; }
+.formulario-cobro label { line-height: 1.5; }
+.tabla-consumos { scroll-padding-inline: .75rem; }
+.tabla-consumos table { min-width: 20rem; }
+.tabla-consumos td { padding: .75rem .5rem; border-bottom: 1px solid var(--color-borde); }
+.detalle-cuenta section[aria-labelledby="pagos"] li { padding-block: .75rem; }
+.area-caja .detalle-cuenta > section { min-width: 0; }
+@media (max-width: 639px) {
+  .area-caja .cuenta-enlace { flex-direction: column; gap: .5rem; padding: .875rem; }
+  .area-caja .cuenta-enlace > span:last-child { width: 100%; border-top: 1px solid var(--color-borde); padding-top: .75rem; }
+  .area-caja .formulario-cobro { padding: 1rem; }
+}

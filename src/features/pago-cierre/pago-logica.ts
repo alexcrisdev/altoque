@@ -87,8 +87,8 @@ export function validarPagoTarjeta(
   return null;
 }
 
-// Quién puede confirmar que un Yape llegó: caja, dueño y admin (el mesero registra, no verifica).
-const ROLES_VERIFICAN = ["CASHIER", "OWNER", "ADMIN"] as const;
+// US-106: solo caja confirma que un Yape/Plin llegó (ni mesero, ni dueño, ni admin).
+const ROLES_VERIFICAN = ["CASHIER"] as const;
 export function puedeVerificarPagos(roles: readonly string[]): boolean {
   return roles.some((rol) => (ROLES_VERIFICAN as readonly string[]).includes(rol));
 }

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+vi.mock(import("../../src/features/dashboard/pedidos-de-prueba"), async (importOriginal) => ({
+  ...await importOriginal(),
+  obtenerIdsPedidosDePrueba: async () => new Set<string>(),
+}));
 vi.mock("../../src/lib/supabase/server", () => ({ crearClienteServidor: vi.fn() }));
 import { crearClienteServidor } from "../../src/lib/supabase/server";
 import { obtenerTiemposCocina } from "../../src/features/dashboard/tiempos-cocina";

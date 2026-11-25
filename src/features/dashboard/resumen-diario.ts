@@ -1,6 +1,7 @@
 import "server-only";
 
 import { crearClienteAdmin } from "../../lib/supabase/admin";
+import { cuentaDePrueba, esPedidoDePrueba, obtenerIdsPedidosDePrueba, obtenerSesionesSoloDePrueba } from "./pedidos-de-prueba";
 import { rangoLimaAUtc } from "./ventas-logica";
 import type { PedidoTendencia } from "./tendencias-logica";
 import {
@@ -19,6 +20,11 @@ const TAMANO_PAGINA = 500;
 type FilaRestaurante = {
   id: string;
   restaurant_id: string;
+};
+
+type FilaCierre = CierreResumenDiario & FilaRestaurante & {
+  order_id: string | null;
+  table_session_id: string | null;
 };
 
 type RespuestaPagina<T> = {
@@ -188,13 +194,11 @@ export async function obtenerResumenDiario(
       >(),
   );
 
-  const cierres = await leerPaginas<
-    CierreResumenDiario & FilaRestaurante
-  >(restauranteId, inicio =>
+  const cierres = await leerPaginas<FilaCierre>(restauranteId, inicio =>
     cliente
       .from("account_closures")
       .select(
-        "id, restaurant_id, kind, reason, closed_at",
+        "id, restaurant_id, kind, reason, closed_at, order_id, table_session_id",
         { count: "exact" },
       )
       .eq("restaurant_id", restauranteId)
@@ -204,7 +208,7 @@ export async function obtenerResumenDiario(
       .order("id")
       .range(inicio, inicio + TAMANO_PAGINA - 1)
       .overrideTypes<
-        (CierreResumenDiario & FilaRestaurante)[],
+        FilaCierre[],
         { merge: false }
       >(),
   );
@@ -246,15 +250,20 @@ export async function obtenerResumenDiario(
     );
   }
 
+  const idsDePrueba = await obtenerIdsPedidosDePrueba(cliente, restauranteId);
+  const sesiones = [...pagos, ...cierres].flatMap((cuenta) =>
+    cuenta.table_session_id ? [cuenta.table_session_id] : []);
+  const sesionesDePrueba = await obtenerSesionesSoloDePrueba(cliente, restauranteId, sesiones, idsDePrueba);
+
   return calcularResumenDiario({
     restaurante: {
       id: restaurante.data.id,
       nombre: restaurante.data.name,
     },
     fecha,
-    pagos,
-    pedidos,
-    cierres,
+    pagos: pagos.filter((pago) => !cuentaDePrueba(pago, idsDePrueba, sesionesDePrueba)),
+    pedidos: pedidos.filter((pedido) => !esPedidoDePrueba(pedido.id, idsDePrueba)),
+    cierres: cierres.filter((cierre) => !cuentaDePrueba(cierre, idsDePrueba, sesionesDePrueba)),
     predicciones: predicciones.map(fila => {
       if (
         !fila.producto ||

@@ -16,7 +16,7 @@ function Indicador({
   const v = comparacion.variacionPct;
   const bueno = v === null || v === 0 ? null : menosEsMejor ? v < 0 : v > 0;
   return (
-    <Tarjeta className="space-y-1 p-4">
+    <Tarjeta relleno="compacto" className="indicador-vivo space-y-2">
       <p className="text-sm text-texto-suave">{titulo}</p>
       <p className="text-2xl font-bold tabular-nums">
         {comparacion.hoy === null ? "—" : formato(comparacion.hoy)}
@@ -79,8 +79,8 @@ export function PanelVivoVista({ panel }: { panel: PanelVivo }) {
   ];
 
   return (
-    <div className="space-y-4">
-      <section aria-label="Indicadores de hoy" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+    <div className="panel-vivo space-y-5">
+      <section aria-label="Indicadores de hoy" className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-5">
         <Indicador titulo="Ventas" comparacion={panel.ventas} formato={soles} />
         <Indicador titulo="Pedidos" comparacion={panel.pedidos} formato={(n) => String(n)} />
         <Indicador titulo="Ticket promedio" comparacion={panel.ticket} formato={soles} />
@@ -112,7 +112,7 @@ export function PanelVivoVista({ panel }: { panel: PanelVivo }) {
           {panel.top.length === 0 ? (
             <p className="text-sm text-texto-suave">Aún no hay ventas hoy.</p>
           ) : (
-            <ol className="space-y-1">
+            <ol className="space-y-2">
               {panel.top.map((p, i) => (
                 <li key={p.productId} className="flex justify-between gap-3 text-sm">
                   <span className="min-w-0 break-words">{i + 1}. {p.nombre}</span>
@@ -128,7 +128,7 @@ export function PanelVivoVista({ panel }: { panel: PanelVivo }) {
           {panel.mesas.length === 0 ? (
             <p className="text-sm text-texto-suave">Sin mesas registradas.</p>
           ) : (
-            <ul className="grid grid-cols-4 gap-2">
+            <ul className="grid grid-cols-3 gap-2">
               {panel.mesas.map((m) => (
                 <li key={m.id} className={`rounded-xl border p-2 text-center text-xs ${ESTILO_MESA[m.estado].clase}`}>
                   <span className="block text-base font-bold">{m.numero}</span>

@@ -1,0 +1,41 @@
+.pedidos-vista { margin-top: 1.25rem; }
+.pedidos-vista .pedidos-filtros {
+  display: grid;
+  align-items: end;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-borde);
+  border-radius: .875rem;
+  background: var(--color-superficie);
+}
+.pedidos-vista .pedidos-filtros > div { min-width: 0; }
+.pedidos-vista .pedidos-filtros label { display: block; margin-bottom: .375rem; font-size: .875rem; font-weight: 600; }
+.pedidos-vista .pedidos-filtros :is(input, select) { width: 100%; min-height: 48px; }
+.pedidos-vista .pedidos-filtros > button { min-height: 48px; }
+.pedidos-vista .pedidos-resumen { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .375rem 1rem; margin-block: 1rem; color: var(--color-texto-suave); font-size: .8125rem; }
+.pedidos-vista .pedidos-resumen strong { color: var(--color-texto); }
+.pedidos-vista .pedidos-cuadricula { display: grid; grid-template-columns: minmax(0, 1fr); gap: .875rem; }
+.pedidos-vista .pedidos-cuadricula > li { min-width: 0; }
+.pedidos-vista .pedido-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  height: 100%;
+  padding: 1rem;
+  border: 1px solid var(--color-borde);
+  border-radius: .875rem;
+  background: var(--color-superficie);
+}
+.pedidos-vista .pedido-tarjeta:hover, .pedidos-vista .pedido-tarjeta:focus-within { border-color: var(--color-marca); }
+.pedidos-vista .pedido-tarjeta > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem .75rem; }
+.pedidos-vista .pedido-tarjeta h2 { font-size: 1rem; font-weight: 700; }
+.pedidos-vista .pedido-tarjeta h2 a { display: inline-flex; align-items: center; gap: .375rem; min-height: 44px; border-radius: .375rem; color: var(--color-marca); text-decoration: underline; text-underline-offset: .2em; }
+.pedidos-vista .pedido-tarjeta-destino { flex: 1; font-size: .9375rem; font-weight: 600; overflow-wrap: anywhere; }
+.pedidos-vista .pedido-tarjeta-fecha { padding-top: .75rem; border-top: 1px solid var(--color-borde); color: var(--color-texto-suave); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+@media (min-width: 640px) {
+  .pedidos-vista .pedidos-filtros { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .pedidos-vista .pedidos-cuadricula { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .pedidos-vista .pedidos-cuadricula { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

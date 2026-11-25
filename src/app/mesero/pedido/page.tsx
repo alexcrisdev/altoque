@@ -5,25 +5,20 @@ import {
   MensajeEstado,
 } from "@/components/ui";
 import { listarLocales } from "@/features/acceso-qr/mesas";
-import { requerirRol } from "@/features/auth/sesion";
+import { requerirPanel } from "@/features/auth/sesion";
 import { obtenerCarta } from "@/features/carta/carta";
 import { agruparPorCategoria } from "@/features/carta/formato";
 import { listarMesasConSesion } from "@/features/mesero/sesiones";
 import { FormularioPedidoAsistido } from "./formulario-pedido-asistido";
 
 async function PedidoAsistido() {
-  const sesion = await requerirRol(["WAITER", "OWNER", "ADMIN"]);
-
-  const membresia = sesion.membresias.find((m) =>
-    ["WAITER", "OWNER", "ADMIN"].includes(m.rol),
-  );
-
-  if (!membresia) return null;
+  // US-106: solo el mesero registra pedidos asistidos.
+  const { restauranteId } = await requerirPanel("mesero");
 
   const [carta, mesas, locales] = await Promise.all([
-    obtenerCarta(membresia.restaurantId),
-    listarMesasConSesion(membresia.restaurantId),
-    listarLocales(membresia.restaurantId),
+    obtenerCarta(restauranteId),
+    listarMesasConSesion(restauranteId),
+    listarLocales(restauranteId),
   ]);
 
   // Solo se ofrecen mesas con sesión abierta:
@@ -49,7 +44,7 @@ async function PedidoAsistido() {
 
 export default function PedidoAsistidoPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <main id="contenido-principal" className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <div className="mb-4">
         <BotonEnlace href="/mesero" variante="fantasma">
           ← Panel mesero

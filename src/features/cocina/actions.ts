@@ -4,7 +4,7 @@ import { requerirRol } from "../auth/sesion";
 import { listarPedidosCocina, obtenerEstadoActualCocina } from "./pedidos-cocina";
 import { vencerPedidosSinPago } from "../pedidos/vencimiento-datos";
 
-const ROLES_COCINA = ["KITCHEN", "OWNER", "ADMIN"] as const;
+const ROLES_COCINA = ["KITCHEN"] as const; // US-106
 
 // El restaurante procede de la sesión del personal, nunca de parámetros del navegador.
 export async function obtenerPanelCocina(pedidoId?: string) {

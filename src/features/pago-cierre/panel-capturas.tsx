@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton, Insignia, Tarjeta } from "../../components/ui";
 import { consultarCapturasAction, fotoCapturaAction, verificarCapturaAction } from "./capturas-actions";
 import { suscribirCapturas } from "./capturas-realtime";
-import { ESPERA_CONFIRMACION, motivoRechazoCaptura, programarConfirmacion, requiereAvisoCaptura, tiempoCaptura, type CapturaPendiente, type ResultadoCaptura } from "./capturas-logica";
+import { ESPERA_CONFIRMACION, motivoRechazoCaptura, programarConfirmacion, tiempoCaptura, type CapturaPendiente, type ResultadoCaptura } from "./capturas-logica";
 import { centimosATexto, parsearSoles } from "./pago-logica";
 
 function TarjetaCaptura({ captura, restauranteId, ahora, actualizar }: {
@@ -64,7 +64,7 @@ function TarjetaCaptura({ captura, restauranteId, ahora, actualizar }: {
       <Boton type="button" variante="secundario" onClick={() => { cancelar.current?.(); cancelar.current = null; bloqueado.current = false; setPendiente(null); }}>Deshacer</Boton>
     </div> : <fieldset disabled={enviando} className="flex flex-wrap gap-2">
       <legend className="sr-only">Verificar pago</legend>
-      <Boton type="button" className="bg-exito-fondo! text-exito-texto! border-exito-borde! hover:bg-exito-fondo!" onClick={() => preparar("COMPLETE")}>Llegó completo</Boton>
+      <Boton type="button" variante="exito" onClick={() => preparar("COMPLETE")}>Llegó completo</Boton>
       <Boton type="button" variante="secundario" onClick={() => setOtroMonto(!otroMonto)}>Llegó otro monto</Boton>
       <Boton type="button" variante="peligro" aria-expanded={rechazando} onClick={() => setRechazando(!rechazando)}>No llegó</Boton>
       {rechazando && <div className="w-full space-y-2">
@@ -83,7 +83,8 @@ function TarjetaCaptura({ captura, restauranteId, ahora, actualizar }: {
   </Tarjeta>;
 }
 
-export function PanelCapturas({ restauranteId, mesero = false }: { restauranteId: string; mesero?: boolean }) {
+// US-106: solo caja usa este panel; el mesero ya no ve alertas de cobros.
+export function PanelCapturas({ restauranteId }: { restauranteId: string }) {
   const [capturas, setCapturas] = useState<CapturaPendiente[]>([]);
   const [error, setError] = useState("");
   const [ahora, setAhora] = useState(0);
@@ -91,10 +92,10 @@ export function PanelCapturas({ restauranteId, mesero = false }: { restauranteId
   const actualizar = useCallback(async () => {
     if (cargando.current) return;
     cargando.current = true;
-    try { setCapturas(await consultarCapturasAction(restauranteId, mesero)); setError(""); }
+    try { setCapturas(await consultarCapturasAction(restauranteId)); setError(""); }
     catch { setError("No pudimos actualizar los pagos. Conservamos la última lista y reintentaremos."); }
     finally { cargando.current = false; }
-  }, [restauranteId, mesero]);
+  }, [restauranteId]);
   useEffect(() => {
     const inicio = setTimeout(() => { setAhora(Date.now()); void actualizar(); }, 0);
     const reloj = setInterval(() => setAhora(Date.now()), 1000);
@@ -104,13 +105,10 @@ export function PanelCapturas({ restauranteId, mesero = false }: { restauranteId
     document.addEventListener("visibilitychange", reanudar); window.addEventListener("online", reanudar);
     return () => { clearTimeout(inicio); clearInterval(reloj); clearInterval(respaldo); cancelar(); document.removeEventListener("visibilitychange", reanudar); window.removeEventListener("online", reanudar); };
   }, [actualizar, restauranteId]);
-  const visibles = mesero ? capturas.filter(c => requiereAvisoCaptura(c.creadaEn, ahora)) : capturas;
-  return <section className="mt-6 space-y-3" aria-label={mesero ? "Alertas de Yape/Plin" : "Capturas por verificar"}>
-    {!mesero && <h2 className="text-xl font-semibold">Por verificar · Yape/Plin</h2>}
+  return <section className="mt-6 space-y-3" aria-label="Capturas por verificar">
+    <h2 className="text-xl font-semibold">Por verificar · Yape/Plin</h2>
     {error && <p role="status">{error}</p>}
-    {!mesero && !error && capturas.length === 0 && <p>No hay capturas pendientes.</p>}
-    {mesero ? <div role="status" aria-live="polite">{visibles.map(c => <Tarjeta key={c.id} className="border-aviso-borde bg-aviso-fondo">
-      {c.titulo}: Yape/Plin por verificar hace {Math.floor((ahora - Date.parse(c.creadaEn)) / 60000)} min
-    </Tarjeta>)}</div> : visibles.map(c => <TarjetaCaptura key={c.id} captura={c} restauranteId={restauranteId} ahora={ahora} actualizar={() => void actualizar()} />)}
+    {!error && capturas.length === 0 && <p>No hay capturas pendientes.</p>}
+    {capturas.map(c => <TarjetaCaptura key={c.id} captura={c} restauranteId={restauranteId} ahora={ahora} actualizar={() => void actualizar()} />)}
   </section>;
 }

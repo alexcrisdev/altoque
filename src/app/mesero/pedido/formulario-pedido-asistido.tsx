@@ -10,7 +10,9 @@ import {
 import { formatearPrecio } from "@/features/carta/formato";
 import type { CategoriaConProductos } from "@/features/carta/tipos";
 import { registrarPedidoAsistidoAction } from "@/features/mesero/actions";
+import { cambiarRespuestaAlergia } from "@/features/mesero/alergia-asistida";
 import type { ResultadoRegistroPedido } from "@/features/pedidos/actions";
+import { ALERGIA_INICIAL, ALERGENOS, DECLARACION_ALERGIA, validarAlergia, type AlergiaFormulario, type Alergeno } from "@/features/pedidos/alergias";
 import {
   agregarAlCarrito,
   aItemsPedido,
@@ -59,6 +61,7 @@ export function FormularioPedidoAsistido({
   const [mesaId, setMesaId] = useState(mesas[0]?.id ?? "");
   const [localId, setLocalId] = useState(locales[0]?.id ?? "");
   const [items, setItems] = useState<ItemCarrito[]>([]);
+  const [alergia, setAlergia] = useState<AlergiaFormulario>(ALERGIA_INICIAL);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] =
     useState<ResultadoRegistroPedido | null>(null);
@@ -95,6 +98,12 @@ export function FormularioPedidoAsistido({
       return;
     }
 
+    const validacion = validarAlergia(alergia);
+    if (!validacion.ok) {
+      setResultado({ ok: false, mensaje: validacion.mensaje });
+      return;
+    }
+
     envioEnCurso.current = true;
     setEnviando(true);
     setResultado(null);
@@ -111,12 +120,14 @@ export function FormularioPedidoAsistido({
         clave.current,
         solicitud,
         aItemsPedido(items, productos),
+        alergia,
       );
 
       setResultado(respuesta);
 
       if (respuesta.ok) {
         setItems([]);
+        setAlergia(ALERGIA_INICIAL);
         clave.current = null;
       }
     } catch {
@@ -132,7 +143,7 @@ export function FormularioPedidoAsistido({
   }
 
   return (
-    <div className="mt-6 grid gap-8">
+    <div className="pedido-asistido mt-6 grid items-start gap-6">
       <fieldset
         disabled={enviando}
         className="grid gap-4 rounded-2xl border border-borde bg-superficie p-5 text-texto disabled:opacity-60"
@@ -388,6 +399,43 @@ export function FormularioPedidoAsistido({
           <p className="mt-4 text-lg font-semibold">
             Total: {formatearPrecio(total / 100)}
           </p>
+
+          <fieldset disabled={enviando} className="mt-4 space-y-3 rounded-xl border border-aviso-borde bg-aviso-fondo p-4 disabled:opacity-60">
+            <legend className="px-1 font-semibold">¿Alguien tiene alergias?</legend>
+            <div className="flex gap-3">
+              {([["NONE", "No"], ["YES", "Sí"]] as const).map(([respuesta, etiqueta]) => (
+                <Boton key={respuesta} type="button" variante="secundario" aria-pressed={alergia.respuesta === respuesta}
+                  className="flex-1 aria-pressed:border-info-borde aria-pressed:bg-info-fondo aria-pressed:text-info-texto"
+                  onClick={() => {
+                    if (alergia.respuesta !== respuesta) {
+                      cambiar(() => setAlergia((actual) => cambiarRespuestaAlergia(actual, respuesta)));
+                    }
+                  }}>
+                  {etiqueta}
+                </Boton>
+              ))}
+            </div>
+            {alergia.respuesta === "YES" && <div className="space-y-3 rounded-lg bg-peligro-fondo p-3 text-peligro-texto">
+              <p className="font-semibold">Indica la alergia para avisar a cocina.</p>
+              {(Object.entries(ALERGENOS) as [Alergeno, string][]).map(([codigo, etiqueta]) => (
+                <label key={codigo} className="flex min-h-11 items-center gap-3">
+                  <input type="checkbox" checked={alergia.alergenos.includes(codigo)} onChange={(e) => {
+                    const marcado = e.target.checked;
+                    cambiar(() => setAlergia((actual) => ({ ...actual, alergenos: marcado ? [...actual.alergenos, codigo] : actual.alergenos.filter((a) => a !== codigo) })));
+                  }} />{etiqueta}
+                </label>
+              ))}
+              <label className="grid gap-2">Detalle (opcional, máx. 120)
+                <textarea maxLength={120} rows={2} value={alergia.detalle} className="w-full rounded-lg border border-borde bg-superficie p-3 text-texto"
+                  onChange={(e) => { const detalle = e.target.value; cambiar(() => setAlergia((actual) => ({ ...actual, detalle }))); }} />
+              </label>
+              <p className="text-sm">Escribe solo información de la alergia, sin nombres, teléfonos ni otros datos personales.</p>
+              <label className="flex min-h-11 items-start gap-3">
+                <input type="checkbox" checked={alergia.aceptada} onChange={(e) => { const aceptada = e.target.checked; cambiar(() => setAlergia((actual) => ({ ...actual, aceptada }))); }} />
+                <span>{DECLARACION_ALERGIA}</span>
+              </label>
+            </div>}
+          </fieldset>
 
           {resultado &&
             (resultado.ok ? (
