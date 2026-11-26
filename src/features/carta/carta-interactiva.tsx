@@ -434,7 +434,7 @@ export function CartaInteractiva({
                   producto.quedan <= POCAS_UNIDADES;
 
                 return (
-                <li key={producto.id} className="relative">
+                <li key={producto.id} className="mov-fundido relative">
                   <Boton
                     type="button"
                     variante="secundario"

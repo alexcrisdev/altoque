@@ -47,7 +47,7 @@ function TarjetaCaptura({ captura, restauranteId, ahora, actualizar }: {
         .finally(() => { bloqueado.current = false; setEnviando(false); });
     });
   }
-  return <Tarjeta className="space-y-3">
+  return <Tarjeta className="mov-aviso space-y-3">
     <h3 className="text-lg font-bold">{captura.titulo} · {captura.wallet === "YAPE" ? "Yape" : "Plin"}</h3>
     <p>Esperado: S/ {centimosATexto(captura.esperado)} · Declarado: S/ {centimosATexto(captura.declarado)}</p>
     <p><time dateTime={captura.creadaEn}>{new Date(captura.creadaEn).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}</time> · hace {tiempoCaptura(captura.creadaEn, ahora)}</p>
@@ -109,7 +109,7 @@ export function PanelCapturas({ restauranteId, mesero = false }: { restauranteId
     {!mesero && <h2 className="text-xl font-semibold">Por verificar · Yape/Plin</h2>}
     {error && <p role="status">{error}</p>}
     {!mesero && !error && capturas.length === 0 && <p>No hay capturas pendientes.</p>}
-    {mesero ? <div role="status" aria-live="polite">{visibles.map(c => <Tarjeta key={c.id} tono="aviso">
+    {mesero ? <div role="status" aria-live="polite">{visibles.map(c => <Tarjeta key={c.id} tono="aviso" className="mov-aviso">
       {c.titulo}: Yape/Plin por verificar hace {Math.floor((ahora - Date.parse(c.creadaEn)) / 60000)} min
     </Tarjeta>)}</div> : visibles.map(c => <TarjetaCaptura key={c.id} captura={c} restauranteId={restauranteId} ahora={ahora} actualizar={() => void actualizar()} />)}
   </section>;

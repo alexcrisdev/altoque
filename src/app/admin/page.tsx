@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import {
   Boton,
-  BotonEnlace,
   EncabezadoPantalla,
   MensajeEstado,
   Tarjeta,
@@ -15,15 +14,6 @@ import { consultarPrediccionMananaAction } from "@/features/dashboard/prediccion
 import { TarjetaPrediccion } from "@/features/dashboard/tarjeta-prediccion";
 import { consultarActividadDiaAction } from "@/features/dashboard/actividad-actions";
 import { ActividadVista } from "@/features/dashboard/actividad-vista";
-
-const secciones = [
-  { href: "/admin/mesas", titulo: "Mesas y códigos QR", texto: "Organiza el salón y los accesos a la carta de cada mesa.", grupo: "Sala" },
-  { href: "/admin/productos", titulo: "Administrar productos", texto: "Actualiza platos, precios, detalles y disponibilidad de la carta.", grupo: "Carta" },
-  { href: "/admin/stock", titulo: "Registrar stock del día", texto: "Define las unidades disponibles para la jornada de hoy.", grupo: "Inventario" },
-  { href: "/admin/para-llevar", titulo: "Pedidos para llevar", texto: "Configura la información solicitada al cliente del mostrador.", grupo: "Mostrador" },
-  { href: "/admin/pedidos", titulo: "Pedidos", texto: "Consulta el historial y los detalles de cada pedido.", grupo: "Operación" },
-  { href: "/admin/reportes", titulo: "Reportes de ventas", texto: "Revisa ventas, tendencias y tiempos para tomar decisiones.", grupo: "Análisis" },
-] as const;
 
 async function AdminPanel() {
   await requerirRol(["OWNER", "ADMIN"]);
@@ -79,16 +69,6 @@ async function AdminPanel() {
         <ActividadVista resultado={actividad} />
         </section>
       </details>
-
-      <nav className="admin-accesos" aria-label="Administración"><ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {secciones.map(({ href, titulo, texto, grupo }) => <li key={href}><Tarjeta relleno="amplio" className="flex h-full flex-col">
-        <h2 className="text-base font-bold"><BotonEnlace href={href} variante="secundario" className="w-full justify-start text-left">{titulo}</BotonEnlace></h2>
-        <details className="ayuda-discreta">
-          <summary>{grupo} · Detalles</summary>
-          <p className="pb-1 text-sm text-texto-suave">{texto}</p>
-        </details>
-      </Tarjeta></li>)}
-    </ul></nav>
     </main>
   );
 }

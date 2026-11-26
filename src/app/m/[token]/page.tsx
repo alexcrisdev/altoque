@@ -92,7 +92,7 @@ async function Contenido({ params, searchParams }: Props) {
         }
         subtitulo={`${acceso.restauranteNombre} · ${acceso.localNombre}`}
       />
-      <div className="bienvenida-carta rounded-2xl border border-info-borde bg-info-fondo px-5 py-4">
+      <div className="mov-acceso bienvenida-carta rounded-2xl border border-info-borde bg-info-fondo px-5 py-4">
         <h2 className="text-lg font-bold text-texto">¿Qué te provoca hoy?</h2>
         <details className="ayuda-discreta">
           <summary>Cómo pedir</summary>

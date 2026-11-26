@@ -199,7 +199,7 @@ function Salon({ mesas, localId, puedeEditar, detalles }: Props & { localId: str
     <div className="plano-leyenda" aria-label="Estados de las mesas">
       {Object.entries(etiquetas).map(([estado, etiqueta]) => <span key={estado} className="plano-estado" data-estado={estado}>{etiqueta}</span>)}
     </div>
-    <p role="status" className={mensaje ? "plano-instruccion" : "sr-only"}>{mensaje}</p>
+    <p role="status" className={mensaje ? `plano-instruccion ${edicion ? "" : "mov-fundido"}` : "sr-only"}>{mensaje}</p>
     <FichaPlano abierta={!!activa} local={activa?.local ?? ""} titulo={activa ? `Mesa ${activa.numero}` : ""}
       cerrar={() => { abrirFicha(null); invocador.current?.focus({ preventScroll: true }); }}>
       {activa && <div key={activa.id} className="grid gap-3">
