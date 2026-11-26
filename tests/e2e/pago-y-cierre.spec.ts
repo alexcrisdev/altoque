@@ -26,22 +26,33 @@ test("CP-030-07 a 11: Yape, tarjeta, efectivo parcial, entrega y cierre de Mesa 
   expect(total).toBeGreaterThanOrEqual(4);
   const parte = Math.max(1, Math.floor(total / 4));
 
+  // US-105: nadie verifica el Yape que registró. Caja lo anota y el admin lo verifica
+  // desde /admin/cuentas (con un solo cajero).
   await test.step("CP-030-09: Yape pendiente y rechazado no descuentan; confirmado sí", async () => {
     await caja.getByText("Yape", { exact: true }).click();
     await caja.getByLabel(/^Monto \(S\/\)/).fill(textoSoles(parte));
     await caja.getByLabel("N.º de operación de Yape", { exact: true }).fill(`US030-R-${randomUUID().slice(0,8)}`);
     await caja.getByRole("button", { name: "Registrar Yape", exact: true }).click();
-    await expect(caja.getByRole("button", { name: "Rechazar", exact: true })).toHaveCount(1);
+    await expect(caja.getByText(/^Lo registraste tú: debe verificarlo otra persona/)).toHaveCount(1);
+    await expect(caja.getByRole("button", { name: "Rechazar", exact: true })).toHaveCount(0);
     expect(await saldoVisible(caja)).toBe(total);
     await expect(caja.getByRole("button", { name: "Cerrar cuenta", exact: true })).toHaveCount(0);
     await expect(caja.getByRole("status").filter({ hasText: /Yape por verificar/ })).toBeVisible();
-    await caja.getByRole("button", { name: "Rechazar", exact: true }).click();
-    await expect(caja.getByRole("button", { name: "Rechazar", exact: true })).toHaveCount(0);
+    const admin = await pedido.staff("admin");
+    await admin.goto(rutaAdmin(p.ruta));
+    await admin.getByRole("button", { name: "Rechazar", exact: true }).click();
+    await expect(admin.getByRole("button", { name: "Rechazar", exact: true })).toHaveCount(0);
+    await caja.reload();
     expect(await saldoVisible(caja)).toBe(total);
+    await caja.getByText("Yape", { exact: true }).click();
+    await caja.getByLabel(/^Monto \(S\/\)/).fill(textoSoles(parte));
     await caja.getByLabel("N.º de operación de Yape", { exact: true }).fill(`US030-C-${randomUUID().slice(0,8)}`);
     await caja.getByRole("button", { name: "Registrar Yape", exact: true }).click();
-    await caja.getByRole("button", { name: "Confirmar recepción", exact: true }).click();
-    await expect.poll(() => saldoVisible(caja)).toBe(total - parte);
+    await expect(caja.getByText(/^Lo registraste tú: debe verificarlo otra persona/)).toHaveCount(1);
+    await admin.reload();
+    await admin.getByRole("button", { name: "Confirmar recepción", exact: true }).click();
+    await expect(admin.getByRole("button", { name: "Confirmar recepción", exact: true })).toHaveCount(0);
+    await expect.poll(async () => { await caja.reload(); return saldoVisible(caja); }).toBe(total - parte);
   });
 
   await test.step("CP-030-10: tarjeta rechazada no descuenta; aprobada sí", async () => {

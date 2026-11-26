@@ -18,13 +18,13 @@ test("US-091: alergia declarada aparece en cocina y mesero tras el pago previo",
   await pagarMesaEnCaja(pedido);
   const [propio] = await pedidosPropios(pedido.admin, pedido.marca);
   const cocina = await pedido.staff("cocina");
-  const tarjeta = cocina.getByRole("button", { name: `Marcar listo el pedido N.º ${propio.order_number}`, exact: true });
+  const tarjeta = cocina.getByRole("button", { name: `Marcar listo el pedido N.º ${propio.daily_number}`, exact: true });
   await expect(tarjeta.getByText("Alergia: Maní — Evitar contacto")).toBeVisible();
   await expect(tarjeta).toHaveAccessibleDescription(/Alergia: Maní — Evitar contacto/);
   await expect(cocina.getByRole("button", { name: /Aceptar pedido|Empezar preparación/ })).toHaveCount(0);
   await tarjeta.click();
   await expect.poll(async () => (await pedidosPropios(pedido.admin, pedido.marca))[0].status).toBe("READY");
-  await cocina.getByRole("button", { name: `Deshacer el pedido N.º ${propio.order_number}`, exact: true }).click();
+  await cocina.getByRole("button", { name: `Deshacer el pedido N.º ${propio.daily_number}`, exact: true }).click();
   await expect.poll(async () => (await pedidosPropios(pedido.admin, pedido.marca))[0].status).toBe("IN_PROGRESS");
   const mesero = await pedido.staff("mesero");
   await mesero.goto("/mesero");

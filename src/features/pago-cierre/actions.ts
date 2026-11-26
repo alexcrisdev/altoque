@@ -10,7 +10,7 @@ import {
   mensajeErrorPago,
   normalizarReferencia,
   parsearSoles,
-  puedeVerificarPagos,
+  puedeVerificarPagoAjeno,
   validarPagoEfectivo,
   validarPagoTarjeta,
   validarPagoYape,
@@ -142,9 +142,10 @@ export async function verificarPagoAction(
   confirmar: unknown,
 ): Promise<{ ok: true } | { ok: false; mensaje: string }> {
   const sesion = await obtenerSesion();
-  if (!sesion || !puedeVerificarPagos(sesion.membresias.map((m) => m.rol))) {
+  // US-105: caja, o el dueño/admin desde /admin/cuentas. La base impide verificar el propio pago.
+  if (!sesion || !puedeVerificarPagoAjeno(sesion.membresias.map((m) => m.rol))) {
     if (sesion) await registrarAccesoDenegado(sesion.membresias.map((m) => m.rol));
-    return { ok: false, mensaje: "Solo caja puede verificar pagos Yape." };
+    return { ok: false, mensaje: "Solo caja, el dueño o el admin pueden verificar pagos Yape." };
   }
   if (!esUuid(pagoId) || typeof confirmar !== "boolean" || !cuenta || !esUuid(cuenta.id)) {
     return { ok: false, mensaje: mensajeErrorPago("INVALID_PAYMENT") };
@@ -152,6 +153,7 @@ export async function verificarPagoAction(
   const resultado = await verificarPago(pagoId, confirmar);
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
   refrescarCaja(cuenta);
+  revalidatePath("/admin/cuentas", "layout");
   // US-086: el Yape cuenta como pago recién cuando caja confirma que llegó.
   if (resultado.estado === "CONFIRMED") programarAvisoPago(pagoId);
   return { ok: true };

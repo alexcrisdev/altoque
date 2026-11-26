@@ -155,17 +155,24 @@ describe("US-106: matriz de roles en la base", () => {
     expect((await estado(c.mesero, pedidoA!, "DELIVERED")).error).toBeNull();
   });
 
-  it("cobrar y verificar Yape: solo caja", async () => {
+  // US-105 cambió la verificación: con un solo cajero, el dueño o el admin verifican el pago
+  // que registró otra persona; nadie verifica el suyo. Cobrar sigue siendo solo de caja.
+  it("cobrar: solo caja; verificar Yape: caja, dueño o admin, nunca quien lo registró", async () => {
     for (const rol of ajenos("caja")) {
       expect((await pagar(c[rol], "CASH")).error?.message, rol).toContain("FORBIDDEN");
     }
     const yape = await pagar(c.caja, "YAPE");
     expect(yape.error).toBeNull();
-    for (const rol of ajenos("caja")) {
+    for (const rol of ["mesero", "cocina"] as Rol[]) {
       const { error } = await c[rol].rpc("verificar_pago", { p_pago_id: yape.data!.pago_id, p_confirmar: true });
       expect(error?.message, rol).toContain("FORBIDDEN");
     }
-    expect((await c.caja.rpc("verificar_pago", { p_pago_id: yape.data!.pago_id, p_confirmar: false })).error).toBeNull();
+    const propio = await c.caja.rpc("verificar_pago", { p_pago_id: yape.data!.pago_id, p_confirmar: false });
+    expect(propio.error?.message).toContain("SELF_VERIFICATION");
+    // El admin lo rechaza (no llegó): la cuenta sigue debiendo para la prueba de cierre.
+    expect((await c.admin.rpc("verificar_pago", { p_pago_id: yape.data!.pago_id, p_confirmar: false })).error).toBeNull();
+    const repetido = await c.dueno.rpc("verificar_pago", { p_pago_id: yape.data!.pago_id, p_confirmar: true });
+    expect(repetido.error?.message).toContain("ALREADY_VERIFIED");
   });
 
   it("el mesero ya no lee pagos ni capturas; caja, dueño y admin sí", async () => {

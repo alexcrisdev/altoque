@@ -10,6 +10,7 @@ type FilaPedidoRealtime = FilaAlergia & {
   id: string;
   restaurant_id: string;
   order_number: number;
+  daily_number?: number | null; // US-105: número del día
   status: EstadoPedido;
   ready_at: string | null;
   modality: Modalidad;
@@ -38,7 +39,7 @@ export function suscribirPedidosRestaurante(
       alCambiar({
         id: fila.id,
         alergia: leerAlergia(fila),
-        numero: Number(fila.order_number),
+        numero: Number(fila.daily_number ?? fila.order_number),
         creadoEn: "",
         estado: fila.status,
         listoEn: fila.ready_at,

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton, Insignia, Tarjeta } from "../../components/ui";
 import { consultarCapturasAction, fotoCapturaAction, verificarCapturaAction } from "./capturas-actions";
 import { suscribirCapturas } from "./capturas-realtime";
-import { ESPERA_CONFIRMACION, motivoRechazoCaptura, programarConfirmacion, tiempoCaptura, type CapturaPendiente, type ResultadoCaptura } from "./capturas-logica";
+import { ESPERA_CONFIRMACION, excedenteCaptura, motivoRechazoCaptura, programarConfirmacion, tiempoCaptura, type CapturaPendiente, type ResultadoCaptura } from "./capturas-logica";
 import { centimosATexto, parsearSoles } from "./pago-logica";
 
 function TarjetaCaptura({ captura, restauranteId, ahora, actualizar }: {
@@ -47,11 +47,15 @@ function TarjetaCaptura({ captura, restauranteId, ahora, actualizar }: {
         .finally(() => { bloqueado.current = false; setEnviando(false); });
     });
   }
-  return <Tarjeta className="space-y-3">
+  return <Tarjeta className="mov-aviso space-y-3">
     <h3 className="text-lg font-bold">{captura.titulo} · {captura.wallet === "YAPE" ? "Yape" : "Plin"}</h3>
     <p>Esperado: S/ {centimosATexto(captura.esperado)} · Declarado: S/ {centimosATexto(captura.declarado)}</p>
     <p><time dateTime={captura.creadaEn}>{new Date(captura.creadaEn).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}</time> · hace {tiempoCaptura(captura.creadaEn, ahora)}</p>
     {captura.duplicada && <Insignia tono="peligro">⚠ Esta imagen ya se subió antes</Insignia>}
+    {/* US-105: el saldo pudo bajar desde que el cliente subió la captura. */}
+    {excedenteCaptura(captura) > 0 && <p role="note" className="text-sm font-semibold text-aviso-texto">
+      ⚠ El monto declarado supera el saldo actual (S/ {centimosATexto(captura.saldoActual ?? 0)}) por S/ {centimosATexto(excedenteCaptura(captura))}. Confirma solo lo que corresponde o revisa la cuenta.
+    </p>}
     {foto && <a href={foto} target="_blank" rel="noopener noreferrer" aria-label={`Ampliar captura de ${captura.titulo}`}>
       {/* URL privada de 60 s: evitar el caché del optimizador de imágenes. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}

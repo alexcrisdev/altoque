@@ -1,4 +1,5 @@
 import "server-only";
+import { etiquetaNumeroDia } from "../pedidos/numero-dia";
 import { leerAlergia, type FilaAlergia } from "../pedidos/alergias";
 import { crearClienteServidor } from "../../lib/supabase/server";
 import { crearClienteAdmin } from "../../lib/supabase/admin";
@@ -58,6 +59,8 @@ const HORAS_PARA_LLEVAR_PAGADO = 12;
 type FilaPedido = FilaAlergia & {
   id: string;
   order_number: number;
+  daily_number?: number | null; // US-105: número del día
+  business_date?: string | null;
   status: EstadoPedido;
   created_at: string;
   table_session_id: string | null;
@@ -78,6 +81,7 @@ type FilaPago = {
   verified_at: string | null;
   verificador: { full_name: string } | null;
   registrador: { full_name: string } | null;
+  created_by?: string | null;
   created_at: string;
   table_session_id: string | null;
   order_id: string | null;
@@ -91,15 +95,15 @@ type FilaSesion = {
 };
 
 const COLUMNAS_PEDIDO =
-  "id, order_number, status, created_at, table_session_id, customer_name, allergy_answer, allergens, allergy_note, order_items(product_name, quantity, unit_price, observation)";
+  "id, order_number, daily_number, business_date, status, created_at, table_session_id, customer_name, allergy_answer, allergens, allergy_note, order_items(product_name, quantity, unit_price, observation)";
 const COLUMNAS_PAGO =
-  "id, payment_proof_id, method, status, amount, received_amount, change_amount, reference, stripe_session_id, verified_at, created_at, table_session_id, order_id, verificador:users!payments_verified_by_fkey(full_name), registrador:users!payments_created_by_fkey(full_name)";
+  "id, payment_proof_id, method, status, amount, received_amount, change_amount, reference, stripe_session_id, verified_at, created_by, created_at, table_session_id, order_id, verificador:users!payments_verified_by_fkey(full_name), registrador:users!payments_created_by_fkey(full_name)";
 
 function aPedidoCuenta(fila: FilaPedido): PedidoCuenta {
   return {
     id: fila.id,
     alergia: leerAlergia(fila),
-    numero: Number(fila.order_number),
+    numero: Number(fila.daily_number ?? fila.order_number),
     estado: fila.status,
     creadoEn: fila.created_at,
     lineas: fila.order_items.map((item) => ({
@@ -123,6 +127,7 @@ function aPagoCuenta(fila: FilaPago): PagoCuenta {
     vueltoCentimos: fila.change_amount === null ? null : aCentimos(fila.change_amount),
     referencia: fila.reference,
     registradoPor: fila.registrador?.full_name ?? null,
+    registradoPorId: fila.created_by ?? null,
     stripe: fila.stripe_session_id !== null,
     verificadoPor: fila.verified_at ? fila.verificador?.full_name ?? "Personal" : null,
     verificadoEn: fila.verified_at,
@@ -200,7 +205,7 @@ export async function obtenerCuentaParaLlevar(
     tipo: "PARA_LLEVAR",
     comprobante: comprobante.data,
     pedidoId: pedido.data.id,
-    numero: Number(pedido.data.order_number),
+    numero: Number(pedido.data.daily_number ?? pedido.data.order_number),
     nombre: pedido.data.customer_name,
     cierre: cierre.data ? aCierreCuenta(cierre.data) : null,
   };
@@ -283,7 +288,7 @@ export async function listarCuentasAbiertas(restauranteId: string, base: "/caja"
       );
       const fila: CuentaAbierta = {
         href: `${base}/pedido/${pedido.id}`,
-        titulo: `Para llevar #${pedido.order_number} – ${pedido.customer_name?.trim() || "Sin nombre"}`,
+        titulo: `Para llevar ${etiquetaNumeroDia(Number(pedido.daily_number ?? pedido.order_number), pedido.business_date)} – ${pedido.customer_name?.trim() || "Sin nombre"}`,
         detalle: "1 pedido",
         consumoCentimos: cuenta.consumoCentimos,
         pagadoCentimos: cuenta.pagadoCentimos,

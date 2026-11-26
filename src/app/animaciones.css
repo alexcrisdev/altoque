@@ -1,0 +1,103 @@
+@media (prefers-reduced-motion: no-preference) {
+  .mov-fundido {
+    animation: altoque-fundido 180ms ease-out;
+  }
+
+  .mov-acceso {
+    animation: altoque-entrada-vertical 200ms ease-out;
+  }
+
+  .mov-carrito {
+    animation: altoque-rebote 200ms ease-out;
+  }
+
+  /* Alternar el nombre reinicia el rebote al sumar o quitar una unidad. */
+  .mov-carrito-par {
+    animation-name: altoque-rebote-par;
+  }
+
+  [aria-current="step"] > .mov-paso {
+    animation: altoque-paso 200ms ease-out;
+  }
+
+  .mov-aviso {
+    transform-origin: center top;
+    animation: altoque-entrada-elastica 280ms ease-out;
+  }
+
+  .mov-deshacer {
+    transform-origin: center;
+    animation: altoque-entrada-elastica 220ms ease-out;
+  }
+
+  .mov-ticket {
+    animation: altoque-entrada-lateral 200ms ease-out;
+  }
+
+  .mov-saldo {
+    transform-origin: right center;
+    animation: altoque-pulso 240ms ease-in-out 2;
+  }
+
+  :is(.ui-boton, .cuenta-enlace, .reportes-pestana, .kds-pedido:is(button)) {
+    transition: transform 150ms ease-out;
+  }
+
+  :is(.ui-boton, .cuenta-enlace, .reportes-pestana, button.kds-pedido):not(:disabled):focus-visible {
+    transform: translateY(-1px);
+  }
+
+  @media (hover: hover) {
+    :is(.ui-boton, .cuenta-enlace, .reportes-pestana, button.kds-pedido):not(:disabled):hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.ui-boton, .cuenta-enlace, .reportes-pestana, .transition-colors, input, select, textarea) {
+    transition: none;
+  }
+}
+
+@keyframes altoque-fundido {
+  from { opacity: .65; }
+  to { opacity: 1; }
+}
+
+@keyframes altoque-entrada-vertical {
+  from { opacity: .75; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes altoque-entrada-lateral {
+  from { opacity: .75; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes altoque-entrada-elastica {
+  from { opacity: .6; transform: translateY(7px) scale(.97, .94); }
+  60% { opacity: 1; transform: translateY(-1px) scale(1.008, 1.015); }
+  82% { transform: translateY(0) scale(.998, .995); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes altoque-rebote {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.13); }
+}
+
+@keyframes altoque-rebote-par {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.13); }
+}
+
+@keyframes altoque-paso {
+  from { opacity: .65; transform: scale(.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes altoque-pulso {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}

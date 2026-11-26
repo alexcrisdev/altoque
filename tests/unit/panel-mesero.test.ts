@@ -90,7 +90,8 @@ describe("resumenMesa y minutosDesde", () => {
   });
 });
 
-const fila = { id: "pedido-1", order_number: 42, created_at: ahora, status: "READY", ready_at: ahora, modality: "DINE_IN",
+// US-105: número interno 420; el del día es 42 y es el que se muestra.
+const fila = { id: "pedido-1", order_number: 420, daily_number: 42, created_at: ahora, status: "READY", ready_at: ahora, modality: "DINE_IN",
   dining_table_id: "mesa-1", dining_tables: { number: 1 }, customer_name: null, source: "WAITER" };
 function consulta(data: unknown[] = [fila], error: { code: string; message: string } | null = null) {
   const cliente = { from: vi.fn().mockReturnThis(), select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
@@ -110,7 +111,7 @@ describe("consulta segura de pedidos activos", () => {
     expect(cliente.eq).toHaveBeenCalledExactlyOnceWith("restaurant_id", "cevicheria");
     expect(cliente.in).toHaveBeenCalledExactlyOnceWith("status", ESTADOS_ACTIVOS);
     expect(cliente.order).toHaveBeenCalledExactlyOnceWith("created_at", { ascending: true });
-    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, allergy_answer, allergens, allergy_note, source");
+    expect(cliente.select).toHaveBeenCalledExactlyOnceWith("id, order_number, daily_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, allergy_answer, allergens, allergy_note, source");
   });
   it("devuelve una lista vacía solo cuando la consulta fue correcta", async () => {
     consulta([]);

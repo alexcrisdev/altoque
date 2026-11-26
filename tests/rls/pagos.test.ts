@@ -18,6 +18,9 @@ let caja: SupabaseClient | undefined;
 let cajaId: string | undefined;
 let cocina: SupabaseClient | undefined;
 let duenoPolleria: SupabaseClient | undefined;
+// US-105: nadie verifica un pago que registró; el dueño verifica los Yape que anota caja.
+let dueno: SupabaseClient | undefined;
+let duenoId: string | undefined;
 let anon: SupabaseClient | undefined;
 let sessionId: string | undefined;
 let orderId: string | undefined;
@@ -59,9 +62,10 @@ beforeAll(async () => {
   if (!url || !anonKey || !password) throw new Error("Configura URL, clave pública y DEMO_PASSWORD en .env.local");
   const sesiones = await Promise.all([
     iniciar("mesero@demo.altoque.pe"), iniciar("caja@demo.altoque.pe"),
-    iniciar("cocina@demo.altoque.pe"), iniciar("dueno@polleria.demo"),
+    iniciar("cocina@demo.altoque.pe"), iniciar("dueno@polleria.demo"), iniciar("dueno@demo.altoque.pe"),
   ]);
-  [mesero, caja, cocina, duenoPolleria] = sesiones.map((s) => s.cliente);
+  [mesero, caja, cocina, duenoPolleria, dueno] = sesiones.map((s) => s.cliente);
+  duenoId = sesiones[4].usuarioId;
   meseroId = sesiones[0].usuarioId;
   cajaId = sesiones[1].usuarioId;
   anon = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -98,12 +102,20 @@ beforeAll(async () => {
 afterAll(async () => {
   const errores: string[] = [];
   try {
-    if (mesero && orderId) {
+    if (dueno && caja && orderId) {
       // Se cancela para que no quede en cocina; el pago de prueba se conserva como registro.
-      const { error } = await mesero.rpc("cambiar_estado_pedido", {
+      // US-105: ya está pagado, así que lo cancela el dueño (con motivo) y caja marca hecha
+      // la devolución que queda registrada.
+      const { error } = await dueno.rpc("cambiar_estado_pedido", {
         p_pedido_id: orderId, p_estado: "CANCELLED", p_motivo: "Prueba automática",
       });
       if (error) errores.push(`No se pudo cancelar el pedido de prueba: ${error.message}`);
+      const { data: devolucion } = await caja.from("order_refunds").select("id")
+        .eq("order_id", orderId).eq("status", "PENDING").maybeSingle<{ id: string }>();
+      if (devolucion) {
+        const marcada = await caja.rpc("marcar_devolucion_realizada", { p_devolucion_id: devolucion.id });
+        if (marcada.error) errores.push(`No se pudo cerrar la devolución de prueba: ${marcada.error.message}`);
+      }
     }
     if (mesero && meseroId && sessionId) {
       const { data: sesion } = await mesero.from("table_sessions").select("opened_at")
@@ -117,7 +129,7 @@ afterAll(async () => {
     }
   } finally {
     await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-    await Promise.all([mesero?.auth.signOut({ scope: "local" }), caja?.auth.signOut({ scope: "local" }), cocina?.auth.signOut({ scope: "local" }), duenoPolleria?.auth.signOut({ scope: "local" })]);
+    await Promise.all([mesero?.auth.signOut({ scope: "local" }), caja?.auth.signOut({ scope: "local" }), cocina?.auth.signOut({ scope: "local" }), duenoPolleria?.auth.signOut({ scope: "local" }), dueno?.auth.signOut({ scope: "local" })]);
   }
   if (errores.length) throw new Error(errores.join("; "));
 }, 30_000);
@@ -197,25 +209,28 @@ describe("RPC registrar_pago en efectivo (US-022)", () => {
     expect(error?.message).toContain("INVALID_PAYMENT");
   });
 
-  it("caja rechaza un Yape: queda quién y cuándo, y no baja el saldo", async () => {
-    const { data, error } = await caja!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: false });
+  // US-105: caja registró este Yape, así que no puede verificarlo; lo rechaza el dueño.
+  it("un Yape se rechaza por otra persona: queda quién y cuándo, y no baja el saldo", async () => {
+    const { error: errorPropio } = await caja!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: false });
+    expect(errorPropio?.message).toContain("SELF_VERIFICATION");
+    const { data, error } = await dueno!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: false });
     expect(error).toBeNull();
     expect(data).toBe("FAILED");
-    const { data: pago } = await caja!.from("payments").select("status, verified_by, verified_at, confirmed_at")
+    const { data: pago } = await caja!.from("payments").select("status, created_by, verified_by, verified_at, confirmed_at")
       .eq("id", yapeRechazado!).single();
-    expect(pago).toMatchObject({ status: "FAILED", verified_by: cajaId, confirmed_at: null });
+    expect(pago).toMatchObject({ status: "FAILED", created_by: cajaId, verified_by: duenoId, confirmed_at: null });
     expect(pago!.verified_at).toBeTruthy();
 
-    const { error: errorDoble } = await caja!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: true });
+    const { error: errorDoble } = await dueno!.rpc("verificar_pago", { p_pago_id: yapeRechazado, p_confirmar: true });
     expect(errorDoble?.message).toContain("ALREADY_VERIFIED");
   });
 
-  it("caja confirma un Yape y recién ahí cuenta como pagado", async () => {
+  it("otra persona confirma el Yape de caja y recién ahí cuenta como pagado", async () => {
     const { data } = await caja!.rpc("registrar_pago", {
       p_sesion_id: sessionId, p_pedido_id: null, p_metodo: "YAPE", p_monto: "1.00", p_recibido: null,
       p_referencia: "PRUEBA-YAPE-2", p_aprobado: null, p_clave: crypto.randomUUID(),
     }).single<{ pago_id: string }>();
-    const { data: estado, error } = await caja!.rpc("verificar_pago", { p_pago_id: data!.pago_id, p_confirmar: true });
+    const { data: estado, error } = await dueno!.rpc("verificar_pago", { p_pago_id: data!.pago_id, p_confirmar: true });
     expect(error).toBeNull();
     expect(estado).toBe("CONFIRMED");
 

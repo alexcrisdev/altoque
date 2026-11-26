@@ -11,6 +11,8 @@ import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
 import { Boton, EncabezadoPantalla, Insignia, MensajeEstado } from "@/components/ui";
 import { PanelCapturas } from "@/features/pago-cierre/panel-capturas";
 import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
+import { listarDevolucionesPendientes } from "@/features/pago-cierre/devoluciones";
+import { DevolucionesPendientes } from "@/features/pago-cierre/devoluciones-vista";
 
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
@@ -18,6 +20,8 @@ async function CajaPanel({ searchParams }: Pick<PageProps<"/caja">, "searchParam
   await requerirPanel("caja"); // US-106
   const anterior = (await searchParams).vista === "anterior";
   const { cuentas, mesas, actualizadoEn, restauranteId, puedeVerificar } = await obtenerPanelCaja();
+  // US-105: pedidos pagados cancelados por el dueño o el admin, con dinero por devolver.
+  const devoluciones = await listarDevolucionesPendientes(restauranteId);
   const salones = anterior ? [] : await obtenerSalonesCaja();
   const mesasOcupadas = mesas.filter((mesa) => mesa.sesion).length;
 
@@ -33,6 +37,7 @@ async function CajaPanel({ searchParams }: Pick<PageProps<"/caja">, "searchParam
           <TotalBilletera restauranteId={restauranteId} />
         </section>
       </div>
+      <DevolucionesPendientes devoluciones={devoluciones} />
 
       <div className="caja-distribucion mt-8 grid items-start gap-6">
       <section aria-labelledby="caja-cuentas" className="min-w-0 rounded-2xl border border-borde bg-superficie p-5 sm:p-6">
@@ -61,7 +66,7 @@ async function CajaPanel({ searchParams }: Pick<PageProps<"/caja">, "searchParam
                     )}
                   </span>
                   <span className="text-left sm:text-right">
-                    <span className={`block text-xl font-bold tabular-nums ${cuenta.saldoCentimos > 0 ? "text-texto" : "text-exito-texto"}`}>
+                    <span className={`block text-xl font-bold tabular-nums ${cuenta.saldoCentimos > 0 ? "mov-saldo text-texto" : "text-exito-texto"}`}>
                       {cuenta.saldoCentimos > 0 ? `Saldo ${soles(cuenta.saldoCentimos)}` : "Pagada · por cerrar"}
                     </span>
                     {cuenta.porVerificar > 0 && (

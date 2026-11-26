@@ -13,7 +13,7 @@ import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
 
 async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">) {
   const { pedidoId } = await params;
-  const { restauranteId, puedeVerificar, autorizaExcepcion } = await contextoCaja();
+  const { restauranteId, puedeVerificar, autorizaExcepcion, usuarioId } = await contextoCaja();
   if (!esUuid(pedidoId)) notFound();
   const cuenta = await obtenerCuentaParaLlevar(restauranteId, pedidoId);
   if (!cuenta) notFound();
@@ -26,7 +26,7 @@ async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">
       <DetalleCuenta
         cuenta={cuenta}
         cerrada={cuenta.cierre !== null}
-        verificacion={{ cuenta: { tipo: "PARA_LLEVAR", id: cuenta.pedidoId }, puedeVerificar }}
+        verificacion={{ cuenta: { tipo: "PARA_LLEVAR", id: cuenta.pedidoId }, puedeVerificar, usuarioId }}
       />
       {cuenta.cierre && <ResumenCierre cierre={cuenta.cierre} />}
       {cuenta.cierre && <TotalBilletera restauranteId={restauranteId} />}

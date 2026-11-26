@@ -1,6 +1,6 @@
 import {
   redondearCantidadPrevista,
-  topPlatosPrevistos,
+  seleccionarPrediccionPorPlato,
   type PrediccionPlato,
 } from "../dashboard/prediccion-logica";
 
@@ -42,12 +42,9 @@ export function crearSugerenciasStock(
   predicciones: readonly PrediccionPlato[],
   fecha: string,
 ): SugerenciaStock[] {
-  // Recupera todos los productos del modelo seleccionado, no solo tres.
-  return topPlatosPrevistos(
-    predicciones,
-    fecha,
-    Math.max(1, predicciones.length),
-  ).map(fila => {
+  // US-146: una predicción por plato (propia, otra real o demo), la misma
+  // selección que la tarjeta de mañana. Un plato sin datos conserva su demo.
+  return seleccionarPrediccionPorPlato(predicciones, fecha).map(fila => {
     const cantidad = redondearCantidadPrevista(fila.cantidadPrevista);
 
     return {

@@ -15,7 +15,8 @@ export async function contextoCaja(): Promise<{
   restauranteId: string;
   puedeVerificar: boolean;
   autorizaExcepcion: boolean;
+  usuarioId?: string;
 }> {
-  const { restauranteId, roles } = await requerirPanel("caja");
-  return { restauranteId, puedeVerificar: puedeVerificarPagos(roles), autorizaExcepcion: false };
+  const { restauranteId, roles, usuario } = await requerirPanel("caja");
+  return { restauranteId, puedeVerificar: puedeVerificarPagos(roles), autorizaExcepcion: false, usuarioId: usuario.id };
 }
