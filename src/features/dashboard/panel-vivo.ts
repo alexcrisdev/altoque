@@ -14,7 +14,7 @@ import {
   alertasStock,
   compararConAyer,
   estadoMesas,
-  fechasHoyAyer,
+  corteComparacion,
   ventasPorHora,
   type Comparacion,
   type EstadoMesa,
@@ -24,6 +24,7 @@ import type { MetodoPago } from "../pago-cierre/cuenta-logica";
 
 export type PanelVivo = {
   fecha: string;
+  horaCorte: string;
   ventas: Comparacion;
   pedidos: Comparacion;
   ticket: Comparacion;
@@ -71,28 +72,55 @@ async function leerPorId<T extends { id: string }>(
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
 
 async function pagosDelDia(
-  supabase: Cliente, restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>,
+  supabase: Cliente, restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>, corteUtc: string,
 ): Promise<PagoFila[]> {
   const { desdeUtc, hastaUtcExclusivo } = rangoLimaAUtc(fecha, fecha);
   const filas = await leerPorId("pagos", (despuesDe) => {
     let consulta = supabase.from("payments")
       .select("id, table_session_id, order_id, method, status, amount, confirmed_at")
       .eq("restaurant_id", restauranteId).eq("status", "CONFIRMED")
-      .gte("confirmed_at", desdeUtc).lt("confirmed_at", hastaUtcExclusivo);
+      .gte("confirmed_at", desdeUtc).lt("confirmed_at", corteUtc < hastaUtcExclusivo ? corteUtc : hastaUtcExclusivo);
     if (despuesDe) consulta = consulta.gt("id", despuesDe);
     return consulta.order("id").limit(TAMANO_PAGINA).overrideTypes<PagoFila[], { merge: false }>();
   });
-  return filtrarCuentasReales(supabase, restauranteId, filas, idsDePrueba);
+  const reales = await filtrarCuentasReales(supabase, restauranteId, filas, idsDePrueba);
+  // US-112: no atribuir importes a cancelados. Una cuenta mixta conserva
+  // su pago completo si tiene algún pedido real vigente; no se inventa un reparto.
+  const pedidosValidos = new Set<string>();
+  const sesionesValidas = new Set<string>();
+  for (const columna of ["id", "table_session_id"] as const) {
+    const ids = [...new Set(reales.flatMap((pago) => {
+      const id = columna === "id" ? pago.order_id : pago.table_session_id;
+      return id ? [id] : [];
+    }))];
+    for (let inicio = 0; inicio < ids.length; inicio += 100) {
+      const lote = ids.slice(inicio, inicio + 100);
+      const pedidos = await leerPorId<{ id: string; table_session_id: string | null }>("cuentas vigentes", (despuesDe) => {
+        let consulta = supabase.from("orders").select("id, table_session_id")
+          .eq("restaurant_id", restauranteId).neq("status", "CANCELLED").in(columna, lote);
+        if (despuesDe) consulta = consulta.gt("id", despuesDe);
+        return consulta.order("id").limit(TAMANO_PAGINA);
+      });
+      for (const pedido of pedidos) {
+        if (esPedidoDePrueba(pedido.id, idsDePrueba)) continue;
+        pedidosValidos.add(pedido.id);
+        if (pedido.table_session_id) sesionesValidas.add(pedido.table_session_id);
+      }
+    }
+  }
+  return reales.filter((pago) => pago.order_id
+    ? pedidosValidos.has(pago.order_id)
+    : !!pago.table_session_id && sesionesValidas.has(pago.table_session_id));
 }
 
 async function pedidosDelDia(
-  supabase: Cliente, restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>,
+  supabase: Cliente, restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>, corteUtc: string,
 ): Promise<number> {
   const { desdeUtc, hastaUtcExclusivo } = rangoLimaAUtc(fecha, fecha);
   const pedidos = await leerPorId("pedidos", (despuesDe) => {
     let consulta = supabase.from("orders").select("id")
       .eq("restaurant_id", restauranteId).neq("status", "CANCELLED")
-      .gte("created_at", desdeUtc).lt("created_at", hastaUtcExclusivo);
+      .gte("created_at", desdeUtc).lt("created_at", corteUtc < hastaUtcExclusivo ? corteUtc : hastaUtcExclusivo);
     if (despuesDe) consulta = consulta.gt("id", despuesDe);
     return consulta.order("id").limit(TAMANO_PAGINA);
   });
@@ -100,13 +128,13 @@ async function pedidosDelDia(
   return pedidos.filter((pedido) => !esPedidoDePrueba(pedido.id, idsDePrueba)).length;
 }
 
-async function cocinaMinutos(restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>): Promise<number | null> {
-  const { total } = await obtenerTiemposCocina(restauranteId, fecha, fecha, idsDePrueba);
+async function cocinaMinutos(restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>, corteUtc: string): Promise<number | null> {
+  const { total } = await obtenerTiemposCocina(restauranteId, fecha, fecha, idsDePrueba, corteUtc);
   return total ? Math.round(total.promedioMs / 60_000) : null;
 }
 
-async function satisfaccion(restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>): Promise<number | null> {
-  const { servicio } = await obtenerSatisfaccionDia(restauranteId, fecha, idsDePrueba);
+async function satisfaccion(restauranteId: string, fecha: string, idsDePrueba: ReadonlySet<string>, corteUtc: string): Promise<number | null> {
+  const { servicio } = await obtenerSatisfaccionDia(restauranteId, fecha, idsDePrueba, corteUtc);
   return servicio === null ? null : Math.round(servicio * 10) / 10;
 }
 
@@ -162,20 +190,20 @@ async function stock(restauranteId: string, fecha: string) {
 
 export async function obtenerPanelVivo(restauranteId: string, ahora = Date.now()): Promise<PanelVivo> {
   if (!restauranteId.trim()) throw new Error("Restaurante inválido.");
-  const { hoy, ayer } = fechasHoyAyer(ahora);
+  const { hoy, ayer, horaCorte, corteHoyUtc, corteAyerUtc } = corteComparacion(ahora);
   const supabase = await crearClienteServidor();
   const idsDePrueba = await obtenerIdsPedidosDePrueba(supabase, restauranteId);
 
   const [pagosHoy, pagosAyer, pedHoy, pedAyer, cocHoy, cocAyer, satHoy, satAyer, tendencias, estadoMesa, alertas] =
     await Promise.all([
-      seguro("pagosHoy", () => pagosDelDia(supabase, restauranteId, hoy, idsDePrueba)),
-      seguro("pagosAyer", () => pagosDelDia(supabase, restauranteId, ayer, idsDePrueba)),
-      seguro("pedidosHoy", () => pedidosDelDia(supabase, restauranteId, hoy, idsDePrueba)),
-      seguro("pedidosAyer", () => pedidosDelDia(supabase, restauranteId, ayer, idsDePrueba)),
-      seguro("cocinaHoy", () => cocinaMinutos(restauranteId, hoy, idsDePrueba)),
-      seguro("cocinaAyer", () => cocinaMinutos(restauranteId, ayer, idsDePrueba)),
-      seguro("satisfaccionHoy", () => satisfaccion(restauranteId, hoy, idsDePrueba)),
-      seguro("satisfaccionAyer", () => satisfaccion(restauranteId, ayer, idsDePrueba)),
+      seguro("pagosHoy", () => pagosDelDia(supabase, restauranteId, hoy, idsDePrueba, corteHoyUtc)),
+      seguro("pagosAyer", () => pagosDelDia(supabase, restauranteId, ayer, idsDePrueba, corteAyerUtc)),
+      seguro("pedidosHoy", () => pedidosDelDia(supabase, restauranteId, hoy, idsDePrueba, corteHoyUtc)),
+      seguro("pedidosAyer", () => pedidosDelDia(supabase, restauranteId, ayer, idsDePrueba, corteAyerUtc)),
+      seguro("cocinaHoy", () => cocinaMinutos(restauranteId, hoy, idsDePrueba, corteHoyUtc)),
+      seguro("cocinaAyer", () => cocinaMinutos(restauranteId, ayer, idsDePrueba, corteAyerUtc)),
+      seguro("satisfaccionHoy", () => satisfaccion(restauranteId, hoy, idsDePrueba, corteHoyUtc)),
+      seguro("satisfaccionAyer", () => satisfaccion(restauranteId, ayer, idsDePrueba, corteAyerUtc)),
       seguro("top", () => obtenerTendencias(restauranteId, hoy, hoy, idsDePrueba)),
       seguro("mesas", () => mesas(supabase, restauranteId, idsDePrueba)),
       seguro("stock", () => stock(restauranteId, hoy)),
@@ -187,6 +215,7 @@ export async function obtenerPanelVivo(restauranteId: string, ahora = Date.now()
 
   return {
     fecha: hoy,
+    horaCorte,
     ventas: compararConAyer(resumenHoy?.ventasCentimos ?? null, resumenAyer?.ventasCentimos ?? null),
     pedidos: compararConAyer(pedHoy, pedAyer),
     ticket: compararConAyer(resumenHoy?.ticketPromedioCentimos ?? null, resumenAyer?.ticketPromedioCentimos ?? null),
