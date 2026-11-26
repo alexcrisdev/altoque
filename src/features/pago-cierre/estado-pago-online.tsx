@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MensajeEstado } from "../../components/ui";
+import { Boton, MensajeEstado } from "../../components/ui";
 import { consultarPagoOnlineAction, type EstadoPagoOnline } from "./pago-online-actions";
 
 const CADA_MS = 3000;
@@ -53,7 +53,7 @@ export function EstadoPagoOnline({ token, clave, sesionStripe, rutaBase }: {
     return <div role="status" className="rounded-xl border border-exito-borde bg-exito-fondo p-4 text-exito-texto">
       <p className="font-semibold">¡Pago confirmado!</p>
       <p className="mt-1 text-sm">Stripe confirmó tu pago con tarjeta. Ya quedó registrado en caja.</p>
-      <button type="button" className="mt-2 text-sm underline" onClick={() => router.replace(rutaBase)}>Entendido</button>
+      <Boton type="button" variante="enlace" tamano="propio" esquina="ninguna" className="mt-2 text-sm" onClick={() => router.replace(rutaBase)}>Entendido</Boton>
     </div>;
   }
   if (estado === "ERROR") {

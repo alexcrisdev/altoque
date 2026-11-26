@@ -1,5 +1,6 @@
 "use client";
 
+import { Boton } from "../../components/ui";
 import { AvisoAlergia } from "../pedidos/aviso-alergia";
 import { textoAlergia } from "../pedidos/alergias";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -208,16 +209,16 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
   return <div data-kds className={`kds-tablero rounded-2xl py-5 [&_button:focus-visible]:outline-4 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-white [&_button:focus-visible]:ring-4 [&_button:focus-visible]:ring-marino ${tv ? "space-y-6 text-2xl lg:text-3xl" : "space-y-5 text-lg"}`}>
     {error && <p role="alert" className="rounded-lg bg-peligro-fondo p-3 text-peligro-texto">{error}</p>}
     {!tv ? <div className="kds-herramientas flex flex-wrap items-center gap-3">
-      <button type="button" onClick={habilitarSonido} className="rounded-lg border border-borde px-4 py-2">{sonido ? "Sonido activado" : "Activar sonido"}</button>
+      <Boton type="button" variante="contorno" tamano="propio" esquina="lg" onClick={habilitarSonido} className="px-4 py-2">{sonido ? "Sonido activado" : "Activar sonido"}</Boton>
       <p>Teclas 1–9: Listo · 0: Deshacer</p>
-      <button type="button" disabled={guardando} onClick={() => {
+      <Boton type="button" variante="contorno" tamano="propio" esquina="lg" disabled={guardando} onClick={() => {
         setVista((previa) => ({ ...previa, atajos: asignarAtajos(preparacion) }));
         setMensaje("Teclas reasignadas. Revisa los números de las tarjetas antes de continuar.");
-      }} className="rounded-lg border border-borde px-4 py-2">Reasignar teclas 1–9</button>
+      }} className="px-4 py-2">Reasignar teclas 1–9</Boton>
       <p className="text-sm text-texto-suave">Las teclas conservan su pedido. Reasigna para dar teclas a otras tarjetas; todas se pueden tocar.</p>
-      {deshacer && <button type="button" aria-label={`Deshacer el pedido N.º ${deshacer.numero}`} disabled={guardando} onClick={() => void guardar(deshacer, true)} className="mov-deshacer rounded-lg bg-marca px-4 py-3 font-bold text-white">
+      {deshacer && <Boton type="button" tamano="propio" esquina="lg" aria-label={`Deshacer el pedido N.º ${deshacer.numero}`} disabled={guardando} onClick={() => void guardar(deshacer, true)} className="mov-deshacer px-4 py-3 font-bold">
         Deshacer pedido {deshacer.numero} (0) · {Math.ceil((Date.parse(ultimoListo!.confirmadoEn) + PLAZO_DESHACER_KDS - ahora) / 1000)} s
-      </button>}
+      </Boton>}
     </div> : <p className="text-texto-suave">Modo TV · {sonido ? "Sonido activado" : "Toca la pantalla para habilitar el sonido"}</p>}
     <p role="status" aria-live="polite" aria-atomic="true">{mensaje}</p>
     <section aria-label="Resumen pendiente" className="rounded-xl border border-borde bg-superficie p-5">

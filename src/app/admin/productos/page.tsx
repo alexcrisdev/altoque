@@ -13,6 +13,7 @@ import {
 import { requerirRol } from "@/features/auth/sesion";
 import { FormularioProducto } from "./formulario-producto";
 import { ImagenProducto } from "@/components/imagen-producto";
+import { Boton } from "@/components/ui";
 
 async function PanelProductos() {
   const sesion = await requerirRol(["OWNER", "ADMIN"]);
@@ -89,16 +90,16 @@ function ProductoFila({
         <form action={cambiarDisponibilidadAction}>
           <input type="hidden" name="productoId" value={producto.id} />
           <input type="hidden" name="valor" value={String(!producto.available)} />
-          <button className="min-h-11 rounded-xl border border-borde px-3 py-1 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">
+          <Boton type="submit" variante="contorno" tamano="propio" className="px-3 py-1 text-texto">
             {producto.available ? "Marcar agotado" : "Marcar disponible"}
-          </button>
+          </Boton>
         </form>
         <form action={cambiarActivoAction}>
           <input type="hidden" name="productoId" value={producto.id} />
           <input type="hidden" name="valor" value={String(!producto.active)} />
-          <button className="min-h-11 rounded-xl border border-borde px-3 py-1 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">
+          <Boton type="submit" variante="contorno" tamano="propio" className="px-3 py-1 text-texto">
             {producto.active ? "Desactivar" : "Reactivar"}
-          </button>
+          </Boton>
         </form>
         <details className="basis-full">
           <summary className="min-h-11 cursor-pointer rounded-lg py-3 text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">Editar producto</summary>

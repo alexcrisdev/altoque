@@ -53,9 +53,9 @@ export function CalificacionPedido({ token, clave }: { token: string; clave: str
   if (cerrada || oculta) return null;
 
   return <Tarjeta className="relative space-y-4" role="region" aria-label="Calificación opcional">
-    <button type="button" aria-label="Cerrar calificación sin enviar" onClick={() => {
+    <Boton type="button" variante="transparente" tamano="icono" esquina="lg" aria-label="Cerrar calificación sin enviar" onClick={() => {
       void resolverDecisionCalificacion({ tipo: "cerrar" }, recordar, (datos) => calificarPedidoAction(token, clave, datos));
-    }} className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-lg text-2xl text-texto-suave" disabled={enviando}>×</button>
+    }} className="absolute right-2 top-2 text-2xl text-texto-suave" disabled={enviando}>×</Boton>
     <div className="pr-10">
       <h2 className="text-lg font-bold">¿Qué tal te atendimos?</h2>
       <p className="text-sm text-texto-suave">Tu opinión es opcional. Puedes cerrar esta tarjeta sin calificar.</p>

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useId, useState } from "react";
 import Image from "next/image";
 import { ImagenProducto } from "@/components/imagen-producto";
+import { Boton } from "@/components/ui";
 import {
   guardarProductoAction, type EstadoFormularioProducto,
 } from "@/features/carta/admin-actions";
@@ -122,14 +123,14 @@ export function FormularioProducto({
           }}
         />
         <p id={`${id}-foto-ayuda`} className="text-xs text-texto-suave">JPG, PNG o WebP de hasta 25 MB. Se comprime si hace falta.</p>
-        {foto && <button type="button" className="min-h-11 w-fit text-sm font-semibold text-marca underline" onClick={() => {
+        {foto && <Boton type="button" variante="enlace" tamano="propio" esquina="ninguna" className="w-fit text-sm font-semibold text-marca" onClick={() => {
           const campo = document.getElementById(`${id}-foto`);
           if (campo instanceof HTMLInputElement) {
             campo.value = "";
             campo.focus();
           }
           setFoto(null);
-        }}>Quitar foto seleccionada</button>}
+        }}>Quitar foto seleccionada</Boton>}
       </div>
       <label className="grid gap-1">
         URL de imagen (HTTPS)
@@ -141,9 +142,9 @@ export function FormularioProducto({
           : <ImagenProducto src={imagen} nombre="Vista previa del producto" className="h-20 w-24 rounded-lg" />}
         <p id={producto ? `imagen-ayuda-${producto.id}` : "imagen-ayuda-nuevo"} className="text-xs text-texto-suave">Imagen opcional. Pega un enlace HTTPS directo a una foto. Si dejas el campo vacío o la imagen no carga, se mostrará una referencia. Guarda los cambios para actualizar la carta.</p>
       </div>
-      <button disabled={pendiente} className="min-h-11 rounded-xl bg-marca px-4 py-3 font-semibold text-white transition-colors hover:bg-marca-hover disabled:opacity-50">
+      <Boton type="submit" tamano="propio" cargando={pendiente} className="px-4 py-3 font-semibold">
         {pendiente ? "Guardando…" : producto ? "Guardar cambios" : "Crear producto"}
-      </button>
+      </Boton>
       {estado.mensaje && (
         <p role={estado.tipo === "error" ? "alert" : "status"} className={estado.tipo === "error" ? "text-peligro-texto" : "text-exito-texto"}>
           {estado.mensaje}
