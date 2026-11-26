@@ -66,7 +66,7 @@ async function CajaPanel({ searchParams }: Pick<PageProps<"/caja">, "searchParam
                     )}
                   </span>
                   <span className="text-left sm:text-right">
-                    <span className={`block text-xl font-bold tabular-nums ${cuenta.saldoCentimos > 0 ? "text-texto" : "text-exito-texto"}`}>
+                    <span className={`block text-xl font-bold tabular-nums ${cuenta.saldoCentimos > 0 ? "mov-saldo text-texto" : "text-exito-texto"}`}>
                       {cuenta.saldoCentimos > 0 ? `Saldo ${soles(cuenta.saldoCentimos)}` : "Pagada · por cerrar"}
                     </span>
                     {cuenta.porVerificar > 0 && (

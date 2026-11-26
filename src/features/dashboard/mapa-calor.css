@@ -1,0 +1,15 @@
+main:has(.reportes-panel:not([hidden]) #mapa-calor-titulo) .reportes-fechas { display: none; }
+.reportes-panel:has(.mapa-tabla) { grid-template-columns: minmax(0, 1fr); }
+.mapa-tabla { min-width: 0; max-width: 100%; overflow-x: auto; }
+.mapa-tabla table { width: 100%; text-align: center; }
+.mapa-tabla th { padding: .35rem; font-size: .8rem; }
+.mapa-tabla th:first-child { position: sticky; left: 0; z-index: 1; background: var(--color-superficie); text-align: left; }
+.mapa-tabla td { padding: 2px; }
+.mapa-celda { display: block; width: 100%; min-width: 2rem; height: 1.75rem; border: 1px solid var(--color-borde); border-radius: .3rem; }
+.mapa-celda:focus-visible { outline-offset: -3px; outline: 2px solid currentColor; }
+.mapa-muestra { display: inline-block; width: .85em; height: .85em; border-radius: .15em; border: 1px solid var(--color-borde); }
+:is(.mapa-celda, .mapa-muestra)[data-nivel="0"] { background: var(--color-superficie); }
+:is(.mapa-celda, .mapa-muestra)[data-nivel="1"] { background: var(--color-marca-suave); }
+:is(.mapa-celda, .mapa-muestra)[data-nivel="2"] { background: var(--color-azul-cielo); }
+:is(.mapa-celda, .mapa-muestra)[data-nivel="3"] { background: var(--color-marca); color: white; }
+:is(.mapa-celda, .mapa-muestra)[data-nivel="4"] { background: var(--color-marino); color: white; }

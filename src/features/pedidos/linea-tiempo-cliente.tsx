@@ -144,7 +144,7 @@ export function LineaTiempoPedido({ pasos }: { pasos: PasoLineaTiempo[] }) {
 
               <span
                 aria-hidden="true"
-                className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${clasesCirculo(paso)}`}
+                className={`mov-paso relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${clasesCirculo(paso)}`}
               >
                 {paso.clave === "CANCELADO" ? (
                   "×"

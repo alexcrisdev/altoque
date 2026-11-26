@@ -142,7 +142,7 @@ export function PanelCarrito(props: Props) {
                     />
                   </svg>
 
-                  <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-marca-hover px-2 text-sm font-bold">
+                  <span className={`mov-carrito ${unidades % 2 === 0 ? "mov-carrito-par" : ""} flex h-7 min-w-7 items-center justify-center rounded-full bg-marca-hover px-2 text-sm font-bold`}>
                     {unidades}
                   </span>
 
