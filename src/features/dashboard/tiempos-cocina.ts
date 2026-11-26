@@ -43,15 +43,20 @@ async function leerTodas<T extends Fila>(consulta: () => Consulta<T>): Promise<T
 
 export async function obtenerTiemposCocina(
   restauranteId: string, desde: string, hasta: string, idsDePrueba?: ReadonlySet<string>,
+  corteUtc?: string,
 ): Promise<ResumenTiempos> {
   const { desdeUtc, hastaUtcExclusivo } = rangoLimaAUtc(desde, hasta);
+  if (corteUtc !== undefined && (!Number.isFinite(Date.parse(corteUtc)) || Date.parse(corteUtc) < Date.parse(desdeUtc))) {
+    throw new Error("Corte de cocina inválido.");
+  }
+  const fin = corteUtc && Date.parse(corteUtc) < Date.parse(hastaUtcExclusivo) ? corteUtc : hastaUtcExclusivo;
   if (!restauranteId.trim()) throw new Error("Restaurante no válido.");
   const supabase = await crearClienteServidor();
   const candidatos = await leerTodas<Fila & { order_id: string }>(() => supabase
     .from("order_status_history").select("id, order_id", { count: "exact" })
     .eq("restaurant_id", restauranteId).eq("event", "STATUS")
     .in("to_status", ["PENDING", "IN_PROGRESS", "READY"])
-    .gte("created_at", desdeUtc).lt("created_at", hastaUtcExclusivo));
+    .gte("created_at", desdeUtc).lt("created_at", fin));
   const marcas = candidatos.length
     ? idsDePrueba ?? await obtenerIdsPedidosDePrueba(supabase, restauranteId)
     : new Set<string>();
@@ -71,6 +76,9 @@ export async function obtenerTiemposCocina(
       .select("id, status, order_items(product_name)", { count: "exact" })
       .eq("restaurant_id", restauranteId).in("id", lote).neq("status", "CANCELLED")));
   }
+  // El panel solo necesita el tiempo de preparación al corte. Los reportes
+  // sin corte conservan el historial completo y sus indicadores por etapa.
+  if (corteUtc !== undefined) return calcularTiemposCocina(pedidos, historial, desde, hasta, corteUtc);
   return {
     ...calcularTiemposCocina(pedidos, historial, desde, hasta),
     etapas: calcularTiemposPorEtapa(pedidos, historial, desde, hasta),

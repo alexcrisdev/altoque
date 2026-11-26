@@ -161,10 +161,13 @@ export function calcularTiemposCocina(
   historial: readonly EventoCocina[],
   desde: string,
   hasta: string,
+  corteUtc?: string,
 ): ResumenTiempos {
   const limites = rangoLimaAUtc(desde, hasta);
   const minimo = Date.parse(limites.desdeUtc);
-  const limite = Date.parse(limites.hastaUtcExclusivo);
+  const corte = corteUtc === undefined ? Infinity : Date.parse(corteUtc);
+  if (Number.isNaN(corte) || corte < minimo) throw new Error("Corte de cocina inválido.");
+  const limite = Math.min(Date.parse(limites.hastaUtcExclusivo), corte);
   const eventos = agruparEventos(historial);
   const total: number[] = [];
   const dias = new Map<string, number[]>();
@@ -180,8 +183,14 @@ export function calcularTiemposCocina(
     vistos.add(pedido.id);
     // US-081: primer IN_PROGRESS hasta el último READY definitivo, nunca
     // fechas inventadas. CANCELLED y un READY deshecho aún en preparación no cuentan.
-    if (pedido.status !== "READY" && pedido.status !== "DELIVERED") continue;
-    const estados = eventos.get(pedido.id) ?? [];
+    if (pedido.status === "CANCELLED") continue;
+    const estados = (eventos.get(pedido.id) ?? [])
+      .filter((evento) => corteUtc === undefined || Date.parse(evento.created_at) < corte);
+    // Para comparar una hora pasada usamos el estado conocido entonces.
+    // Los cancelados actuales quedan fuera incluso si estuvieron listos antes.
+    const estado = corteUtc === undefined ? pedido.status : [...estados]
+      .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at)).at(-1)?.to_status;
+    if (estado !== "READY" && estado !== "DELIVERED") continue;
     if (estados.some((e) => !Number.isFinite(Date.parse(e.created_at)))) continue;
     const inicios = estados.filter((e) => e.to_status === "IN_PROGRESS")
       .map((e) => Date.parse(e.created_at));

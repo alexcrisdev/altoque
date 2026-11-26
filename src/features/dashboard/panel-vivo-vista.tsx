@@ -9,22 +9,23 @@ const METODOS: MetodoPago[] = ["CASH", "YAPE", "CARD"];
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
 function Indicador({
-  titulo, comparacion, formato, menosEsMejor = false,
+  titulo, pregunta, comparacion, formato, horaCorte, sinBase, menosEsMejor = false,
 }: {
+  pregunta: string; horaCorte: string; sinBase?: string;
   titulo: string; comparacion: Comparacion; formato: (n: number) => string; menosEsMejor?: boolean;
 }) {
   const v = comparacion.variacionPct;
   const bueno = v === null || v === 0 ? null : menosEsMejor ? v < 0 : v > 0;
   return (
     <Tarjeta relleno="compacto" className="indicador-vivo space-y-2">
-      <p className="text-sm text-texto-suave">{titulo}</p>
+      <p className="text-sm text-texto-suave" title={pregunta}>{titulo}<span className="sr-only">. {pregunta}</span></p>
       <p className="text-2xl font-bold tabular-nums">
         {comparacion.hoy === null ? "—" : formato(comparacion.hoy)}
       </p>
       <p className={`text-xs font-semibold ${
         bueno === null ? "text-texto-suave" : bueno ? "text-exito-texto" : "text-peligro-texto"
       }`}>
-        {textoVariacion(comparacion)}
+        {textoVariacion(comparacion, horaCorte, sinBase)}
       </p>
     </Tarjeta>
   );
@@ -81,11 +82,11 @@ export function PanelVivoVista({ panel }: { panel: PanelVivo }) {
   return (
     <div className="panel-vivo space-y-5">
       <section aria-label="Indicadores de hoy" className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-5">
-        <Indicador titulo="Ventas" comparacion={panel.ventas} formato={soles} />
-        <Indicador titulo="Pedidos" comparacion={panel.pedidos} formato={(n) => String(n)} />
-        <Indicador titulo="Ticket promedio" comparacion={panel.ticket} formato={soles} />
-        <Indicador titulo="Tiempo de cocina" comparacion={panel.cocinaMin} formato={(n) => (n < 1 ? "< 1 min" : `${n} min`)} menosEsMejor />
-        <Indicador titulo="Satisfacción" comparacion={panel.satisfaccion} formato={(n) => `${n.toFixed(1)} ★`} />
+        <Indicador titulo="Ventas" pregunta="¿Cuánto vendí hasta esta hora frente a ayer?" horaCorte={panel.horaCorte} sinBase="Ayer sin ventas" comparacion={panel.ventas} formato={soles} />
+        <Indicador titulo="Pedidos" pregunta="¿Cuántos pedidos recibí hasta esta hora frente a ayer?" horaCorte={panel.horaCorte} comparacion={panel.pedidos} formato={(n) => String(n)} />
+        <Indicador titulo="Ticket promedio" pregunta="¿Cuánto se pagó en promedio por cuenta hasta esta hora?" horaCorte={panel.horaCorte} comparacion={panel.ticket} formato={soles} />
+        <Indicador titulo="Tiempo de cocina" pregunta="¿Cuánto tardó la cocina en los pedidos listos al corte?" horaCorte={panel.horaCorte} comparacion={panel.cocinaMin} formato={(n) => (n < 1 ? "< 1 min" : `${n} min`)} menosEsMejor />
+        <Indicador titulo="Satisfacción" pregunta="¿Cómo calificaron el servicio hasta esta hora?" horaCorte={panel.horaCorte} comparacion={panel.satisfaccion} formato={(n) => `${n.toFixed(1)} ★`} />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-3">
