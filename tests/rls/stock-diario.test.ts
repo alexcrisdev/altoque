@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -13,6 +13,9 @@ beforeAll(async () => {
   const { error } = await cocina.auth.signInWithPassword({ email: "cocina@demo.altoque.pe", password });
   if (error) throw new Error("No se pudo iniciar sesión con cocina demo para US-067.");
 }, 30_000);
+
+// US-106 (Fase C): la sesión de prueba se cierra aunque una prueba falle.
+afterAll(async () => { await cocina?.auth.signOut({ scope: "local" }); });
 
 describe("RLS del stock diario", () => {
   it("permite leer al personal, pero cocina no puede agregar ni cambiar stock", async () => {

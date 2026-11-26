@@ -28,6 +28,8 @@ const sesion = {
   membresias: [{ restaurantId: "restaurante-1", branchId: null, rol: "WAITER" }],
 };
 const lineas = [{ productoId: "p", nombre: "Ceviche", cantidad: 2, observacion: null, precioUnitarioCentimos: 3200, subtotalCentimos: 6400 }];
+const sinAlergia = { respuesta: "NONE", alergenos: [], detalle: "", aceptada: false };
+const conAlergia = { respuesta: "YES", alergenos: ["MANI"], detalle: "  Evitar contacto  ", aceptada: true };
 
 describe("validarSolicitudAsistida", () => {
   it("acepta en el local con mesa y para llevar con local", () => {
@@ -70,19 +72,20 @@ describe("registrarPedidoAsistidoAction", () => {
     vi.mocked(guardarPedidoAsistido).mockResolvedValue({ ok: true, numero: 77, repetido: false });
     const items = [{ productoId: "p", cantidad: 2, observacion: null, precioMostradoCentimos: 3200 }];
 
-    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, items))
+    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, items, sinAlergia))
       .resolves.toEqual({ ok: true, numero: 77 });
-    expect(requerirRol).toHaveBeenCalledWith(["WAITER", "OWNER", "ADMIN"]);
+    expect(requerirRol).toHaveBeenCalledWith(["WAITER"]);
     expect(validarPedido).toHaveBeenCalledWith("restaurante-1", items);
     expect(guardarPedidoAsistido).toHaveBeenCalledWith(
       "restaurante-1", clave, { modalidad: "DINE_IN", mesaId: MESA, localId: null }, lineas,
+      { respuesta: "NONE", alergenos: [], detalle: null },
     );
   });
 
   it("rechaza una clave inválida o una solicitud sin mesa ni local sin tocar la base", async () => {
-    await expect(registrarPedidoAsistidoAction("no-es-uuid", { modalidad: "DINE_IN", mesaId: MESA }, []))
+    await expect(registrarPedidoAsistidoAction("no-es-uuid", { modalidad: "DINE_IN", mesaId: MESA }, [], sinAlergia))
       .resolves.toMatchObject({ ok: false });
-    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN" }, []))
+    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN" }, [], sinAlergia))
       .resolves.toMatchObject({ ok: false });
     expect(validarPedido).not.toHaveBeenCalled();
     expect(guardarPedidoAsistido).not.toHaveBeenCalled();
@@ -90,7 +93,7 @@ describe("registrarPedidoAsistidoAction", () => {
 
   it("devuelve el pedido previo ante un reintento con la misma clave", async () => {
     vi.mocked(buscarPedidoAsistido).mockResolvedValue(77);
-    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, []))
+    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, [], conAlergia))
       .resolves.toEqual({ ok: true, numero: 77 });
     expect(buscarPedidoAsistido).toHaveBeenCalledWith("mesero-1", clave);
     expect(validarPedido).not.toHaveBeenCalled();
@@ -99,7 +102,7 @@ describe("registrarPedidoAsistidoAction", () => {
 
   it("no guarda si un producto no pasa la validación del servidor", async () => {
     vi.mocked(validarPedido).mockResolvedValue({ ok: false, problemas: [{ productoId: "p", nombre: "Ceviche", motivo: "AGOTADO" }] });
-    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, [{}]))
+    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, [{}], sinAlergia))
       .resolves.toMatchObject({ ok: false, problemas: [{ motivo: "AGOTADO" }] });
     expect(guardarPedidoAsistido).not.toHaveBeenCalled();
   });
@@ -107,7 +110,33 @@ describe("registrarPedidoAsistidoAction", () => {
   it("explica el rechazo de la base, por ejemplo una mesa sin sesión", async () => {
     vi.mocked(validarPedido).mockResolvedValue({ ok: true, lineas, totalCentimos: 6400 });
     vi.mocked(guardarPedidoAsistido).mockResolvedValue({ ok: false, motivo: "MESA_SIN_SESION" });
-    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, [{}]))
+    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, [{}], sinAlergia))
       .resolves.toEqual({ ok: false, mensaje: mensajeRechazo("MESA_SIN_SESION") });
+  });
+
+  it("guarda la alergia validada junto con el pedido", async () => {
+    vi.mocked(validarPedido).mockResolvedValue({ ok: true, lineas, totalCentimos: 6400 });
+    vi.mocked(guardarPedidoAsistido).mockResolvedValue({ ok: true, numero: 78, repetido: false });
+
+    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, [{}], conAlergia))
+      .resolves.toEqual({ ok: true, numero: 78 });
+    expect(guardarPedidoAsistido).toHaveBeenCalledWith(
+      "restaurante-1", clave, { modalidad: "DINE_IN", mesaId: MESA, localId: null }, lineas,
+      { respuesta: "YES", alergenos: ["MANI"], detalle: "Evitar contacto" },
+    );
+  });
+
+  it.each([
+    undefined,
+    { ...conAlergia, alergenos: ["INVALIDO"] },
+    { ...conAlergia, aceptada: false },
+    { ...conAlergia, alergenos: [], detalle: "" },
+    { ...sinAlergia, detalle: "Maní" },
+  ])("rechaza una declaración inválida sin consultar ni guardar el pedido: %j", async (declaracion) => {
+    await expect(registrarPedidoAsistidoAction(clave, { modalidad: "DINE_IN", mesaId: MESA }, [{}], declaracion))
+      .resolves.toMatchObject({ ok: false });
+    expect(buscarPedidoAsistido).not.toHaveBeenCalled();
+    expect(validarPedido).not.toHaveBeenCalled();
+    expect(guardarPedidoAsistido).not.toHaveBeenCalled();
   });
 });

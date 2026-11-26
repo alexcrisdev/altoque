@@ -92,7 +92,7 @@ afterEach(() => vi.useRealTimers());
 describe("US-080: autorización y acciones", () => {
   it("lee el restaurante de la sesión y exige rol de cocina", async () => {
     expect((await obtenerKds()).ok).toBe(true);
-    expect(requerirRol).toHaveBeenCalledWith(["KITCHEN", "OWNER", "ADMIN"]);
+    expect(requerirRol).toHaveBeenCalledWith(["KITCHEN"]);
     expect(listarPedidosCocina).toHaveBeenCalledWith("restaurante", ahora);
     expect(contarPedidosEsperandoPago).toHaveBeenCalledWith("restaurante");
     expect(await obtenerKds()).toMatchObject({ pedidosEsperandoPago: 3 });

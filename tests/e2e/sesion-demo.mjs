@@ -41,3 +41,20 @@ export async function iniciarSesion(page, rol) {
   await page.context().addCookies(cookies.map(({ name, value }) => ({ name, value, url: origen, sameSite: "Lax" })));
   await page.goto(destinosDemo[rol]);
 }
+
+// US-106 (Fase C): cierra la sesión demo de un contexto del navegador. Usa las mismas
+// cookies que dejó iniciarSesion y revoca SOLO esa sesión (scope "local"): no cierra
+// otras sesiones de la misma cuenta. Sin cookies de Supabase no hace nada.
+/**
+ * @param {import('@playwright/test').BrowserContext} contexto
+ */
+export async function cerrarSesionDemo(contexto) {
+  const cookies = (await contexto.cookies()).filter(({ name }) => name.startsWith("sb-"));
+  if (!cookies.length) return;
+  const cliente = createServerClient(variable("NEXT_PUBLIC_SUPABASE_URL"), variable("NEXT_PUBLIC_SUPABASE_ANON_KEY"), {
+    cookies: { getAll: () => cookies.map(({ name, value }) => ({ name, value })), setAll: () => {} },
+  });
+  const { error } = await cliente.auth.signOut({ scope: "local" });
+  if (error) throw new Error("No se pudo cerrar la sesión demo de la prueba.");
+  await contexto.clearCookies();
+}

@@ -25,6 +25,15 @@ describe("US-091: avisos visibles al personal", () => {
     expect(html).toContain('aria-hidden="true">⚠ ');
     expect(html).toContain("Alergia: Maní — Evitar contacto");
   });
+  it("muestra la franja para una alergia declarada y la omite cuando no hay alergias", () => {
+    const conAlergia = renderToStaticMarkup(createElement(AvisoAlergia, { alergia: pedido.alergia, cocina: true }));
+    const sinAlergia = renderToStaticMarkup(createElement(AvisoAlergia, {
+      alergia: { respuesta: "NONE", alergenos: [], detalle: null }, cocina: true,
+    }));
+    expect(conAlergia).toContain("bg-peligro-texto");
+    expect(conAlergia).toContain("Alergia: Maní — Evitar contacto");
+    expect(sinAlergia).toBe("");
+  });
   it.each([true, false])("KDS muestra la declaración separada del producto (TV %s)", tv => {
     const html = renderToStaticMarkup(createElement(TableroKds, { inicial: { ok: true, restauranteId: "r1", pedidos: [pedido], actualizadoEn: ahora, pedidosEsperandoPago: 0 }, tv }));
     expect(html).toContain("Alergia: Maní — Evitar contacto");

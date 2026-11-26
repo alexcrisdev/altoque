@@ -32,18 +32,18 @@ beforeEach(async () => {
   vi.mocked(verificarCaptura).mockResolvedValue("pago");
 });
 describe("US-102: permisos y validación de capturas", () => {
-  it.each(["WAITER", "KITCHEN"])("%s no recibe enlaces firmados", async rol => {
+  it.each(["WAITER", "KITCHEN", "OWNER", "ADMIN"])("%s no recibe enlaces firmados", async rol => {
     sesion(rol); await expect(fotoCapturaAction(restaurante,id)).rejects.toThrow("permiso"); expect(firmarCaptura).not.toHaveBeenCalled();
   });
   it("no firma para otro restaurante", async () => {
-    sesion("OWNER", id); await expect(fotoCapturaAction(restaurante,id)).rejects.toThrow(); expect(firmarCaptura).not.toHaveBeenCalled();
+    sesion("CASHIER", id); await expect(fotoCapturaAction(restaurante,id)).rejects.toThrow(); expect(firmarCaptura).not.toHaveBeenCalled();
   });
-  it.each(["CASHIER", "OWNER", "ADMIN"])("%s puede solicitar la foto de su restaurante", async rol => {
+  it.each(["CASHIER"])("%s puede solicitar la foto de su restaurante", async rol => {
     sesion(rol); await fotoCapturaAction(restaurante,id); expect(firmarCaptura).toHaveBeenCalledWith(restaurante,id);
   });
-  it("el mesero solo consulta pendientes, sin firmar ni borrar imágenes", async () => {
-    sesion("WAITER"); await consultarCapturasAction(restaurante,true);
-    expect(listarCapturas).toHaveBeenCalledWith(restaurante); expect(firmarCaptura).not.toHaveBeenCalled(); expect(limpiarCapturas).not.toHaveBeenCalled();
+  it("US-106: el mesero ya no consulta capturas ni cobros", async () => {
+    sesion("WAITER"); await expect(consultarCapturasAction(restaurante)).rejects.toThrow("permiso");
+    expect(listarCapturas).not.toHaveBeenCalled(); expect(firmarCaptura).not.toHaveBeenCalled(); expect(limpiarCapturas).not.toHaveBeenCalled();
   });
   it("el cliente no confirma al subir", async () => {
     expect((await subirCapturaAction("token",null,formulario())).ok).toBe(true);

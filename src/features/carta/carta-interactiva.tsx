@@ -10,6 +10,7 @@ import {
   clasesBoton,
 } from "../../components/ui";
 import { formatearPrecio } from "./formato";
+import { ordenarProductos } from "./orden-productos";
 import { DetalleProducto } from "./detalle-producto";
 import { PanelCarrito } from "../pedidos/panel-carrito";
 import { ALERGIA_INICIAL, validarAlergia, type AlergiaFormulario } from "../pedidos/alergias";
@@ -116,13 +117,18 @@ export function CartaInteractiva({
   >(new Map());
   const consultandoStock = useRef(false);
 
+  // Mantiene la posición mientras se consulta el stock; al recargar se vuelve a ordenar.
+  const categoriasOrdenadas = useMemo(
+    () => categorias.map((categoria) => ({ ...categoria, productos: ordenarProductos(categoria.productos) })),
+    [categorias],
+  );
   const categoriasVivas = useMemo(
     () =>
-      categorias.map((categoria) => ({
+      categoriasOrdenadas.map((categoria) => ({
         ...categoria,
         productos: aplicarDisponibilidad(categoria.productos, disponibilidad),
       })),
-    [categorias, disponibilidad],
+    [categoriasOrdenadas, disponibilidad],
   );
 
   const productos = useMemo(
@@ -419,7 +425,7 @@ export function CartaInteractiva({
               {categoria.name}
             </h2>
 
-            <ul className="carta-listado grid gap-2 md:grid-cols-2">
+            <ul className="carta-listado grid grid-cols-2 gap-2">
               {categoria.productos.map((producto) => {
                 const agotado = estaAgotado(producto);
                 const enCarrito =
@@ -434,14 +440,14 @@ export function CartaInteractiva({
                   producto.quedan <= POCAS_UNIDADES;
 
                 return (
-                <li key={producto.id} className="relative">
+                <li key={producto.id} className="relative min-w-0">
                   <Boton
                     type="button"
                     variante="secundario"
                     tamano="lg"
                     onClick={() => abrirDetalle(producto)}
                     aria-haspopup="dialog"
-                    className={`carta-producto h-full w-full gap-3 pr-16 text-left sm:gap-4 ${
+                    className={`carta-producto h-full w-full gap-3 pr-16 text-left max-sm:!flex-col max-sm:!items-stretch max-sm:!p-3 sm:gap-4 ${
                       agotado ? "bg-superficie-suave" : ""
                     }`}
                   >
@@ -449,7 +455,7 @@ export function CartaInteractiva({
                         src={producto.image_url}
                         nombre={producto.name}
                         decorativa
-                        className="h-20 w-20 shrink-0 rounded-xl sm:h-28 sm:w-28"
+                        className="h-20 w-20 shrink-0 rounded-xl max-sm:!h-24 max-sm:!w-full sm:h-28 sm:w-28"
                       />
 
                     <span className="min-w-0 flex-1 space-y-2 text-left">

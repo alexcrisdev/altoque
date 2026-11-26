@@ -2,6 +2,7 @@ import "server-only";
 
 import { after } from "next/server";
 import { crearClienteAdmin } from "../../lib/supabase/admin";
+import { registrarError } from "../../lib/registro";
 import {
   agruparPlatos,
   cabecerasAviso,
@@ -167,7 +168,8 @@ export function programarAvisoPago(pagoId: string): void {
   try {
     config = configuracionN8n(process.env);
   } catch (error) {
-    console.error(`[n8n] configuración inválida: ${error instanceof Error ? error.message : "revisar variables"}`);
+    // US-106 (Fase C): sin el mensaje del error, solo su tipo.
+    registrarError("[n8n] configuración inválida: revisar N8N_WEBHOOK_URL y N8N_WEBHOOK_SECRET", error);
     return;
   }
   if (!config) return;

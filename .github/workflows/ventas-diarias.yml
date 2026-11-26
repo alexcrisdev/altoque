@@ -1,0 +1,36 @@
+name: US-145 ventas diarias
+on:
+  schedule:
+    # 00:20 de Lima (05:20 UTC): recalcula los últimos 7 días terminados.
+    - cron: '20 5 * * *'
+  workflow_dispatch:
+    inputs:
+      dias:
+        description: 'Días a recalcular (1 a 35; 35 para la carga inicial de US-146)'
+        required: false
+        default: '7'
+permissions: {}
+concurrency:
+  group: ventas-diarias
+  cancel-in-progress: false
+jobs:
+  consolidar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Consolidar ventas por plato y día
+        env:
+          APP_URL: ${{ vars.VENTAS_APP_URL }}
+          CRON_SECRET: ${{ secrets.VENTAS_CRON_SECRET }}
+          DIAS: ${{ inputs.dias || '7' }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::warning::Consolidación no configurada: falta VENTAS_APP_URL o VENTAS_CRON_SECRET"
+            exit 0
+          fi
+          case "$DIAS" in
+            ''|*[!0-9]*) echo "::error::dias debe ser un número"; exit 1 ;;
+          esac
+          curl --fail-with-body --silent --show-error --max-time 240 --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/ventas/consolidar?dias=$DIAS"

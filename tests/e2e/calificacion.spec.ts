@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { test, expect } from "@playwright/test";
-import { iniciarSesion } from "./sesion-demo.mjs";
+import { cerrarSesionDemo, iniciarSesion } from "./sesion-demo.mjs";
 import { claveCierreCalificacion } from "../../src/features/pedidos/calificacion-cliente";
 
 test("US-093: Mesa 2, cerrar sin guardar y calificar una sola vez (solo local)", async ({ page, browser }) => {
@@ -96,7 +96,8 @@ test("US-093: Mesa 2, cerrar sin guardar y calificar una sola vez (solo local)",
     expect(guardada.error).toBeNull();
     expect(guardada.data).toEqual([{ service_stars: 5, waiter_stars: 4, comment: "Buena atención. Prueba local US-093." }]);
   } finally {
-    await cajaContexto.close();
+    // US-106 (Fase C): la sesión de caja se cierra aunque la prueba falle.
+    await cerrarSesionDemo(cajaContexto).finally(() => cajaContexto.close());
     // El guard local inicial impide ejecutar esta limpieza en la base compartida.
     const id = pedidoId ?? "00000000-0000-0000-0000-000000000000";
     if (!/^[a-f0-9-]{36}$/.test(id) || !/^[a-f0-9-]{36}$/.test(abierta.data!.id)) throw new Error("Fixture inválido");
@@ -108,6 +109,6 @@ test("US-093: Mesa 2, cerrar sin guardar y calificar una sola vez (solo local)",
 delete from public.order_status_history where order_id='${id}'; delete from public.orders where id='${id}';
 delete from public.table_sessions where id='${abierta.data!.id}'; ${restaurarStock} commit;`, stdio: ["pipe", "pipe", "pipe"],
     });
-    await Promise.all([admin.db.auth.signOut(), mesero.db.auth.signOut()]);
+    await Promise.all([admin.db.auth.signOut({ scope: "local" }), mesero.db.auth.signOut({ scope: "local" })]);
   }
 });

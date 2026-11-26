@@ -68,7 +68,7 @@ afterAll(async () => {
     }
   } finally {
     await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-    await Promise.all([owner?.auth.signOut(), waiter?.auth.signOut()]);
+    await Promise.all([owner?.auth.signOut({ scope: "local" }), waiter?.auth.signOut({ scope: "local" })]);
   }
   if (errores.length) throw new Error(errores.join(" "));
 }, 30_000);

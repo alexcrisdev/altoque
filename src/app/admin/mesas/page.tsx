@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PlanoMesas } from "@/features/plano-mesas/plano-mesas";
 import { obtenerPanelMesasAdmin } from "@/features/plano-mesas/actions";
+import { requerirPanel } from "@/features/auth/sesion";
 import { Suspense } from "react";
 import {
   Boton,
@@ -78,6 +79,7 @@ function ControlesMesa({ mesa }: { mesa: { id: string; activa: boolean; tieneQrA
 }
 
 async function PanelMesas({ searchParams }: Pick<PageProps<"/admin/mesas">, "searchParams">) {
+  await requerirPanel("admin"); // US-106
   const { vista } = await searchParams;
   const anterior = vista === "anterior";
   const enMostrador = vista === "mostrador";

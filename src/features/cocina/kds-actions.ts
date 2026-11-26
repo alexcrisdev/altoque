@@ -7,7 +7,7 @@ import { puedeDeshacerListo } from "./cocina-logica";
 import { vencerPedidosSinPago } from "../pedidos/vencimiento-datos";
 
 async function restauranteCocina() {
-  const roles = ["KITCHEN", "OWNER", "ADMIN"] as const;
+  const roles = ["KITCHEN"] as const; // US-106
   const sesion = await requerirRol(roles);
   const membresia = sesion.membresias.find((m) => roles.some((rol) => rol === m.rol));
   if (!membresia) throw new Error("Sin acceso a cocina.");
