@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { EncabezadoPantalla, MensajeEstado } from "@/components/ui";
 import { consultarStockConPrediccionAction } from "@/features/carta/stock-prediccion-actions";
+import { consultarAgotadosRecientesAction } from "@/features/dashboard/agotados-actions";
+import { AgotadosRecientes } from "@/features/dashboard/agotados-recientes";
 import { FormularioStock } from "./formulario-stock";
 import { requerirPanel } from "@/features/auth/sesion";
 
@@ -23,7 +25,10 @@ export default function StockPage() {
 
 async function ContenidoStock() {
   await requerirPanel("admin"); // US-106
-  const resultado = await consultarStockConPrediccionAction();
+  const [resultado, agotados] = await Promise.all([
+    consultarStockConPrediccionAction(),
+    consultarAgotadosRecientesAction(), // US-146
+  ]);
 
   if (!resultado.ok) {
     return (
@@ -62,6 +67,8 @@ async function ContenidoStock() {
         productos={productos}
         sugerencias={sugerencias}
       />
+
+      <AgotadosRecientes resultado={agotados} hoy={fecha} />
     </>
   );
 }

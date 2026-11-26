@@ -4,9 +4,10 @@ import { crearClienteServidor } from "../../lib/supabase/server";
 import { rangoLimaAUtc } from "./ventas-logica";
 import {
   compararStockConPrediccion,
+  esModeloDemo,
   fechaMananaLima,
   nombreDiaPrediccion,
-  topPlatosPrevistos,
+  seleccionarPrediccionPorPlato,
   type ComparacionStock,
   type PrediccionPlato,
 } from "./prediccion-logica";
@@ -20,6 +21,8 @@ export type ResumenPrediccion = {
   modelo: string | null;
   esDemo: boolean;
   platos: PlatoPrevistoConStock[];
+  // US-146: solo cuando se mezclan modelos (propio o real con demo): platos que son demo.
+  platosDemo?: string[];
 };
 
 type FilaPrediccion = {
@@ -157,16 +160,22 @@ export async function obtenerPrediccionManana(
     "obtenerPrediccionManana",
   );
 
-  const top = topPlatosPrevistos(filas, fecha);
-  const modelo = top[0]?.modelo ?? null;
+  // US-146: misma selección plato por plato que "Rellenar con la predicción".
+  const top = seleccionarPrediccionPorPlato(filas, fecha).slice(0, 3);
+  const modelos = [...new Set(top.map((fila) => fila.modelo))];
+  const demos = top.filter((fila) => esModeloDemo(fila.modelo));
 
   const resumen: ResumenPrediccion = {
     fecha,
     dia: nombreDiaPrediccion(fecha),
-    modelo,
-    esDemo: modelo?.endsWith("-demo") ?? false,
+    modelo: modelos.length ? modelos.join(", ") : null,
+    esDemo: demos.length > 0 && demos.length === top.length,
     platos: [],
   };
+
+  if (demos.length > 0 && demos.length < top.length) {
+    resumen.platosDemo = demos.map((fila) => fila.productoId);
+  }
 
   if (top.length === 0) return resumen;
 
