@@ -2,24 +2,73 @@
 
 :root {
   color-scheme: light;
-  --background: #F1FAFD;
-  --foreground: #102E46;
 
-  /* Costa azul. Los alias v2 conservan la compatibilidad con las vistas existentes.
+  /* Paleta Costa azul en tokens semánticos: cada valor se define una sola vez.
      Azul profundo en acciones: contraste AA con texto blanco; azul cielo como acento. */
-  --v2-coral: #096B9C;
-  --v2-coral-suave: #E4F4FC;
-  --v2-coral-oscuro: #075477;
-  --v2-pizarra: #102E46;
-  --v2-azul: #2696D2;
-  --v2-azul-suave: #E4F4FC;
-  --v2-salvia: #08766C;
-  --v2-salvia-suave: #E4F6F2;
-  --v2-rojo: #D64545;
-  --v2-ambar: #D9902F;
-  --v2-marfil: #F1FAFD;
-  --v2-gris-frio: #F2F7FA;
-  --v2-borde: #D5E3EB;
+
+  /* Marca. */
+  --marca: #096B9C;
+  --marca-oscuro: #075477;
+  --marca-suave: #E4F4FC;
+  --acento: #20B7AE;
+
+  /* Texto. */
+  --texto: #102E46;
+  --texto-suave: #4D6575;
+  --texto-neutro: #435064;
+
+  /* Fondo y superficies. */
+  --fondo: #F1FAFD;
+  --fondo-suave: #F2F7FA;
+  --superficie: #ffffff;
+
+  /* Borde. */
+  --borde: #D5E3EB;
+
+  /* Éxito. */
+  --exito: #08766C;
+  --exito-suave: #E4F6F2;
+  --exito-borde: #9CCFC6;
+  --exito-oscuro: #075E57;
+
+  /* Aviso. */
+  --aviso: #D9902F;
+  --aviso-suave: #FBF1E1;
+  --aviso-borde: #E7BD7D;
+  --aviso-oscuro: #70470F;
+
+  /* Peligro. Conviven dos rojos sin unificar (decisión pendiente):
+     --peligro se ve en el círculo «Cancelado» del cliente;
+     --peligro-oscuro en botones de peligro, textos de error y alergias. */
+  --peligro: #D64545;
+  --peligro-suave: #FCECEC;
+  --peligro-borde: #E7A4A4;
+  --peligro-oscuro: #A92F35;
+
+  /* Información. */
+  --info: #2696D2;
+  --info-suave: #E4F4FC;
+  --info-borde: #A9C3DD;
+  --info-oscuro: #244F7D;
+
+  --background: var(--fondo);
+  --foreground: var(--texto);
+
+  /* Alias obsoletos de la versión 2: ya no se usan en el código. Se conservan
+     solo por compatibilidad con ramas en curso hasta decidir su eliminación. */
+  --v2-coral: var(--marca);
+  --v2-coral-suave: var(--marca-suave);
+  --v2-coral-oscuro: var(--marca-oscuro);
+  --v2-pizarra: var(--texto);
+  --v2-azul: var(--info);
+  --v2-azul-suave: var(--info-suave);
+  --v2-salvia: var(--exito);
+  --v2-salvia-suave: var(--exito-suave);
+  --v2-rojo: var(--peligro);
+  --v2-ambar: var(--aviso);
+  --v2-marfil: var(--fondo);
+  --v2-gris-frio: var(--fondo-suave);
+  --v2-borde: var(--borde);
 
   /* Superficies de la cocina en tema oscuro. */
   --kds-fondo: #0B2234;
@@ -43,51 +92,51 @@
   --font-mono: ui-monospace, monospace;
 
   /* Marca y superficies. */
-  --color-marca: var(--v2-coral);
-  --color-marca-hover: var(--v2-coral-oscuro);
-  --color-marca-suave: var(--v2-coral-suave);
-  --color-acento: #20B7AE;
-  --color-azul-cielo: #2696D2;
-  --color-marino: #102E46;
-  --color-superficie: #ffffff;
-  --color-superficie-suave: var(--v2-gris-frio);
-  --color-borde: var(--v2-borde);
-  --color-texto: var(--foreground);
-  --color-texto-suave: #4D6575;
+  --color-marca: var(--marca);
+  --color-marca-hover: var(--marca-oscuro);
+  --color-marca-suave: var(--marca-suave);
+  --color-acento: var(--acento);
+  --color-azul-cielo: var(--info);
+  --color-marino: var(--texto);
+  --color-superficie: var(--superficie);
+  --color-superficie-suave: var(--fondo-suave);
+  --color-borde: var(--borde);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
 
   /* Botones de acciones destructivas. */
-  --color-peligro: var(--v2-rojo);
-  --color-peligro-hover: #A92F35;
+  --color-peligro: var(--peligro);
+  --color-peligro-hover: var(--peligro-oscuro);
 
   /* Entregado y estados generales. */
-  --color-neutro-fondo: var(--v2-gris-frio);
-  --color-neutro-borde: var(--v2-borde);
-  --color-neutro-texto: #435064;
+  --color-neutro-fondo: var(--fondo-suave);
+  --color-neutro-borde: var(--borde);
+  --color-neutro-texto: var(--texto-neutro);
 
   /* Aceptado. */
-  --color-info-fondo: var(--v2-azul-suave);
-  --color-info-borde: #A9C3DD;
-  --color-info-texto: #244F7D;
+  --color-info-fondo: var(--info-suave);
+  --color-info-borde: var(--info-borde);
+  --color-info-texto: var(--info-oscuro);
 
   /* Pendiente. */
-  --color-aviso-fondo: #FBF1E1;
-  --color-aviso-borde: #E7BD7D;
-  --color-aviso-texto: #70470F;
+  --color-aviso-fondo: var(--aviso-suave);
+  --color-aviso-borde: var(--aviso-borde);
+  --color-aviso-texto: var(--aviso-oscuro);
 
-  /* En preparación. */
-  --color-progreso-fondo: var(--v2-azul-suave);
-  --color-progreso-borde: #A9C3DD;
-  --color-progreso-texto: #244F7D;
+  /* En preparación: comparte los valores de información. */
+  --color-progreso-fondo: var(--info-suave);
+  --color-progreso-borde: var(--info-borde);
+  --color-progreso-texto: var(--info-oscuro);
 
   /* Listo. */
-  --color-exito-fondo: var(--v2-salvia-suave);
-  --color-exito-borde: #9CCFC6;
-  --color-exito-texto: #075E57;
+  --color-exito-fondo: var(--exito-suave);
+  --color-exito-borde: var(--exito-borde);
+  --color-exito-texto: var(--exito-oscuro);
 
   /* Cancelado y errores. */
-  --color-peligro-fondo: #FCECEC;
-  --color-peligro-borde: #E7A4A4;
-  --color-peligro-texto: #A92F35;
+  --color-peligro-fondo: var(--peligro-suave);
+  --color-peligro-borde: var(--peligro-borde);
+  --color-peligro-texto: var(--peligro-oscuro);
 }
 
 @theme {
