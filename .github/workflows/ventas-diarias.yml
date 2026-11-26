@@ -1,7 +1,8 @@
-name: US-145 ventas diarias
+name: US-145 ventas diarias y US-146 sugerencia de stock
 on:
   schedule:
-    # 00:20 de Lima (05:20 UTC): recalcula los últimos 7 días terminados.
+    # 00:20 de Lima (05:20 UTC): recalcula los últimos 7 días terminados y luego
+    # genera la sugerencia de stock de hoy y mañana (US-146).
     - cron: '20 5 * * *'
   workflow_dispatch:
     inputs:
@@ -16,7 +17,7 @@ concurrency:
 jobs:
   consolidar:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Consolidar ventas por plato y día
         env:
@@ -34,3 +35,16 @@ jobs:
           curl --fail-with-body --silent --show-error --max-time 240 --request POST \
             --header "Authorization: Bearer $CRON_SECRET" \
             "$APP_URL/api/ventas/consolidar?dias=$DIAS"
+      # US-146: solo corre si la consolidación terminó bien (si falla, el job se detiene).
+      - name: Generar sugerencia de stock de hoy y mañana
+        env:
+          APP_URL: ${{ vars.VENTAS_APP_URL }}
+          CRON_SECRET: ${{ secrets.VENTAS_CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::warning::Sugerencia no configurada: falta VENTAS_APP_URL o VENTAS_CRON_SECRET"
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 240 --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/ventas/sugerir-stock"

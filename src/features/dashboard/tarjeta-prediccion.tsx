@@ -23,6 +23,7 @@ export function TarjetaPrediccion({ resultado }: { resultado: ResultadoPrediccio
           <div className="flex flex-wrap items-center gap-2 text-sm text-texto-suave">
             <span>Fecha prevista: {resultado.resumen.fecha} (hora de Lima).</span>
             {resultado.resumen.esDemo && <Insignia tono="info">Predicción de demostración</Insignia>}
+            {resultado.resumen.platosDemo && <Insignia tono="info">Incluye platos de demostración</Insignia>}
           </div>
 
           <ul className="grid gap-4 md:grid-cols-3">
@@ -32,6 +33,9 @@ export function TarjetaPrediccion({ resultado }: { resultado: ResultadoPrediccio
                   <h3 className="break-words text-lg font-semibold">
                     Mañana {resultado.resumen.dia}: prepara ~{plato.cantidadPrevista} {plato.nombre}
                   </h3>
+                  {resultado.resumen.platosDemo?.includes(plato.productoId) && (
+                    <Insignia tono="info">Demo</Insignia>
+                  )}
                   {plato.stockRegistrado === null ? (
                     <p className="text-sm text-texto-suave">Sin stock registrado para ese día: sin límite y sin alerta.</p>
                   ) : plato.alerta ? (
@@ -50,7 +54,8 @@ export function TarjetaPrediccion({ resultado }: { resultado: ResultadoPrediccio
 
           <p className="break-words text-sm text-texto-suave">
             Modelo: {resultado.resumen.modelo}. Estimación orientativa; no modifica el stock.
-            {resultado.resumen.esDemo && " Esta demostración usa predicciones con fechas desplazadas."}
+            {(resultado.resumen.esDemo || resultado.resumen.platosDemo) &&
+              " Esta demostración usa predicciones con fechas desplazadas."}
           </p>
         </>
       )}

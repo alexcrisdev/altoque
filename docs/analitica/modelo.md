@@ -94,3 +94,50 @@ cinco días.
 
 El simulacro del cargador reconoció las 25 filas sin omisiones.
 La aplicación en la base compartida queda a cargo de Alexander.
+## US-146: sugerencia automática de stock (`promedio-ponderado-v1`)
+
+Cada madrugada (00:20 de Lima) el workflow `ventas-diarias.yml` consolida las ventas (US-145) y
+luego llama a `/api/ventas/sugerir-stock`, que guarda en `demand_forecasts` la sugerencia de **hoy y
+mañana** de cada plato activo con el modelo `promedio-ponderado-v1`. Repetirla actualiza las mismas
+filas (clave única restaurante + plato + fecha + modelo), así que no duplica. Para la demo se lanza a
+mano con **Run workflow** en GitHub. Solo sugiere: el dueño aplica con "Rellenar con la predicción".
+
+**Cálculo** (`src/features/dashboard/sugerencia-stock-logica.ts`), solo con días terminados de
+`daily_product_sales` de las últimas 4 semanas:
+
+- Si hay 3 o más días válidos del mismo día de la semana: promedio ponderado con pesos 4, 3, 2 y 1
+  (de la semana más reciente a la más antigua).
+- Si no alcanza: los últimos días válidos (hasta 7), con más peso en los recientes.
+- Con menos de 3 días válidos no hay sugerencia propia: el plato conserva la demo, si existe.
+- `BLOQUEADO` y `LOCAL_CERRADO` no cuentan como demanda. Un día `AGOTADO` entra con lo vendido o con
+  el promedio de los días completos, el que sea mayor: nunca baja la sugerencia.
+- Mínimo 1 (0 pondría candado al plato).
+
+"Rellenar con la predicción" y la tarjeta de mañana usan la misma selección por plato: primero la
+sugerencia propia, luego otro modelo real y al final la demo (con insignia "Demo").
+
+### Evaluación
+
+`node scripts/analitica/evaluar-sugerencia-stock.mjs` aplica la misma lógica de la app a
+`data/sintetica/demanda_diaria.csv`, en el periodo de prueba de US-087 (04/10 – 31/10, 140 días-plato).
+Cada día solo ve los días anteriores y, como en la app, solo conoce lo **vendido** (un día agotado queda
+marcado `AGOTADO`); se compara contra lo **solicitado**.
+
+| Modelo | MAE | RMSE | Sesgo |
+|---|---|---|---|
+| Promedio simple por día de la semana (US-087, referencia) | **4.67** | 6.77 | — |
+| **Sugerencia US-146 (`promedio-ponderado-v1`)** | **5.45** | 7.77 | −1.92 |
+| Mismo promedio ponderado, si se conociera lo solicitado (sin agotados) | 5.12 | — | −0.02 |
+
+- **Es 16.7% peor que el promedio simple de US-087.** La diferencia principal es la cantidad de
+  historia: US-087 promedió 5 meses de entrenamiento; US-146 usa solo las últimas 4 semanas (como
+  mucho 4 datos por día de la semana). Aun con la demanda real sin cortes, 4 semanas dan MAE 5.12.
+- **Los agotados explican el resto (5.12 → 5.45):** el 26% de los días-plato de la ventana se agotaron,
+  y lo vendido esos días es menor que lo pedido. La regla "un agotado no baja" evita el peor caso,
+  pero la sugerencia aún queda en promedio ~2 platos corta (sesgo −1.92).
+- Sin el feriado ni el evento del periodo, el MAE baja a 4.77.
+- **Por qué igual se usa:** se adapta a las ventas reales de cada restaurante sin reentrenar, y cubre
+  cualquier plato con 3 días de historia. XGBoost (4.26) sigue siendo mejor con datos sintéticos, pero
+  necesita reentrenarse con datos reales.
+- **Mejora posible (no aplicada):** ampliar la ventana a 8 semanas o sumar un margen a los días
+  agotados. Habría que validarla con datos reales, no ajustarla con este mismo periodo de prueba.
