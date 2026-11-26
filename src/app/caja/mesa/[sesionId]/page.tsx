@@ -10,13 +10,19 @@ import { CerrarCuenta } from "@/features/pago-cierre/cerrar-cuenta";
 import { evaluarCierre } from "@/features/pago-cierre/cierre-logica";
 import { ResumenCierre } from "@/features/pago-cierre/resumen-cierre";
 import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
+import { obtenerPedidosPagoCajaAction } from "@/features/pago-cierre/pago-en-caja-actions";
 
-async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
+async function CuentaMesa({ params, searchParams }: PageProps<"/caja/mesa/[sesionId]">) {
   const { sesionId } = await params;
   const { restauranteId, puedeVerificar, autorizaExcepcion, usuarioId } = await contextoCaja();
   if (!esUuid(sesionId)) notFound();
   const cuenta = await obtenerCuentaMesa(restauranteId, sesionId);
   if (!cuenta) notFound();
+  const { pagaEnCaja } = await searchParams;
+  const pedidoCaja = typeof pagaEnCaja === "string"
+    ? (await obtenerPedidosPagoCajaAction(pagaEnCaja).catch(() => []))
+      .find((pedido) => pedido.mesa_sesion_id === cuenta.sesionId)
+    : null;
 
   const desde = new Date(cuenta.abiertaDesde).toLocaleTimeString("es-PE", {
     hour: "2-digit",
@@ -40,7 +46,14 @@ async function CuentaMesa({ params }: PageProps<"/caja/mesa/[sesionId]">) {
       {cuenta.cierre && <TotalBilletera restauranteId={restauranteId} />}
       {!cuenta.cerrada && (
         <>
-          {cuenta.saldoCentimos > 0 && (
+          {pedidoCaja ? (
+            <CobrarCuenta cuenta={{ tipo: "MESA", id: cuenta.sesionId }} saldoCentimos={pedidoCaja.saldo_centimos}
+              pedidoDestino={{ id: pedidoCaja.pedido_id, numero: pedidoCaja.numero }} />
+          ) : pagaEnCaja !== undefined ? (
+            <p id="registrar-pago" role="status" className="mt-6 text-sm text-texto-suave">
+              Este pedido ya no está en la lista de pagos en caja. Revisa su estado en la cuenta.
+            </p>
+          ) : cuenta.saldoCentimos > 0 && (
             <CobrarCuenta cuenta={{ tipo: "MESA", id: cuenta.sesionId }} saldoCentimos={cuenta.saldoCentimos} />
           )}
           <CerrarCuenta

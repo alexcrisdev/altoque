@@ -13,6 +13,8 @@ import { PanelCapturas } from "@/features/pago-cierre/panel-capturas";
 import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
 import { listarDevolucionesPendientes } from "@/features/pago-cierre/devoluciones";
 import { DevolucionesPendientes } from "@/features/pago-cierre/devoluciones-vista";
+import { obtenerPedidosPagoCajaAction } from "@/features/pago-cierre/pago-en-caja-actions";
+import { etiquetaNumeroDia } from "@/features/pedidos/numero-dia";
 
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
@@ -20,6 +22,7 @@ async function CajaPanel({ searchParams }: Pick<PageProps<"/caja">, "searchParam
   await requerirPanel("caja"); // US-106
   const anterior = (await searchParams).vista === "anterior";
   const { cuentas, mesas, actualizadoEn, restauranteId, puedeVerificar } = await obtenerPanelCaja();
+  const pagosEnCaja = await obtenerPedidosPagoCajaAction().catch(() => null);
   // US-105: pedidos pagados cancelados por el dueño o el admin, con dinero por devolver.
   const devoluciones = await listarDevolucionesPendientes(restauranteId);
   const salones = anterior ? [] : await obtenerSalonesCaja();
@@ -42,6 +45,31 @@ async function CajaPanel({ searchParams }: Pick<PageProps<"/caja">, "searchParam
       <div className="caja-distribucion mt-8 grid items-start gap-6">
       <section aria-labelledby="caja-cuentas" className="min-w-0 rounded-2xl border border-borde bg-superficie p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="caja-cuentas" className="text-xl font-semibold">Cuentas por cobrar o cerrar</h2><Insignia tono="info">{cuentas.length} {cuentas.length === 1 ? "abierta" : "abiertas"}</Insignia></div>
+        {pagosEnCaja === null && (
+          <p role="status" className="mt-3 text-sm text-texto-suave">No pudimos actualizar los pedidos que pagan en caja.</p>
+        )}
+        {pagosEnCaja && pagosEnCaja.length > 0 && (
+          <section aria-labelledby="pedidos-pagan-en-caja" className="mt-4">
+            <h3 id="pedidos-pagan-en-caja" className="font-semibold">Pedidos que pagan en caja</h3>
+            <ul className="mt-2 grid gap-2">
+              {pagosEnCaja.map((pedido) => (
+                <li key={pedido.pedido_id}>
+                  <Link href={pedido.mesa_sesion_id
+                    ? `/caja/mesa/${pedido.mesa_sesion_id}?pagaEnCaja=${pedido.pedido_id}#registrar-pago`
+                    : `/caja/pedido/${pedido.pedido_id}?pagaEnCaja=${pedido.pedido_id}#registrar-pago`}
+                  className="cuenta-enlace flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-2xl border border-borde bg-superficie p-4">
+                    <span>
+                      <span className="block font-semibold">Pedido {etiquetaNumeroDia(pedido.numero, pedido.dia)}</span>
+                      <span className="text-sm text-texto-suave">{pedido.mesa_numero === null ? "Mostrador" : `Mesa ${pedido.mesa_numero}`}</span>
+                    </span>
+                    <Insignia tono="aviso">Paga en caja</Insignia>
+                    <span className="font-semibold tabular-nums">{soles(pedido.saldo_centimos)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {cuentas.length === 0 ? (
           <div className="mt-4"><MensajeEstado tipo="vacio" titulo="No hay cuentas abiertas." descripcion="Las cuentas aparecerán aquí cuando se abra una mesa o se registre un pedido para llevar." /></div>
         ) : (

@@ -17,7 +17,9 @@ import {
 
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
-export function RegistrarPagoEfectivo({ cuenta, saldoCentimos, correo = "" }: { cuenta: CuentaACobrar; saldoCentimos: number; correo?: string }) {
+export function RegistrarPagoEfectivo({ cuenta, saldoCentimos, correo = "", pedidoDestino }: {
+  cuenta: CuentaACobrar; saldoCentimos: number; correo?: string; pedidoDestino?: string;
+}) {
   const [monto, setMonto] = useState(saldoCentimos > 0 ? centimosATexto(saldoCentimos) : "");
   const [recibido, setRecibido] = useState("");
   // La misma clave en cada reintento: si el primer envío sí llegó, la base no crea otro pago.
@@ -26,7 +28,8 @@ export function RegistrarPagoEfectivo({ cuenta, saldoCentimos, correo = "" }: { 
   const [exito, setExito] = useState("");
   const [guardando, startTransition] = useTransition();
 
-  const montoCentimos = parsearSoles(monto);
+  const montoVisible = pedidoDestino ? centimosATexto(saldoCentimos) : monto;
+  const montoCentimos = parsearSoles(montoVisible);
   const recibidoCentimos = parsearSoles(recibido);
   const vuelto = montoCentimos !== null && recibidoCentimos !== null ? calcularVuelto(montoCentimos, recibidoCentimos) : null;
 
@@ -41,7 +44,9 @@ export function RegistrarPagoEfectivo({ cuenta, saldoCentimos, correo = "" }: { 
     }
     startTransition(async () => {
       try {
-        const resultado = await registrarPagoEfectivoAction(cuenta, monto, recibido, clave, correo);
+        const resultado = pedidoDestino
+          ? await registrarPagoEfectivoAction(cuenta, montoVisible, recibido, clave, correo, pedidoDestino)
+          : await registrarPagoEfectivoAction(cuenta, montoVisible, recibido, clave, correo);
         if (!resultado.ok) {
           setError(resultado.mensaje);
           return;
@@ -77,12 +82,13 @@ export function RegistrarPagoEfectivo({ cuenta, saldoCentimos, correo = "" }: { 
               inputMode="decimal"
               autoComplete="off"
               className="mt-1 min-h-11 w-full rounded-lg border border-borde px-3 text-lg"
-              value={monto}
+              value={montoVisible}
+              readOnly={!!pedidoDestino}
               onChange={(e) => setMonto(e.target.value)}
               aria-describedby="ayuda-monto"
             />
             <span id="ayuda-monto" className="mt-1 block text-xs text-texto-suave">
-              Saldo pendiente: {soles(saldoCentimos)}. Puedes cobrar una parte.
+              Saldo pendiente: {soles(saldoCentimos)}. {pedidoDestino ? "Cobro exclusivo de este pedido." : "Puedes cobrar una parte."}
             </span>
           </label>
 
