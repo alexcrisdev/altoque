@@ -9,10 +9,11 @@ import { CerrarCuenta } from "@/features/pago-cierre/cerrar-cuenta";
 import { evaluarCierreAdmin } from "@/features/pago-cierre/cierre-logica";
 import { ResumenCierre } from "@/features/pago-cierre/resumen-cierre";
 
+// US-105: con un solo cajero, el dueño o el admin verifican aquí el Yape que registró otra persona.
 // US-106: consulta de la cuenta de una mesa y cierre con excepción (motivo obligatorio).
 async function CuentaMesaAdmin({ params }: PageProps<"/admin/cuentas/mesa/[sesionId]">) {
   const { sesionId } = await params;
-  const { restauranteId } = await requerirPanel("admin");
+  const { restauranteId, usuario } = await requerirPanel("admin");
   if (!esUuid(sesionId)) notFound();
   const cuenta = await obtenerCuentaMesa(restauranteId, sesionId);
   if (!cuenta) notFound();
@@ -25,7 +26,7 @@ async function CuentaMesaAdmin({ params }: PageProps<"/admin/cuentas/mesa/[sesio
       <DetalleCuenta
         cuenta={cuenta}
         cerrada={cuenta.cerrada}
-        verificacion={{ cuenta: { tipo: "MESA", id: cuenta.sesionId }, puedeVerificar: false }}
+        verificacion={{ cuenta: { tipo: "MESA", id: cuenta.sesionId }, puedeVerificar: true, usuarioId: usuario.id }}
       />
       {cuenta.cierre && <ResumenCierre cierre={cuenta.cierre} />}
       {!cuenta.cerrada && (

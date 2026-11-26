@@ -4,23 +4,20 @@ import { useMemo, useState, useTransition } from "react";
 import { cambiarEstadoPedido } from "./estado-actions";
 import { modificarPedido } from "./modificar-actions";
 import { calcularNuevoTotalCentimos, puedeModificar, requiereMotivoModificacion, type CambioPedido, type ItemModificable } from "./modificacion";
-import { puedeCambiarEstado, type EstadoPedido } from "./estados";
+import { puedeCancelarPedido, type EstadoPedido } from "./estados";
 import type { Rol } from "@/features/auth/permisos";
 
 const moneda = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
 
-export function AccionesPedido({ pedidoId, estado, roles, items }: { pedidoId: string; estado: EstadoPedido; roles: Rol[]; items: ItemModificable[] }) {
+// US-105: `pagado` viene de la base (pedido_pagado); con pago confirmado solo el dueño o el admin cancelan.
+export function AccionesPedido({ pedidoId, estado, roles, items, pagado = false }: { pedidoId: string; estado: EstadoPedido; roles: Rol[]; items: ItemModificable[]; pagado?: boolean }) {
   const [cantidades, setCantidades] = useState(() => Object.fromEntries(items.map((i) => [i.id, i.cantidad])));
   const [observaciones, setObservaciones] = useState(() => Object.fromEntries(items.map((i) => [i.id, i.observacion ?? ""])));
   const [motivo, setMotivo] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [guardando, startTransition] = useTransition();
   const puedeEditar = puedeModificar(estado, roles);
-  const puedeCancelar = puedeCambiarEstado(
-    estado,
-    "CANCELLED",
-    roles
-  );
+  const puedeCancelar = puedeCancelarPedido(estado, roles, pagado);
   const totalCentimos = useMemo(() => calcularNuevoTotalCentimos(items, items.map((item) => ({ itemId: item.id, cantidad: cantidades[item.id] ?? item.cantidad }))), [items, cantidades]);
 
   function guardar() {
@@ -32,11 +29,13 @@ export function AccionesPedido({ pedidoId, estado, roles, items }: { pedidoId: s
   }
 
   function cancelar() {
-    const razon = window.prompt("Escribe el motivo de cancelación:");
+    const razon = window.prompt(pagado
+      ? "Este pedido ya está pagado: quedará una devolución pendiente. Escribe el motivo de cancelación:"
+      : "Escribe el motivo de cancelación:");
     if (!razon?.trim()) return;
     startTransition(async () => {
       const resultado = await cambiarEstadoPedido(pedidoId, "CANCELLED", razon);
-      setMensaje(resultado.ok ? "Pedido cancelado." : resultado.mensaje);
+      setMensaje(resultado.ok ? (pagado ? "Pedido cancelado. Quedó registrada la devolución pendiente." : "Pedido cancelado.") : resultado.mensaje);
     });
   }
 

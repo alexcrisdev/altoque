@@ -39,6 +39,13 @@ export function puedeCambiarEstado(desde: EstadoPedido, hacia: EstadoPedido, rol
   return !!permitidos && roles.some((rol) => permitidos.includes(rol));
 }
 
+// US-105: un pedido con pago confirmado solo lo cancelan el dueño o el admin (con motivo),
+// y queda una devolución pendiente. El mesero ya no puede cancelarlo.
+export function puedeCancelarPedido(estado: EstadoPedido, roles: Rol[], pagado: boolean): boolean {
+  if (!puedeCambiarEstado(estado, "CANCELLED", roles)) return false;
+  return !pagado || roles.some((rol) => rol === "OWNER" || rol === "ADMIN");
+}
+
 export function requiereMotivo(hacia: EstadoPedido): boolean {
   return hacia === "CANCELLED";
 }
@@ -52,6 +59,7 @@ export function mensajeErrorEstado(codigo: string): string {
     REASON_REQUIRED: "Escribe el motivo de la cancelación.",
     INVALID_REASON: "El motivo no puede superar los 200 caracteres.",
     ACCOUNT_CLOSED: "La cuenta de esta mesa ya se cerró: el pedido no se puede cambiar.",
+    PAID_ORDER_ADMIN_ONLY: "Este pedido ya está pagado: solo el dueño o el admin pueden cancelarlo, desde Administración.",
   };
   return mensajes[codigo] ?? "No se pudo actualizar el estado del pedido. Intenta de nuevo.";
 }

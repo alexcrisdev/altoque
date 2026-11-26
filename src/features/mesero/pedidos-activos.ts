@@ -22,6 +22,7 @@ export type PedidoActivo = {
 type FilaPedido = FilaAlergia & {
   id: string;
   order_number: number;
+  daily_number?: number | null; // US-105: número del día
   created_at: string;
   status: EstadoPedido;
   ready_at: string | null;
@@ -35,7 +36,7 @@ type FilaPedido = FilaAlergia & {
 export async function listarPedidosActivos(restauranteId: string): Promise<PedidoActivo[]> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from("orders")
-    .select("id, order_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, allergy_answer, allergens, allergy_note, source")
+    .select("id, order_number, daily_number, created_at, status, ready_at, modality, dining_table_id, dining_tables(number), customer_name, allergy_answer, allergens, allergy_note, source")
     .eq("restaurant_id", restauranteId)
     .in("status", ESTADOS_ACTIVOS)
     .order("created_at", { ascending: true })
@@ -49,7 +50,7 @@ export async function listarPedidosActivos(restauranteId: string): Promise<Pedid
   return (data ?? []).map((fila) => ({
     id: fila.id,
     alergia: leerAlergia(fila),
-    numero: Number(fila.order_number),
+    numero: Number(fila.daily_number ?? fila.order_number),
     creadoEn: fila.created_at,
     estado: fila.status,
     listoEn: fila.ready_at,

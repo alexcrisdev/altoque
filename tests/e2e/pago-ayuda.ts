@@ -26,7 +26,7 @@ export async function entregarPropio(pedido: EntornoPedido) {
   const cocina = await pedido.staff("cocina");
   await cocina.goto("/cocina");
   const transiciones = [
-    { estado: "IN_PROGRESS", boton: `Marcar listo el pedido N.º ${p.order_number}` },
+    { estado: "IN_PROGRESS", boton: `Marcar listo el pedido N.º ${p.daily_number}` },
   ];
   for (const paso of transiciones) {
     p = await cuentaPropia(pedido);
@@ -57,7 +57,7 @@ export async function pagarParaLlevarEnCaja(pedido: EntornoPedido) {
   const caja = await pedido.staff("caja");
   await caja.goto("/caja");
   const cuenta = caja.getByRole("region", { name: "Cuentas por cobrar o cerrar", exact: true })
-    .getByRole("link").filter({ hasText: `Para llevar #${p.order_number} – PRUEBA E2E` });
+    .getByRole("link").filter({ hasText: `Para llevar ${etiquetaCaja(p)} – PRUEBA E2E` });
   await expect(cuenta).toHaveAttribute("href", `/caja/pedido/${p.id}`);
   await cuenta.click();
   await expect(caja).toHaveURL(new RegExp(`/caja/pedido/${p.id}$`));
@@ -72,7 +72,7 @@ export async function pagarParaLlevarEnCaja(pedido: EntornoPedido) {
   expect(historial.data).toEqual([{
     from_status: "PENDING", to_status: "IN_PROGRESS", reason: "US-085: pago confirmado",
   }]);
-  await verificarEnCocina(pedido, Number(p.order_number));
+  await verificarEnCocina(pedido, Number(p.daily_number));
   return caja;
 }
 
@@ -94,7 +94,7 @@ export async function pagarMesaEnCaja(pedido: EntornoPedido) {
   expect(historial.data).toEqual([{
     from_status: "PENDING", to_status: "IN_PROGRESS", reason: "US-094: pago confirmado",
   }]);
-  await verificarEnCocina(pedido, Number(p.order_number));
+  await verificarEnCocina(pedido, Number(p.daily_number));
   return caja;
 }
 
@@ -120,6 +120,12 @@ export async function registrarPedidoMeseroPropio(pedido: EntornoPedido) {
 }
 
 // US-106: la misma cuenta vista por el dueño/admin (solo consulta y excepción).
+// US-105: caja muestra el número del día con su fecha (dd/mm), p. ej. "N.º 5 · 26/11".
+export function etiquetaCaja(p: { daily_number: number; business_date: string }) {
+  const [, mes, dia] = p.business_date.split("-");
+  return `N.º ${p.daily_number} · ${dia}/${mes}`;
+}
+
 export function rutaAdmin(rutaCaja: string) {
   return rutaCaja.replace(/^\/caja\//, "/admin/cuentas/");
 }

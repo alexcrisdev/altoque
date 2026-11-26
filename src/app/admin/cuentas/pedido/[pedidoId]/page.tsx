@@ -9,10 +9,11 @@ import { CerrarCuenta } from "@/features/pago-cierre/cerrar-cuenta";
 import { evaluarCierreAdmin } from "@/features/pago-cierre/cierre-logica";
 import { ResumenCierre } from "@/features/pago-cierre/resumen-cierre";
 
+// US-105: con un solo cajero, el dueño o el admin verifican aquí el Yape que registró otra persona.
 // US-106: consulta de una cuenta para llevar y cierre con excepción (motivo obligatorio).
 async function CuentaParaLlevarAdmin({ params }: PageProps<"/admin/cuentas/pedido/[pedidoId]">) {
   const { pedidoId } = await params;
-  const { restauranteId } = await requerirPanel("admin");
+  const { restauranteId, usuario } = await requerirPanel("admin");
   if (!esUuid(pedidoId)) notFound();
   const cuenta = await obtenerCuentaParaLlevar(restauranteId, pedidoId);
   if (!cuenta) notFound();
@@ -25,7 +26,7 @@ async function CuentaParaLlevarAdmin({ params }: PageProps<"/admin/cuentas/pedid
       <DetalleCuenta
         cuenta={cuenta}
         cerrada={cuenta.cierre !== null}
-        verificacion={{ cuenta: { tipo: "PARA_LLEVAR", id: cuenta.pedidoId }, puedeVerificar: false }}
+        verificacion={{ cuenta: { tipo: "PARA_LLEVAR", id: cuenta.pedidoId }, puedeVerificar: true, usuarioId: usuario.id }}
       />
       {cuenta.cierre && <ResumenCierre cierre={cuenta.cierre} />}
       {!cuenta.cierre && cuenta.pedidos.length > 0 && (

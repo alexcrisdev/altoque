@@ -4,7 +4,7 @@ import {
   test, MESA_NUMERO, TOKEN_MOSTRADOR, RESTAURANTE,
   prepararCarrito, confirmarYVerificar, cerrarMesa,
 } from "./ayuda";
-import { cuentaPropia, pagarParaLlevarEnCaja, prepararRecuperacion } from "./pago-ayuda";
+import { cuentaPropia, etiquetaCaja, pagarParaLlevarEnCaja, prepararRecuperacion } from "./pago-ayuda";
 
 test.setTimeout(90_000);
 
@@ -67,7 +67,7 @@ test("US-082 / US-085: caja identifica y cobra el pedido para llevar antes de co
   const p = await cuentaPropia(pedido);
   const caja = await pedido.staff("caja");
   const cuentas = caja.getByRole("region", { name: "Cuentas por cobrar o cerrar", exact: true });
-  const cuenta = cuentas.getByRole("link").filter({ hasText: `Para llevar #${p.order_number} – PRUEBA E2E` });
+  const cuenta = cuentas.getByRole("link").filter({ hasText: `Para llevar ${etiquetaCaja(p)} – PRUEBA E2E` });
   await expect(cuenta).toHaveAttribute("href", `/caja/pedido/${p.id}`);
   await cuenta.click();
   await expect(caja).toHaveURL(new RegExp(`/caja/pedido/${p.id}$`));

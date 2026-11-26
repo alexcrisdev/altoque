@@ -93,6 +93,16 @@ export function puedeVerificarPagos(roles: readonly string[]): boolean {
   return roles.some((rol) => (ROLES_VERIFICAN as readonly string[]).includes(rol));
 }
 
+// US-105: con un solo cajero, el dueño o el admin verifican desde /admin/cuentas el pago
+// que registró OTRA persona. Nadie verifica su propio pago (la base lo vuelve a revisar).
+const ROLES_VERIFICAN_AJENO = ["CASHIER", "OWNER", "ADMIN"] as const;
+export function puedeVerificarPagoAjeno(roles: readonly string[]): boolean {
+  return roles.some((rol) => (ROLES_VERIFICAN_AJENO as readonly string[]).includes(rol));
+}
+export function esPagoPropio(registradoPorId: string | null | undefined, usuarioId: string | null | undefined): boolean {
+  return !!registradoPorId && registradoPorId === usuarioId;
+}
+
 const MENSAJES_ERROR: Record<string, string> = {
   FORBIDDEN: "No tienes permiso para registrar pagos en esta cuenta.",
   ACCOUNT_NOT_FOUND: "La cuenta ya no está abierta. Vuelve a la caja y revisa.",
@@ -102,6 +112,7 @@ const MENSAJES_ERROR: Record<string, string> = {
   INVALID_PAYMENT: "Los datos del pago no son válidos. Revisa los montos.",
   ALREADY_VERIFIED: "Este pago ya fue verificado por otra persona. Actualiza la página.",
   PAYMENT_NOT_FOUND: "No se encontró el pago. Actualiza la página.",
+  SELF_VERIFICATION: "No puedes verificar un pago que registraste tú. Pide a otra persona de caja, al dueño o al admin que lo verifique.",
   // Mensaje de la base si llegara un n.º de tarjeta (el nombre de la constraint).
   payments_reference_sin_tarjeta: AVISO_NUMERO_TARJETA,
 };

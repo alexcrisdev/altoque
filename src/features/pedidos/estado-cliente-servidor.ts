@@ -38,6 +38,7 @@ export type PedidoCliente = {
 type FilaPedido = {
   id: string;
   order_number: number;
+  daily_number?: number | null; // US-105: número del día
   status: string;
   created_at: string;
   table_session_id: string | null;
@@ -82,6 +83,7 @@ export async function consultarPedidoCliente(
     .select(`
       id,
       order_number,
+      daily_number,
       status,
       created_at,
       table_session_id,
@@ -162,7 +164,7 @@ export async function consultarPedidoCliente(
   // Construimos la respuesta explícitamente: sin claves, IDs,
   // datos del personal, datos de contacto ni información de pagos.
   return {
-    numero: Number(data.order_number),
+    numero: Number(data.daily_number ?? data.order_number),
     estado: data.status,
     creadoEn: data.created_at,
     modalidad: data.modality,

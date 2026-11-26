@@ -83,7 +83,7 @@ export async function pedidosPropios(
   const { data, error } = await cliente
     .from("orders")
     .select(
-      "id, order_number, status, modality, source, table_session_id, total, order_items!inner(observation, quantity)",
+      "id, order_number, daily_number, business_date, status, modality, source, table_session_id, total, order_items!inner(observation, quantity)",
     )
     .eq("restaurant_id", RESTAURANTE)
     .eq("order_items.observation", marca);
@@ -740,7 +740,8 @@ export async function confirmarYVerificar(
   );
 
   expect(
-    Number(registros[0].order_number),
+    // US-105: el cliente ve el número del día.
+    Number(registros[0].daily_number),
   ).toBe(numero);
 
   // Pago previo obligatorio: todo pedido QR (mesa o para llevar) espera pago.

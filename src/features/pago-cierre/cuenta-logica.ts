@@ -53,6 +53,7 @@ export type PagoCuenta = {
   vueltoCentimos?: number | null;
   referencia?: string | null; // Yape: n.º de operación (US-023); tarjeta: voucher del POS (US-024)
   registradoPor?: string | null; // quién anotó el pago (US-024)
+  registradoPorId?: string | null; // US-105: nadie verifica su propio pago
   stripe?: boolean; // pagado online con Stripe, sin cajero (US-076)
   verificadoPor?: string | null;
   verificadoEn?: string | null;
