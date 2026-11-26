@@ -113,7 +113,7 @@ async function ContenidoReportes({
         subtitulo="Ventas confirmadas y ticket promedio del restaurante."
       />
 
-      <Tarjeta>
+      <Tarjeta className="reportes-fechas">
         <form
           action="/admin/reportes"
           method="get"
@@ -423,11 +423,7 @@ async function ContenidoReportes({
       </section>
 
         </>}
-        mapaCalor={<MapaCalorPanel
-        key={`${desde}:${hasta}`}
-        desde={desde}
-        hasta={hasta}
-        />}
+        mapaCalor={<MapaCalorPanel />}
 
         cocina={<section aria-labelledby="tiempos-cocina-titulo" className="space-y-4">
         <h2 id="tiempos-cocina-titulo" className="text-xl font-bold">
