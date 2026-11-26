@@ -29,6 +29,18 @@ export type FranjaMapa = {
   bajaDemanda: boolean;
 };
 
+export function resumenFranjas(celdas: readonly FranjaMapa[]) {
+  const abiertas = celdas.filter(c => c.diasEnRango > 0);
+  if (!abiertas.length) return null;
+  let pico = abiertas[0];
+  let floja = abiertas[0];
+  for (const franja of abiertas) {
+    if (franja.promedio > pico.promedio) pico = franja;
+    if (franja.promedio < floja.promedio) floja = franja;
+  }
+  return pico.promedio === floja.promedio ? null : { pico, floja };
+}
+
 const DIA_MS = 86_400_000;
 const HORA_MS = 3_600_000;
 

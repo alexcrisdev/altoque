@@ -13,6 +13,11 @@ type Props = {
 export function ReportesSecciones({ ventas, tendencias, mapaCalor, cocina }: Props) {
   const id = useId();
   const [activa, setActiva] = useState(0);
+  const [mapaVisitado, visitarMapa] = useState(false);
+  function seleccionar(indice: number) {
+    setActiva(indice);
+    if (indice === 2) visitarMapa(true);
+  }
   const botones = useRef<(HTMLButtonElement | null)[]>([]);
   const secciones = [
     { titulo: "Ventas", contenido: ventas },
@@ -31,7 +36,7 @@ export function ReportesSecciones({ ventas, tendencias, mapaCalor, cocina }: Pro
       default: return;
     }
     evento.preventDefault();
-    setActiva(destino);
+    seleccionar(destino);
     botones.current[destino]?.focus();
   }
 
@@ -47,7 +52,7 @@ export function ReportesSecciones({ ventas, tendencias, mapaCalor, cocina }: Pro
             role="tab"
             aria-selected={activa === indice}
             tabIndex={activa === indice ? 0 : -1}
-            onClick={() => setActiva(indice)}
+            onClick={() => seleccionar(indice)}
             onKeyDown={(evento) => navegar(evento, indice)}
             className="reportes-pestana"
           >
@@ -65,7 +70,7 @@ export function ReportesSecciones({ ventas, tendencias, mapaCalor, cocina }: Pro
           tabIndex={activa === indice ? 0 : undefined}
           className="reportes-panel"
         >
-          {contenido}
+          {indice !== 2 || mapaVisitado ? contenido : null}
         </div>
       ))}
     </div>
