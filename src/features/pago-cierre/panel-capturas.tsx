@@ -47,7 +47,7 @@ function TarjetaCaptura({ captura, restauranteId, ahora, actualizar }: {
         .finally(() => { bloqueado.current = false; setEnviando(false); });
     });
   }
-  return <Tarjeta className="space-y-3">
+  return <Tarjeta className="mov-aviso space-y-3">
     <h3 className="text-lg font-bold">{captura.titulo} · {captura.wallet === "YAPE" ? "Yape" : "Plin"}</h3>
     <p>Esperado: S/ {centimosATexto(captura.esperado)} · Declarado: S/ {centimosATexto(captura.declarado)}</p>
     <p><time dateTime={captura.creadaEn}>{new Date(captura.creadaEn).toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}</time> · hace {tiempoCaptura(captura.creadaEn, ahora)}</p>

@@ -30,7 +30,7 @@ async function LoginForm({
           <Image src={mesaPeruana} alt="" sizes="(min-width: 1024px) 460px, 1px" className="mt-5 aspect-[5/2] w-full rounded-xl object-cover" />
         </div>
       </section>
-      <Tarjeta relleno="destacado" className="acceso-formulario w-full">
+      <Tarjeta relleno="destacado" className="mov-acceso acceso-formulario w-full">
         <EncabezadoPantalla
           titulo="Iniciar sesión en AlToque"
           subtitulo="Acceso para el equipo del restaurante."

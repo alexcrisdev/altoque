@@ -202,7 +202,7 @@ export function AlertasMesero({ restauranteId, mesas, pedidos, solicitudes, actu
     {errorSonido && <p role="status" className="text-sm text-texto-suave">{errorSonido}</p>}
     {error && <p role="status" className="text-sm text-aviso-texto">No pudimos actualizar las alertas. Conservamos los avisos y volveremos a intentarlo.</p>}
     <div role="status" aria-live="polite" aria-atomic="true" className="space-y-2">
-      {avisos.map((aviso) => <Tarjeta key={aviso.id} tono="info" className="flex flex-wrap items-center justify-between gap-3">
+      {avisos.map((aviso) => <Tarjeta key={aviso.id} tono="info" className="mov-aviso flex flex-wrap items-center justify-between gap-3">
         <p className="font-semibold">{aviso.texto}</p>
         <Boton type="button" variante="fantasma" aria-label={`Cerrar aviso: ${aviso.texto}`}
           onClick={() => setAvisos((actuales) => actuales.filter((actual) => actual.id !== aviso.id))}>Cerrar aviso</Boton>
@@ -216,7 +216,7 @@ export function AlertasMesero({ restauranteId, mesas, pedidos, solicitudes, actu
       {mensajeAyuda && <p role="status" className="mb-3 text-sm">{mensajeAyuda}</p>}
       {listaAyuda.length === 0 ? (!errorSolicitudes && <MensajeEstado tipo="vacio" titulo="No hay solicitudes de ayuda pendientes." />) :
         <ul className="grid gap-3 md:grid-cols-2">{listaAyuda.map((solicitud) => <li key={solicitud.id}>
-          <Tarjeta className="flex flex-wrap items-center justify-between gap-3">
+          <Tarjeta className="mov-aviso flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-semibold">{solicitud.mesaNumero === null ? "Mostrador" : `Mesa ${solicitud.mesaNumero}`}</h3>
               <p className="mt-1 text-sm text-texto-suave">

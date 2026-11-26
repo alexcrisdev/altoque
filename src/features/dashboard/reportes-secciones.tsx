@@ -68,7 +68,7 @@ export function ReportesSecciones({ ventas, tendencias, mapaCalor, cocina }: Pro
           aria-labelledby={`${id}-pestana-${indice}`}
           hidden={activa !== indice}
           tabIndex={activa === indice ? 0 : undefined}
-          className="reportes-panel"
+          className="mov-fundido reportes-panel"
         >
           {indice !== 2 || mapaVisitado ? contenido : null}
         </div>

@@ -62,7 +62,7 @@ export function RegistrarPagoEfectivo({ cuenta, saldoCentimos, correo = "" }: { 
     <div>
 
       {exito && (
-        <p role="status" className="rounded-lg border border-exito-borde bg-exito-fondo p-3 text-lg font-semibold text-exito-texto">
+        <p role="status" className="mov-fundido rounded-lg border border-exito-borde bg-exito-fondo p-3 text-lg font-semibold text-exito-texto">
           {exito}
         </p>
       )}
