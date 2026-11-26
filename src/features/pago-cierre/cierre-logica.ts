@@ -91,6 +91,14 @@ export function evaluarCierre(cuenta: ResumenCuenta, autorizaExcepcion: boolean,
   };
 }
 
+// US-106: en /admin el dueño o el admin solo cierran con excepción. Si la cuenta ya está
+// pagada, el cierre normal lo hace caja.
+export function evaluarCierreAdmin(cuenta: ResumenCuenta, esMesa = false): EstadoCierre {
+  const estado = evaluarCierre(cuenta, true, esMesa);
+  if (!estado.ordinario) return estado;
+  return { ordinario: false, excepcion: false, aviso: "La cuenta está pagada: caja hace el cierre normal." };
+}
+
 // El orden importa: el código se busca dentro del mensaje de la base y
 // "EXCEPTION_FORBIDDEN" contiene "FORBIDDEN", así que va primero.
 const MENSAJES_ERROR: Record<string, string> = {

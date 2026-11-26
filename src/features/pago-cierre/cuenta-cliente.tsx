@@ -48,13 +48,14 @@ export async function CuentaCliente({ token, clave, pago, sesion }: {
       <h2 className="font-semibold">Tu cuenta</h2>
       <p className="text-3xl font-bold tabular-nums">S/ {centimosATexto(cuenta.saldoCentimos)}</p>
     </div>
+    {/* US-106: el efectivo lo recibe caja (el mesero ya no cobra). */}
+    <p className="text-sm text-texto-suave">Para pagar en efectivo, acércate a caja.</p>
     {tarjetaDisponible && (aviso
       ? <p className="text-sm text-texto-suave">{aviso}</p>
       : <>
         <BotonPagarTarjeta token={token} clave={clave} />
         <p className="text-xs text-texto-suave">
           Pago seguro con Stripe. AlToque no ve ni guarda los datos de tu tarjeta.
-          También puedes pagar en caja con efectivo o Yape.
         </p>
       </>)}
     {titular && <SubirCaptura token={token} clavePedido={clave} saldo={cuenta.saldoCentimos} titular={titular} />}

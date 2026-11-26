@@ -52,10 +52,11 @@ function FilaPago({ pago, verificacion }: { pago: PagoCuenta; verificacion?: Ver
         </span>
         <span className="shrink-0 font-semibold tabular-nums">{soles(pago.montoCentimos)}</span>
       </div>
-      {verificable && pago.capturaId && <p className="mt-2"><a href="/caja" className="font-semibold underline">Verificar captura Yape/Plin en caja</a></p>}
+      {verificable && pago.capturaId && verificacion?.puedeVerificar && <p className="mt-2"><a href="/caja" className="font-semibold underline">Verificar captura Yape/Plin en caja</a></p>}
       {verificable && !pago.capturaId && verificacion?.puedeVerificar && <VerificarPago cuenta={verificacion.cuenta} pagoId={pago.id} />}
+      {/* US-106: solo caja confirma; los demás solo ven que falta. */}
       {verificable && verificacion && !verificacion.puedeVerificar && (
-        <p className="mt-1 text-sm text-aviso-texto">Pide a caja o al administrador que confirme este Yape.</p>
+        <p className="mt-1 text-sm text-aviso-texto">Pendiente: caja debe confirmar este Yape/Plin.</p>
       )}
     </li>
   );

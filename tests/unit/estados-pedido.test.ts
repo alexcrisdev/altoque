@@ -6,7 +6,7 @@ describe("transiciones de estado de pedido", () => {
   const validas: [EstadoPedido, EstadoPedido, Rol[]][] = [
     ["READY", "IN_PROGRESS", ["KITCHEN"]],
     ["IN_PROGRESS", "CANCELLED", ["WAITER"]],
-    ["IN_PROGRESS", "READY", ["OWNER"]],
+    ["IN_PROGRESS", "READY", ["KITCHEN"]],
     ["READY", "DELIVERED", ["WAITER"]],
     ["PENDING", "CANCELLED", ["WAITER"]],
     ["ACCEPTED", "CANCELLED", ["ADMIN"]],
@@ -19,6 +19,17 @@ describe("transiciones de estado de pedido", () => {
 
   it.each(validas)("rechaza %s → %s si el rol no está permitido", (desde, hacia) => {
     expect(puedeCambiarEstado(desde, hacia, ["CASHIER"])).toBe(false);
+  });
+
+  // US-106: dueño y admin no preparan ni entregan; cocina no entrega; mesero no prepara.
+  it.each<[EstadoPedido, EstadoPedido, Rol[]]>([
+    ["IN_PROGRESS", "READY", ["OWNER", "ADMIN"]],
+    ["READY", "IN_PROGRESS", ["OWNER", "ADMIN"]],
+    ["READY", "DELIVERED", ["OWNER", "ADMIN"]],
+    ["READY", "DELIVERED", ["KITCHEN"]],
+    ["IN_PROGRESS", "READY", ["WAITER"]],
+  ])("US-106: rechaza %s → %s para %j", (desde, hacia, roles) => {
+    expect(puedeCambiarEstado(desde, hacia, roles)).toBe(false);
   });
 
   it("rechaza transiciones inválidas y estados finales", () => {

@@ -1,8 +1,10 @@
 import "server-only";
 
+import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const PREFIJOS_PRUEBA = [
+// US-145: la misma lista vive en SQL (private.prefijos_pedido_prueba); una prueba exige que coincidan.
+export const PREFIJOS_PRUEBA = [
   "PRUEBA E2E",
   "Prueba US-",
   "Prueba local US-",
@@ -41,7 +43,26 @@ async function leerPaginas<T>(
   }
 }
 
-export async function obtenerIdsPedidosDePrueba(
+// US-145 (ajuste de US-111): los pedidos de prueba se clasifican una sola vez por carga.
+// `cache` de React vive lo que dura una petición del servidor: ventas, tendencias, tiempos
+// y satisfacción de la misma carga comparten el resultado. Si la consulta falla, no se
+// guarda, para que un reintento vuelva a clasificar.
+const clasificacionesDeLaCarga = cache(() => new Map<string, Promise<ReadonlySet<string>>>());
+
+export function obtenerIdsPedidosDePrueba(
+  cliente: SupabaseClient,
+  restauranteId: string,
+): Promise<ReadonlySet<string>> {
+  const memoria = clasificacionesDeLaCarga();
+  const guardada = memoria.get(restauranteId);
+  if (guardada) return guardada;
+  const clasificacion = clasificarPedidosDePrueba(cliente, restauranteId);
+  memoria.set(restauranteId, clasificacion);
+  clasificacion.catch(() => memoria.delete(restauranteId));
+  return clasificacion;
+}
+
+async function clasificarPedidosDePrueba(
   cliente: SupabaseClient,
   restauranteId: string,
 ): Promise<ReadonlySet<string>> {

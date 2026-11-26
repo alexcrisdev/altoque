@@ -132,7 +132,7 @@ afterAll(async () => {
     }
   } finally {
     await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-    await Promise.all([mesero, caja, admin, cocina, duenoPolleria].map((c) => c?.auth.signOut()));
+    await Promise.all([mesero, caja, admin, cocina, duenoPolleria].map((c) => c?.auth.signOut({ scope: "local" })));
   }
   if (errores.length) throw new Error(errores.join("; "));
 }, 30_000);

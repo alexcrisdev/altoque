@@ -62,7 +62,7 @@ describe.skipIf(!local)("US-091: RPC y lectura KITCHEN con RLS (solo local)", ()
       }
     } finally {
       await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-      await cocina?.auth.signOut();
+      await cocina?.auth.signOut({ scope: "local" });
     }
     if (errores.length) throw new Error(`Limpieza US-091: ${errores.join("; ")}`);
   }, 30_000);

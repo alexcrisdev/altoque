@@ -4,6 +4,7 @@ import { obtenerSalonesCaja } from "@/features/plano-mesas/actions";
 import Link from "next/link";
 import { Suspense } from "react";
 import { cerrarSesion } from "@/features/auth/actions";
+import { requerirPanel } from "@/features/auth/sesion";
 import { formatearPrecio } from "@/features/carta/formato";
 import { obtenerPanelCaja } from "@/features/pago-cierre/panel-actions";
 import { ActualizacionAutomatica } from "@/components/actualizacion-automatica";
@@ -14,6 +15,7 @@ import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
 const soles = (centimos: number) => formatearPrecio(centimos / 100);
 
 async function CajaPanel({ searchParams }: Pick<PageProps<"/caja">, "searchParams">) {
+  await requerirPanel("caja"); // US-106
   const anterior = (await searchParams).vista === "anterior";
   const { cuentas, mesas, actualizadoEn, restauranteId, puedeVerificar } = await obtenerPanelCaja();
   const salones = anterior ? [] : await obtenerSalonesCaja();

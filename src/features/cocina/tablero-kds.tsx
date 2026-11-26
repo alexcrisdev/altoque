@@ -9,7 +9,7 @@ import { asignarAtajos, colorEspera, crearSeguimientoNuevos, deshacerVigente, di
 import { reproducirTonoAviso } from "../pedidos/notificaciones";
 import { ReportarIncidencia, MarcarIncidenciaResuelta } from "./reportar-incidencia";
 import { describirDestino } from "../pedidos/modalidad";
-import { ETIQUETA_TIPO_INCIDENCIA } from "../pedidos/incidencias";
+import { ETIQUETA_TIPO_INCIDENCIA, esIncidenciaDeCocina } from "../pedidos/incidencias";
 import type { PedidoCocina } from "./tipos";
 import { Insignia } from "../../components/ui";
 
@@ -199,7 +199,7 @@ export function TableroKds({ inicial, tv }: { inicial: Panel; tv: boolean }) {
       </button> : <article className={clase}>{detalle(pedido)}{lista && <p className="mt-4 font-bold">Esperando al mesero</p>}</article>}
       {pedido.incidenciasAbiertas.map((incidencia) => <div key={incidencia.id} className="mt-2 rounded-lg bg-aviso-fondo p-3 text-aviso-texto">
         <p className="font-bold">{ETIQUETA_TIPO_INCIDENCIA[incidencia.tipo]}</p><p>{incidencia.descripcion}</p>
-        {!tv && <MarcarIncidenciaResuelta pedidoId={pedido.id} incidenciaId={incidencia.id} descripcion={incidencia.descripcion} />}
+        {!tv && esIncidenciaDeCocina(incidencia.tipo) && <MarcarIncidenciaResuelta pedidoId={pedido.id} incidenciaId={incidencia.id} descripcion={incidencia.descripcion} />}
       </div>)}
       {!tv && <ReportarIncidencia pedidoId={pedido.id} estado={pedido.estado} numero={pedido.numero} />}
     </li>;

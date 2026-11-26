@@ -103,9 +103,9 @@ afterAll(async () => {
     }
   } finally {
     await Promise.all([
-      mesero?.auth.signOut(),
-      cocina?.auth.signOut(),
-      duenoPolleria?.auth.signOut(),
+      mesero?.auth.signOut({ scope: "local" }),
+      cocina?.auth.signOut({ scope: "local" }),
+      duenoPolleria?.auth.signOut({ scope: "local" }),
     ]);
   }
 }, 30_000);

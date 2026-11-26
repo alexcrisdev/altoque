@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requerirRol } from "@/features/auth/sesion";
+import { registrarAccesoDenegado } from "@/features/auth/registro-accesos";
+import { registrarError } from "@/lib/registro";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { mensajeErrorModificacion, puedeModificar, requiereMotivoModificacion, validarCambios, type CambioPedido } from "./modificacion";
 import { obtenerDetallePedido } from "./pedidos-admin";
@@ -36,7 +38,7 @@ export async function modificarPedido(pedidoId: string, cambios: CambioPedido[],
     });
     const codigo = error && codigos.find((c) => error.message.includes(c));
     if (error?.code === "PGRST202") {
-      console.error("modificarPedido: función RPC no disponible", error.code, error.message);
+      registrarError("modificarPedido: función RPC no disponible", error);
       return { ok: false, mensaje: "La base aún no tiene disponible modificar_pedido. Solicita a Alexander revisar y aplicar la migración US-011." };
     }
     return { ok: false, mensaje: mensajeErrorModificacion(codigo ?? "ORDER_NOT_FOUND") };
@@ -44,7 +46,10 @@ export async function modificarPedido(pedidoId: string, cambios: CambioPedido[],
   const roles = sesion.membresias.filter((m) => m.restaurantId === restaurantePedido && rolesPermitidos.includes(m.rol as typeof rolesPermitidos[number])).map((m) => m.rol);
   if (!roles.some((rol) => rolesPermitidos.includes(rol as typeof rolesPermitidos[number]))) return { ok: false, mensaje: mensajeErrorModificacion("FORBIDDEN") };
   if (detalle.estado === "READY" || detalle.estado === "DELIVERED" || detalle.estado === "CANCELLED") return { ok: false, mensaje: mensajeErrorModificacion("INVALID_STATE") };
-  if (!puedeModificar(detalle.estado, roles)) return { ok: false, mensaje: mensajeErrorModificacion("FORBIDDEN") };
+  if (!puedeModificar(detalle.estado, roles)) {
+    await registrarAccesoDenegado(roles);
+    return { ok: false, mensaje: mensajeErrorModificacion("FORBIDDEN") };
+  }
   if (requiereMotivoModificacion(detalle.estado) && !motivo?.trim()) return { ok: false, mensaje: mensajeErrorModificacion("REASON_REQUIRED") };
   if (motivo?.trim() && motivo.trim().length > 200) return { ok: false, mensaje: mensajeErrorModificacion("INVALID_CHANGES") };
   const validacion = validarCambios(detalle.items, cambios);
@@ -57,7 +62,7 @@ export async function modificarPedido(pedidoId: string, cambios: CambioPedido[],
   });
   if (error) {
     const codigo = codigos.find((c) => error.message.includes(c));
-    console.error("modificarPedido", error.code, error.message);
+    registrarError("modificarPedido", error);
     if (error.code === "PGRST202") {
       return { ok: false, mensaje: "La base aún no tiene disponible modificar_pedido. Solicita a Alexander revisar y aplicar la migración US-011." };
     }

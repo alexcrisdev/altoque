@@ -81,15 +81,15 @@ describe.skipIf(!local)("US-102: capturas, RLS y US-094 (solo Supabase local)", 
       if (original) revisar(await admin.from("restaurants").update(original).eq("id",restaurante));
     } finally {
       await stockPrueba.restaurar().catch(error => errores.push(String(error)));
-      await Promise.all([caja,ajeno,mesero].filter(Boolean).map(c => c.auth.signOut()));
+      await Promise.all([caja,ajeno,mesero].filter(Boolean).map(c => c.auth.signOut({ scope: "local" })));
     }
     if (errores.length) throw new Error(errores.join("\n"));
   }, 30000);
 
-  it("otro restaurante no lee la fila ni descarga la imagen; mesero ve la fila pero no firma", async () => {
+  it("otro restaurante no lee la fila ni descarga la imagen; US-106: el mesero tampoco la ve ni firma", async () => {
     const cuenta = await crearCuenta(), c = await registrar(cuenta.sesion);
     expect(exigir(await ajeno.from("payment_proofs").select("id").eq("id",c.id))).toEqual([]);
-    expect(exigir(await mesero.from("payment_proofs").select("id").eq("id",c.id))).toEqual([{ id: c.id }]);
+    expect(exigir(await mesero.from("payment_proofs").select("id").eq("id",c.id))).toEqual([]);
     expect((await anon.storage.from("capturas-pago").download(c.ruta)).error).not.toBeNull();
     expect((await ajeno.storage.from("capturas-pago").download(c.ruta)).error).not.toBeNull();
     expect((await mesero.storage.from("capturas-pago").createSignedUrl(c.ruta,60)).error).not.toBeNull();

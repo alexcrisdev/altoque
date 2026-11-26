@@ -107,7 +107,8 @@ export async function registrarPedidoMeseroPropio(pedido: EntornoPedido) {
   expect(sesiones.data).toHaveLength(1);
   // US-098: el producto tiene stock preparado y se restaura al terminar.
   const producto = await pedido.prepararStock();
-  const registro = await pedido.admin.rpc("registrar_pedido_mesero", {
+  // US-106: el pedido asistido lo registra el mesero, no el admin.
+  const registro = await (await pedido.api("mesero")).rpc("registrar_pedido_mesero", {
     p_restaurant_id: RESTAURANTE, p_modality: "DINE_IN",
     p_dining_table_id: sesiones.data![0].dining_table_id, p_branch_id: sesiones.data![0].branch_id,
     p_idempotency_key: randomUUID(),
@@ -116,6 +117,11 @@ export async function registrarPedidoMeseroPropio(pedido: EntornoPedido) {
   expect(registro.error).toBeNull();
   await expect.poll(async () => (await cuentaPropia(pedido)).status).toBe("IN_PROGRESS");
   expect((await cuentaPropia(pedido)).source).toBe("WAITER");
+}
+
+// US-106: la misma cuenta vista por el dueño/admin (solo consulta y excepción).
+export function rutaAdmin(rutaCaja: string) {
+  return rutaCaja.replace(/^\/caja\//, "/admin/cuentas/");
 }
 
 export async function cerrarOrdinaria(page: Page) {
@@ -172,8 +178,9 @@ export function prepararRecuperacion(pedido: EntornoPedido) {
     if (saldo > 0) {
       // Recuperación administrativa autorizada del saldo de esta prueba; no inventar
       // un cobro confirmado para esconder un fallo de pagos.
+      // US-106: la excepción se autoriza desde /admin/cuentas, no desde caja.
       const admin = await pedido.staff("admin");
-      await admin.goto(p.ruta);
+      await admin.goto(rutaAdmin(p.ruta));
       await admin.getByLabel("Motivo de la excepción").fill(`PRUEBA E2E US-030: recuperación de caso interrumpido ${pedido.marca}`);
       await admin.getByRole("button", { name: "Cerrar con excepción", exact: true }).click();
       await expect(admin.getByRole("heading", { name: "Cuenta cerrada", exact: true })).toBeVisible();

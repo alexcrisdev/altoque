@@ -8,10 +8,24 @@ export const ETIQUETA_TIPO_INCIDENCIA: Record<TipoIncidencia, string> = {
   SIN_INGREDIENTES: "Sin ingredientes", PROBLEMA_PREPARACION: "Problema de preparación",
 };
 
-const ROLES_INCIDENCIAS: Rol[] = ["WAITER", "KITCHEN", "OWNER", "ADMIN"];
+// US-106: el mesero registra y resuelve reclamos del cliente; cocina, los de
+// preparación. "Otro" vale para ambos. Dueño y admin solo consultan.
+export const TIPOS_INCIDENCIA_MESERO = ["FALTANTE", "ERROR", "RECLAMO", "OTRO"] as const;
+const TIPOS_POR_ROL: Partial<Record<Rol, readonly TipoIncidencia[]>> = {
+  WAITER: TIPOS_INCIDENCIA_MESERO,
+  KITCHEN: TIPOS_INCIDENCIA_COCINA,
+};
 
 export function puedeGestionarIncidencias(roles: readonly Rol[]): boolean {
-  return roles.some((rol) => ROLES_INCIDENCIAS.includes(rol));
+  return roles.some((rol) => TIPOS_POR_ROL[rol] !== undefined);
+}
+
+export function puedeGestionarTipoIncidencia(roles: readonly Rol[], tipo: TipoIncidencia): boolean {
+  return roles.some((rol) => TIPOS_POR_ROL[rol]?.includes(tipo) ?? false);
+}
+
+export function esIncidenciaDeCocina(tipo: TipoIncidencia): boolean {
+  return (TIPOS_INCIDENCIA_COCINA as readonly TipoIncidencia[]).includes(tipo);
 }
 
 export function validarIncidencia(tipo: unknown, descripcion: unknown): string | null {
