@@ -1,6 +1,7 @@
 import "server-only";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { ProductoValidado } from "./validar-producto";
+import { fechaActualLima } from "./validar-stock";
 
 export type CategoriaAdmin = { id: string; name: string; active: boolean };
 export type ProductoAdmin = {
@@ -55,6 +56,24 @@ export async function listarCategorias(restauranteId: string): Promise<Categoria
     throw new Error("No se pudieron cargar las categorías.");
   }
   return data;
+}
+
+// US-148: productos sin unidades hoy (stock del día agotado), para el conteo de agotados.
+// Sin fila de stock no hay límite, igual que en la carta del cliente.
+export async function productosSinStockHoy(restauranteId: string): Promise<Set<string>> {
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase
+    .from("product_daily_stock")
+    .select("product_id, quantity, sold")
+    .eq("restaurant_id", restauranteId)
+    .eq("stock_date", fechaActualLima())
+    .returns<{ product_id: string; quantity: number; sold: number }[]>();
+
+  if (error) {
+    registrarCodigo(error);
+    throw new Error("No se pudo consultar el stock de hoy.");
+  }
+  return new Set(data.filter((fila) => fila.quantity - fila.sold <= 0).map((fila) => fila.product_id));
 }
 
 function datosDeProducto(restauranteId: string, producto: ProductoValidado) {

@@ -15,9 +15,12 @@ const estadoInicialProducto = { tipo: "inicial", mensaje: "" } as const;
 export function FormularioProducto({
   categorias,
   producto,
+  categoriaInicial,
 }: {
   categorias: CategoriaAdmin[];
   producto?: ProductoAdmin;
+  // US-148: al crear desde una tarjeta, la categoría ya viene elegida.
+  categoriaInicial?: string;
 }) {
   const [imagen, setImagen] = useState(producto?.image_url ?? "");
   const [foto, setFoto] = useState<{ archivo: File; vista: string } | null>(null);
@@ -74,7 +77,7 @@ export function FormularioProducto({
           <select
             name="categoriaId"
             required
-            defaultValue={producto?.category_id ?? ""}
+            defaultValue={producto?.category_id ?? categoriaInicial ?? ""}
             className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
           >
             <option value="" disabled>Selecciona una categoría</option>
