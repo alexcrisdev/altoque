@@ -24,6 +24,8 @@ const pagos: { id: string; pedidoId?: string; sesionId?: string }[] = [];
 let servicio: SupabaseClient;
 let caja: SupabaseClient;
 let mesero: SupabaseClient;
+let dueno: SupabaseClient; // US-105: verifica los Yape que registra caja
+let duenoId: string;
 let cajaId: string;
 let productoId: string | undefined;
 let sesionId: string | undefined;
@@ -209,6 +211,9 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     const [usuarioCaja, usuarioMesero] = await Promise.all([
       iniciar("caja@demo.altoque.pe"), iniciar("mesero@demo.altoque.pe"),
     ]);
+    const usuarioDueno = await iniciar("dueno@demo.altoque.pe");
+    dueno = usuarioDueno.cliente;
+    duenoId = usuarioDueno.id;
     caja = usuarioCaja.cliente;
     cajaId = usuarioCaja.id;
     mesero = usuarioMesero.cliente;
@@ -320,14 +325,15 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     expect(pago.estado).toBe("PENDING");
     expect((await estado(id)).status).toBe("PENDING");
     expect(await historial(id)).toHaveLength(1);
-    exigir(await caja.rpc("verificar_pago", { p_pago_id: pago.pago_id, p_confirmar: true }));
-    await comprobarIngreso(id);
+    exigir(await dueno.rpc("verificar_pago", { p_pago_id: pago.pago_id, p_confirmar: true }));
+    // Queda como autor quien verificó el pago.
+    await comprobarIngreso(id, duenoId);
   });
 
   it("rechazar Yape no lo envía a cocina", async () => {
     const id = await crearPedido();
     const pago = await pagar(id, "YAPE");
-    exigir(await caja.rpc("verificar_pago", { p_pago_id: pago.pago_id, p_confirmar: false }));
+    exigir(await dueno.rpc("verificar_pago", { p_pago_id: pago.pago_id, p_confirmar: false }));
     expect((await estado(id)).status).toBe("PENDING");
     expect(await historial(id)).toHaveLength(1);
   });
@@ -397,11 +403,12 @@ describe.skipIf(!esLocal)("US-085: pedidos QR para llevar esperan pago (solo loc
     if (metodo === "YAPE") {
       expect(pago.estado).toBe("PENDING");
       expect((await estado(id)).status).toBe("PENDING");
-      exigir(await caja.rpc("verificar_pago", { p_pago_id: pago.pago_id, p_confirmar: true }));
+      exigir(await dueno.rpc("verificar_pago", { p_pago_id: pago.pago_id, p_confirmar: true }));
     } else {
       expect(pago.estado).toBe("CONFIRMED");
     }
-    await comprobarIngresoMesa(id);
+    // Queda como autor quien confirmó el pago: el dueño al verificar el Yape; caja con tarjeta.
+    await comprobarIngresoMesa(id, metodo === "YAPE" ? duenoId : cajaId);
   });
 
   it("US-094: Stripe registra pago de sesión y libera sus pedidos con autor nulo", async () => {

@@ -45,7 +45,17 @@ type RespuestaVentas = {
   count: number | null;
 };
 
-function simularVentas(respuestas: RespuestaVentas[]) {
+// US-105: order_refunds tiene su propia consulta; por defecto no hay devoluciones.
+function simularVentas(respuestas: RespuestaVentas[], devoluciones: { id: string; amount: string }[] = []) {
+  const devolucion = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    range: vi.fn().mockReturnThis(),
+    overrideTypes: vi.fn().mockResolvedValue({ data: devoluciones, error: null }),
+  };
   const consulta = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -61,7 +71,7 @@ function simularVentas(respuestas: RespuestaVentas[]) {
   }
 
   const cliente = {
-    from: vi.fn().mockReturnValue(consulta),
+    from: vi.fn((tabla: string) => tabla === "order_refunds" ? devolucion : consulta),
   };
 
   vi.mocked(crearClienteServidor).mockResolvedValue(
@@ -70,7 +80,7 @@ function simularVentas(respuestas: RespuestaVentas[]) {
     >,
   );
 
-  return { cliente, consulta };
+  return { cliente, consulta, devolucion };
 }
 
 beforeEach(() => {
@@ -316,9 +326,11 @@ describe("consulta de ventas US-018", () => {
 
     expect(resultado.ventasCentimos).toBe(1000);
 
-    expect(cliente.from).toHaveBeenCalledExactlyOnceWith(
-      "payments",
-    );
+    // US-105: primero los pagos; después, las devoluciones hechas del mismo periodo.
+    expect(cliente.from.mock.calls).toEqual([
+      ["payments"],
+      ["order_refunds"],
+    ]);
 
     expect(consulta.select).toHaveBeenCalledExactlyOnceWith(
       "table_session_id, order_id, method, status, amount",
@@ -349,6 +361,34 @@ describe("consulta de ventas US-018", () => {
       { ascending: true },
     );
     expect(consulta.range).toHaveBeenCalledWith(0, 499);
+  });
+
+  it("US-105: resta las devoluciones hechas del periodo y recalcula el ticket", async () => {
+    const { devolucion } = simularVentas(
+      [{ data: [crearPago({ amount: "30.00" }), crearPago({ table_session_id: "mesa-2", amount: "10.00" })], error: null, count: 2 }],
+      [{ id: "devolucion-1", amount: "12.50" }],
+    );
+
+    const resultado = await obtenerResumenVentas(restauranteId, desde, hasta);
+
+    expect(resultado.ventasCentimos).toBe(2750);
+    expect(resultado.cuentasPagadas).toBe(2);
+    expect(resultado.ticketPromedioCentimos).toBe(1375);
+    // El desglose por método sigue mostrando lo cobrado.
+    expect(resultado.porMetodo.CASH).toBe(4000);
+    expect(devolucion.eq).toHaveBeenCalledWith("restaurant_id", restauranteId);
+    expect(devolucion.eq).toHaveBeenCalledWith("status", "REFUNDED");
+    expect(devolucion.gte).toHaveBeenCalledWith("refunded_at", "2026-11-02T05:00:00.000Z");
+    expect(devolucion.lt).toHaveBeenCalledWith("refunded_at", "2026-11-03T05:00:00.000Z");
+  });
+
+  it("US-105: si falla la consulta de devoluciones no muestra ventas brutas", async () => {
+    const registro = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { devolucion } = simularVentas([{ data: [crearPago()], error: null, count: 1 }]);
+    devolucion.overrideTypes.mockResolvedValue({ data: null, error: { code: "XX001" } });
+
+    await expect(obtenerResumenVentas(restauranteId, desde, hasta)).rejects.toThrow("No se pudieron consultar las ventas");
+    registro.mockRestore();
   });
 
   it("no consulta un rango invertido", async () => {

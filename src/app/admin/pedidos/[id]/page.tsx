@@ -7,8 +7,13 @@ import { describirDestino } from "@/features/pedidos/modalidad";
 import { obtenerDetallePedido } from "@/features/pedidos/pedidos-admin";
 import { AccionesPedido } from "@/features/pedidos/acciones-pedido";
 import { ETIQUETA_ESTADO } from "@/features/pedidos/estados";
+import { etiquetaNumeroDia } from "@/features/pedidos/numero-dia";
 import { listarIncidencias } from "@/features/pedidos/incidencias-servidor";
 import { IncidenciasPanel } from "@/features/pedidos/incidencias-panel";
+import { consultarPedidoPagado } from "@/features/pedidos/pago-pedido";
+import { obtenerDevolucionPedido } from "@/features/pago-cierre/devoluciones";
+import { DevolucionPedido } from "@/features/pago-cierre/devoluciones-vista";
+import { Insignia } from "@/components/ui";
 
 function fechaLima(fecha: string) {
   return new Intl.DateTimeFormat("es-PE", {
@@ -27,13 +32,24 @@ async function DetallePedido({ params }: PageProps<"/admin/pedidos/[id]">) {
   if (!pedido) notFound();
   const historial = await obtenerHistorialPedido(pedido.id);
   const incidencias = await listarIncidencias(pedido.id);
+  // US-105: pago confirmado y devolución, si se canceló pagado.
+  const [pagado, devolucion] = await Promise.all([
+    pedido.estado === "CANCELLED" ? Promise.resolve(false) : consultarPedidoPagado(pedido.id),
+    obtenerDevolucionPedido(restauranteId, pedido.id),
+  ]);
 
   return (
     <main id="contenido-principal" className="detalle-pedido mx-auto w-full max-w-3xl p-6">
       <Link href="/admin/pedidos" className="inline-flex min-h-11 items-center rounded-lg text-sm text-marca underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">← Volver a pedidos</Link>
-      <h1 className="mt-4 text-3xl font-bold">Pedido n.º {pedido.numero}</h1>
+      <h1 className="mt-4 text-3xl font-bold">Pedido {etiquetaNumeroDia(pedido.numero, pedido.fecha)}</h1>
       <p className="mt-2 text-texto-suave">{fechaLima(pedido.creadoEn)} · {describirDestino(pedido)} · {ETIQUETA_ESTADO[pedido.estado]}</p>
-      <AccionesPedido pedidoId={pedido.id} estado={pedido.estado} roles={roles} items={pedido.items} />
+      {pagado && <p className="mt-2"><Insignia tono="exito">Pagado</Insignia></p>}
+      {devolucion && (
+        <section aria-label="Devolución" className="mt-4 rounded-2xl border border-borde bg-superficie p-5">
+          <DevolucionPedido devolucion={devolucion} puedeMarcar />
+        </section>
+      )}
+      <AccionesPedido pedidoId={pedido.id} estado={pedido.estado} roles={roles} items={pedido.items} pagado={pagado} />
       <IncidenciasPanel pedidoId={pedido.id} estado={pedido.estado} incidencias={incidencias} soloLectura />
       <h2 className="mt-8 text-xl font-semibold">Productos</h2>
       <ul className="mt-3 divide-y divide-borde rounded-2xl border border-borde bg-superficie">

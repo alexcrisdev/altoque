@@ -8,7 +8,7 @@ import {
   type PagoCuenta,
   type ResumenCuenta,
 } from "./cuenta-logica";
-import type { CuentaACobrar } from "./pago-logica";
+import { esPagoPropio, type CuentaACobrar } from "./pago-logica";
 import { VerificarPago } from "./verificar-pago";
 import { Insignia } from "../../components/ui";
 import type { ComprobanteCuenta } from "./comprobante-logica";
@@ -22,7 +22,8 @@ function hora(fecha: string) {
 }
 
 // Quién puede verificar Yape en esta cuenta (US-023). Sin esto, la lista es solo lectura.
-type Verificacion = { cuenta: CuentaACobrar; puedeVerificar: boolean };
+// US-105: usuarioId evita ofrecer verificar un pago que registró la misma persona.
+type Verificacion = { cuenta: CuentaACobrar; puedeVerificar: boolean; usuarioId?: string };
 
 function FilaPago({ pago, verificacion }: { pago: PagoCuenta; verificacion?: Verificacion }) {
   const verificable = pago.estado === "PENDING" && pago.metodo === "YAPE";
@@ -53,7 +54,10 @@ function FilaPago({ pago, verificacion }: { pago: PagoCuenta; verificacion?: Ver
         <span className="shrink-0 font-semibold tabular-nums">{soles(pago.montoCentimos)}</span>
       </div>
       {verificable && pago.capturaId && verificacion?.puedeVerificar && <p className="mt-2"><a href="/caja" className="font-semibold underline">Verificar captura Yape/Plin en caja</a></p>}
-      {verificable && !pago.capturaId && verificacion?.puedeVerificar && <VerificarPago cuenta={verificacion.cuenta} pagoId={pago.id} />}
+      {verificable && !pago.capturaId && verificacion?.puedeVerificar && !esPagoPropio(pago.registradoPorId, verificacion.usuarioId) && <VerificarPago cuenta={verificacion.cuenta} pagoId={pago.id} />}
+      {verificable && !pago.capturaId && verificacion?.puedeVerificar && esPagoPropio(pago.registradoPorId, verificacion.usuarioId) && (
+        <p className="mt-1 text-sm text-aviso-texto">Lo registraste tú: debe verificarlo otra persona de caja, el dueño o el admin.</p>
+      )}
       {/* US-106: solo caja confirma; los demás solo ven que falta. */}
       {verificable && verificacion && !verificacion.puedeVerificar && (
         <p className="mt-1 text-sm text-aviso-texto">Pendiente: caja debe confirmar este Yape/Plin.</p>

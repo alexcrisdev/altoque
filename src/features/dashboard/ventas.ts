@@ -1,6 +1,7 @@
 import "server-only";
 
 import { crearClienteServidor } from "../../lib/supabase/server";
+import { aCentimos } from "../pedidos/validacion";
 import { filtrarCuentasReales, obtenerIdsPedidosDePrueba } from "./pedidos-de-prueba";
 import {
   calcularResumenVentas,
@@ -77,11 +78,55 @@ export async function obtenerResumenVentas(
     }
 
     const idsDePrueba = await obtenerIdsPedidosDePrueba(supabase, restauranteId);
-    return calcularResumenVentas(await filtrarCuentasReales(supabase, restauranteId, pagos, idsDePrueba));
+    const resumen = calcularResumenVentas(await filtrarCuentasReales(supabase, restauranteId, pagos, idsDePrueba));
+    // US-105: un pedido pagado, cancelado y devuelto deja de contar como venta.
+    return restarDevoluciones(resumen, await sumarDevolucionesRealizadas(supabase, restauranteId, desdeUtc, hastaUtcExclusivo));
   } catch {
     // No exponemos mensajes internos ni datos de pagos.
     throw new Error(
       "No se pudieron consultar las ventas. Intenta de nuevo.",
     );
   }
+}
+
+// US-105: suma las devoluciones marcadas como hechas (estado REFUNDED) en el periodo,
+// según la fecha en que se devolvió el dinero.
+async function sumarDevolucionesRealizadas(
+  supabase: Awaited<ReturnType<typeof crearClienteServidor>>,
+  restauranteId: string,
+  desdeUtc: string,
+  hastaUtcExclusivo: string,
+): Promise<number> {
+  const TAMANO = 500;
+  let total = 0;
+  for (let desde = 0; ; desde += TAMANO) {
+    const { data, error } = await supabase
+      .from("order_refunds")
+      .select("id, amount")
+      .eq("restaurant_id", restauranteId)
+      .eq("status", "REFUNDED")
+      .gte("refunded_at", desdeUtc)
+      .lt("refunded_at", hastaUtcExclusivo)
+      .order("id", { ascending: true })
+      .range(desde, desde + TAMANO - 1)
+      .overrideTypes<{ id: string; amount: number | string }[], { merge: false }>();
+    if (error || data === null) {
+      console.error("sumarDevolucionesRealizadas", error?.code);
+      throw new Error("Consulta de devoluciones fallida.");
+    }
+    total += data.reduce((suma, fila) => suma + aCentimos(fila.amount), 0);
+    if (data.length < TAMANO) return total;
+  }
+}
+
+// Resta lo devuelto de las ventas y recalcula el ticket promedio. El desglose por método
+// sigue mostrando lo cobrado (una devolución no tiene método de pago).
+export function restarDevoluciones(resumen: ResumenVentas, devueltoCentimos: number): ResumenVentas {
+  if (!Number.isSafeInteger(devueltoCentimos) || devueltoCentimos <= 0) return resumen;
+  const ventasCentimos = Math.max(0, resumen.ventasCentimos - devueltoCentimos);
+  return {
+    ...resumen,
+    ventasCentimos,
+    ticketPromedioCentimos: resumen.cuentasPagadas === 0 ? 0 : Math.round(ventasCentimos / resumen.cuentasPagadas),
+  };
 }

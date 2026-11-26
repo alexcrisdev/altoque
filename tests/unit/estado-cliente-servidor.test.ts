@@ -54,7 +54,8 @@ const filaPedido = {
   restaurant_id: acceso.restauranteId,
   qr_code_id: acceso.qrId,
   idempotency_key: clave,
-  order_number: 42,
+  order_number: 4200, // US-105: interno; el cliente ve el número del día
+  daily_number: 42,
   status: "PENDING",
   created_at: "2026-11-01T18:00:00.000Z",
   table_session_id: null,
@@ -262,7 +263,7 @@ describe("consulta del estado del pedido del cliente", () => {
     const seleccion = consultaPedidos.select.mock.calls[0][0];
 
     expect(seleccion.replace(/\s+/g, "")).toBe(
-      "id,order_number,status,created_at,table_session_id,modality," +
+      "id,order_number,daily_number,status,created_at,table_session_id,modality," +
       "dining_tables(number)," +
       "order_items(product_name,quantity)",
     );

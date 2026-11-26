@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { etiquetaNumeroDia } from "./numero-dia";
 import { useState } from "react";
 import { Boton, Insignia, MensajeEstado } from "@/components/ui";
 import { describirDestino } from "./modalidad";
@@ -85,7 +86,7 @@ export function PedidosAdminVista({ pedidos }: { pedidos: PedidoAdmin[] }) {
                 <header>
                   <h2>
                     <Link href={`/admin/pedidos/${pedido.id}`}>
-                      Pedido n.º {pedido.numero}
+                      Pedido {etiquetaNumeroDia(pedido.numero, pedido.fecha)}
                       <span aria-hidden="true"> →</span>
                     </Link>
                   </h2>

@@ -5,7 +5,8 @@ import type { EstadoPedido } from "./estados";
 
 export type PedidoAdmin = {
   id: string;
-  numero: number;
+  numero: number; // US-105: número del día
+  fecha?: string | null; // US-105: día (Lima) al que pertenece ese número
   creadoEn: string;
   modalidad: Modalidad;
   estado: EstadoPedido;
@@ -23,12 +24,12 @@ export async function obtenerDetallePedido(restauranteId: string, pedidoId: stri
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_number, created_at, modality, status, customer_name, customer_phone, total, dining_tables(number), order_items(id, product_name, quantity, unit_price, observation)")
+    .select("id, order_number, daily_number, business_date, created_at, modality, status, customer_name, customer_phone, total, dining_tables(number), order_items(id, product_name, quantity, unit_price, observation)")
     .eq("restaurant_id", restauranteId)
     .eq("id", pedidoId)
     .maybeSingle()
     .overrideTypes<{
-      id: string; order_number: number; created_at: string; modality: Modalidad; status: EstadoPedido;
+      id: string; order_number: number; daily_number?: number | null; business_date?: string | null; created_at: string; modality: Modalidad; status: EstadoPedido;
       customer_name: string | null; customer_phone: string | null; total: number;
       dining_tables: { number: number } | null;
       order_items: { id: string; product_name: string; quantity: number; unit_price: number; observation: string | null }[];
@@ -40,7 +41,8 @@ export async function obtenerDetallePedido(restauranteId: string, pedidoId: stri
   if (!data) return null;
   return {
     id: data.id,
-    numero: Number(data.order_number),
+    numero: Number(data.daily_number ?? data.order_number),
+    fecha: data.business_date ?? null,
     creadoEn: data.created_at,
     modalidad: data.modality,
     estado: data.status,
@@ -62,13 +64,14 @@ export async function listarPedidosAdmin(restauranteId: string): Promise<PedidoA
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_number, created_at, modality, status, customer_name, customer_phone, dining_tables(number)")
+    .select("id, order_number, daily_number, business_date, created_at, modality, status, customer_name, customer_phone, dining_tables(number)")
     .eq("restaurant_id", restauranteId)
     .order("created_at", { ascending: false })
     .limit(30)
     .overrideTypes<Array<{
       id: string;
       order_number: number;
+      daily_number?: number | null; business_date?: string | null; // US-105: número del día
       created_at: string;
       modality: Modalidad;
       status: EstadoPedido;
@@ -82,7 +85,8 @@ export async function listarPedidosAdmin(restauranteId: string): Promise<PedidoA
   }
   return data.map((fila) => ({
     id: fila.id,
-    numero: Number(fila.order_number),
+    numero: Number(fila.daily_number ?? fila.order_number),
+    fecha: fila.business_date ?? null,
     creadoEn: fila.created_at,
     modalidad: fila.modality,
     estado: fila.status,
@@ -96,13 +100,14 @@ export async function obtenerPedidoAdmin(restauranteId: string, pedidoId: string
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_number, created_at, modality, status, customer_name, customer_phone, dining_tables(number)")
+    .select("id, order_number, daily_number, business_date, created_at, modality, status, customer_name, customer_phone, dining_tables(number)")
     .eq("restaurant_id", restauranteId)
     .eq("id", pedidoId)
     .maybeSingle()
     .overrideTypes<{
       id: string;
       order_number: number;
+      daily_number?: number | null; business_date?: string | null; // US-105: número del día
       created_at: string;
       modality: Modalidad;
       status: EstadoPedido;
@@ -117,7 +122,8 @@ export async function obtenerPedidoAdmin(restauranteId: string, pedidoId: string
   if (!data) return null;
   return {
     id: data.id,
-    numero: Number(data.order_number),
+    numero: Number(data.daily_number ?? data.order_number),
+    fecha: data.business_date ?? null,
     creadoEn: data.created_at,
     modalidad: data.modality,
     estado: data.status,

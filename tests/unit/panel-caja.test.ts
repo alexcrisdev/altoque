@@ -17,7 +17,8 @@ import { ordenarCuentasCaja } from "../../src/features/pago-cierre/cuenta-logica
 function lecturas(nombre: string | null = "Cliente Demo", ocupada = false, estado = "IN_PROGRESS") {
   const filtros: { tabla: string; columna: string; valor: unknown }[] = [];
   const from = vi.fn((tabla: string) => {
-    const pedidos = [{ id: "pedido-demo", order_number: 82, status: estado, created_at: "2026-11-11T15:00:00Z",
+    // US-105: número interno 82; en caja se ve el del día (7) junto con su fecha.
+    const pedidos = [{ id: "pedido-demo", order_number: 82, daily_number: 7, business_date: "2026-11-11", status: estado, created_at: "2026-11-11T15:00:00Z",
       table_session_id: null, customer_name: nombre,
       order_items: [{ product_name: "Producto demo", quantity: 1, unit_price: "12.50", observation: null }] }];
     const data = tabla === "table_sessions" && ocupada
@@ -62,7 +63,7 @@ describe("US-082: lectura del panel de caja", () => {
     vi.mocked(listarMesasConSesion).mockResolvedValue([]);
     const resultado = await obtenerPanelCaja();
     expect(resultado.cuentas).toEqual([expect.objectContaining({
-      href: "/caja/pedido/pedido-demo", titulo: "Para llevar #82 – Cliente espera pago",
+      href: "/caja/pedido/pedido-demo", titulo: "Para llevar N.º 7 · 11/11 – Cliente espera pago",
       consumoCentimos: 1250, pagadoCentimos: 0, saldoCentimos: 1250,
     })]);
     expect(filtros.filter(filtro => filtro.tabla === "orders" && filtro.columna === "status"))
@@ -86,7 +87,7 @@ describe("US-082: lectura del panel de caja", () => {
     expect(restaurantes.length).toBeGreaterThan(0);
     expect(restaurantes.every(f => f.valor === "restaurante-autorizado")).toBe(true);
     expect(resultado.mesas).toEqual(mesas);
-    expect(resultado.cuentas[0]).toMatchObject({ titulo: "Para llevar #82 – Cliente Demo", consumoCentimos: 1250, saldoCentimos: 1250 });
+    expect(resultado.cuentas[0]).toMatchObject({ titulo: "Para llevar N.º 7 · 11/11 – Cliente Demo", consumoCentimos: 1250, saldoCentimos: 1250 });
   });
   it("propaga el fallo de sesiones en lugar de presentar las mesas como libres", async () => {
     vi.mocked(contextoCaja).mockResolvedValue({ restauranteId: "restaurante-autorizado", puedeVerificar: true, autorizaExcepcion: false });
@@ -100,7 +101,7 @@ describe("US-082: identificación de cuentas sin cambiar su saldo", () => {
   it.each([null, "", "   "])("identifica un pedido sin nombre (%j)", async nombre => {
     lecturas(nombre);
     const cuentas = await listarCuentasAbiertas("restaurante-autorizado");
-    expect(cuentas[0]).toMatchObject({ titulo: "Para llevar #82 – Sin nombre", saldoCentimos: 1250 });
+    expect(cuentas[0]).toMatchObject({ titulo: "Para llevar N.º 7 · 11/11 – Sin nombre", saldoCentimos: 1250 });
   });
   it("conserva el número de mesa aunque su sesión todavía no tenga pedidos", async () => {
     lecturas("Cliente Demo", true);
