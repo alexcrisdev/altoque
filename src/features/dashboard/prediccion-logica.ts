@@ -1,4 +1,5 @@
 import { fechaActualLima } from "../carta/validar-stock";
+import { MODELO_SUGERENCIA_STOCK } from "./sugerencia-stock-logica";
 
 export type PrediccionPlato = {
   productoId: string;
@@ -80,10 +81,52 @@ export function topPlatosPrevistos(
 ): PrediccionPlato[] {
   validarFecha(fecha);
   if (!Number.isSafeInteger(limite) || limite < 1) throw new Error("El límite de platos no es válido.");
-  const claves = new Set<string>();
+  const seleccion = filasValidasDeFecha(predicciones, fecha);
   const versiones = new Map<string, number>();
-  const seleccion: PrediccionPlato[] = [];
+  for (const fila of seleccion) {
+    versiones.set(fila.modelo, Math.max(versiones.get(fila.modelo) ?? -Infinity, Date.parse(fila.creadoEn)));
+  }
 
+  const modelo = [...versiones.keys()].sort((a, b) =>
+    Number(a.endsWith("-demo")) - Number(b.endsWith("-demo")) ||
+    versiones.get(b)! - versiones.get(a)! ||
+    a.localeCompare(b, "es"),
+  )[0];
+
+  return ordenarPorCantidad(seleccion.filter(fila => fila.modelo === modelo)).slice(0, limite);
+}
+
+// US-146: misma selección para "Rellenar con la predicción" y la tarjeta de mañana.
+// Elige una predicción por plato: primero la sugerencia propia (ventas reales), luego
+// otro modelo real y al final la demo, para que un plato sin datos conserve su demo.
+// Entre versiones del mismo tipo gana la más reciente; desempata por nombre del modelo.
+export function seleccionarPrediccionPorPlato(
+  predicciones: readonly PrediccionPlato[],
+  fecha: string,
+): PrediccionPlato[] {
+  validarFecha(fecha);
+  const prioridad = (fila: PrediccionPlato) =>
+    fila.modelo === MODELO_SUGERENCIA_STOCK ? 0 : esModeloDemo(fila.modelo) ? 2 : 1;
+  // Negativo si `a` debe ganar a `b`.
+  const comparar = (a: PrediccionPlato, b: PrediccionPlato) =>
+    prioridad(a) - prioridad(b) ||
+    Date.parse(b.creadoEn) - Date.parse(a.creadoEn) ||
+    a.modelo.localeCompare(b.modelo, "es");
+  const porPlato = new Map<string, PrediccionPlato>();
+  for (const fila of filasValidasDeFecha(predicciones, fecha)) {
+    const actual = porPlato.get(fila.productoId);
+    if (!actual || comparar(fila, actual) < 0) porPlato.set(fila.productoId, fila);
+  }
+  return ordenarPorCantidad([...porPlato.values()]);
+}
+
+export function esModeloDemo(modelo: string): boolean {
+  return modelo.endsWith("-demo");
+}
+
+function filasValidasDeFecha(predicciones: readonly PrediccionPlato[], fecha: string): PrediccionPlato[] {
+  const claves = new Set<string>();
+  const seleccion: PrediccionPlato[] = [];
   for (const fila of predicciones) {
     validarFecha(fila.fecha);
     if (fila.fecha !== fecha) continue;
@@ -98,18 +141,12 @@ export function topPlatosPrevistos(
     const clave = JSON.stringify([fila.productoId, fila.modelo]);
     if (claves.has(clave)) throw new Error("Hay predicciones duplicadas para un producto y modelo.");
     claves.add(clave);
-    versiones.set(fila.modelo, Math.max(versiones.get(fila.modelo) ?? -Infinity, creado));
     seleccion.push({ ...fila, cantidadPrevista: redondearCantidadPrevista(fila.cantidadPrevista) });
   }
+  return seleccion;
+}
 
-  const modelo = [...versiones.keys()].sort((a, b) =>
-    Number(a.endsWith("-demo")) - Number(b.endsWith("-demo")) ||
-    versiones.get(b)! - versiones.get(a)! ||
-    a.localeCompare(b, "es"),
-  )[0];
-
-  return seleccion.filter(fila => fila.modelo === modelo)
-    .sort((a, b) => b.cantidadPrevista - a.cantidadPrevista ||
-      a.nombre.localeCompare(b.nombre, "es") || a.productoId.localeCompare(b.productoId))
-    .slice(0, limite);
+function ordenarPorCantidad(filas: PrediccionPlato[]): PrediccionPlato[] {
+  return filas.sort((a, b) => b.cantidadPrevista - a.cantidadPrevista ||
+    a.nombre.localeCompare(b.nombre, "es") || a.productoId.localeCompare(b.productoId));
 }
