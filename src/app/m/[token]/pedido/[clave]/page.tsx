@@ -24,6 +24,9 @@ import { AvisoEstadoCliente } from "@/features/pedidos/aviso-estado-cliente";
 import { TemporizadorPagoCliente } from "@/features/pedidos/temporizador-pago-cliente";
 import { consultarCalificacionAction } from "@/features/pedidos/calificacion-actions";
 import { CalificacionPedido } from "@/features/pedidos/calificacion-pedido";
+import { leerEdicionPedidoCliente } from "@/features/pedidos/edicion-cliente-datos";
+import { EditarPedidoCliente } from "@/features/pedidos/editar-pedido-cliente";
+import { mensajeErrorEdicionCliente } from "@/features/pedidos/edicion-cliente-logica";
 
 export const metadata: Metadata = {
   title: "Estado de mi pedido | AlToque",
@@ -77,9 +80,10 @@ async function ContenidoPedido({ params, searchParams }: Props) {
   }
 
   // La opinión no debe interrumpir la línea de tiempo si su consulta falla.
-  const calificacion = pedido
-    ? await consultarCalificacionAction(token, clave).catch(() => null)
-    : null;
+  const [calificacion, edicion] = await Promise.all([
+    pedido ? consultarCalificacionAction(token, clave).catch(() => null) : null,
+    pedido?.estado === "PENDING" ? leerEdicionPedidoCliente(token, clave).catch(() => null) : null,
+  ]);
 
   return (
     <section className="space-y-4">
@@ -103,6 +107,9 @@ async function ContenidoPedido({ params, searchParams }: Props) {
       ) : pedido ? (
         <>
           <ResumenPedido key={clave} pedido={pedido} />
+          {edicion && ("items" in edicion
+            ? <EditarPedidoCliente key={`edicion-${clave}`} token={token} clave={clave} edicion={edicion} />
+            : <p className="text-sm text-texto-suave">{mensajeErrorEdicionCliente(edicion.bloqueo)}</p>)}
           {calificacion?.disponible && !calificacion.calificada && (
             <CalificacionPedido key={`calificacion-${clave}`} token={token} clave={clave} />
           )}
