@@ -162,7 +162,8 @@ describe("US-020: cierre de una mesa", () => {
     expect(yape.error).toBeNull();
     expect((await cerrar(admin!, { sesion: sessionId }, motivo)).error?.message).toContain("PENDING_PAYMENTS");
 
-    const { error } = await caja!.rpc("verificar_pago", { p_pago_id: yape.data!.pago_id, p_confirmar: false });
+    // US-105: lo registró caja, así que lo rechaza otra persona (el admin).
+    const { error } = await admin!.rpc("verificar_pago", { p_pago_id: yape.data!.pago_id, p_confirmar: false });
     expect(error).toBeNull();
     expect((await cerrar(caja!, { sesion: sessionId })).error?.message).toContain("SALDO_PENDIENTE");
   });

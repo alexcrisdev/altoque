@@ -4,6 +4,7 @@ import type { LineaValidada } from "@/features/pedidos/validacion";
 import type { AlergiaPedido } from "@/features/pedidos/alergias";
 import { motivoDeError, type MotivoRechazo, type SolicitudAsistida } from "./solicitud-asistida";
 import { mensajeStockInsuficiente } from "@/features/pedidos/stock-mensaje";
+import { numeroDelDia } from "@/features/pedidos/registro";
 
 // Capa de datos del pedido asistido. Usa la sesión del mesero (no la clave
 // secreta): la base sabe quién registra el pedido y RLS sigue aplicando.
@@ -22,7 +23,7 @@ export async function buscarPedidoAsistido(
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("orders")
-    .select("order_number")
+    .select("order_number, daily_number")
     .eq("source", "WAITER")
     .eq("created_by", usuarioId)
     .eq("idempotency_key", clave)
@@ -32,7 +33,7 @@ export async function buscarPedidoAsistido(
     console.error("buscarPedidoAsistido", error.code);
     throw new Error("No se pudo consultar el pedido.");
   }
-  return data ? Number(data.order_number) : null;
+  return data ? Number(data.daily_number ?? data.order_number) : null;
 }
 
 export async function guardarPedidoAsistido(
@@ -72,5 +73,6 @@ export async function guardarPedidoAsistido(
       ) ?? undefined,
     };
   }
-  return { ok: true, numero: Number(data.numero_pedido), repetido: data.repetido };
+  // US-105: el número que ve el mesero es el del día.
+  return { ok: true, numero: await numeroDelDia(supabase, data.pedido_id, Number(data.numero_pedido)), repetido: data.repetido };
 }

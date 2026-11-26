@@ -3,14 +3,19 @@
 begin;
 insert into auth.users(id, email) values
  ('88000000-0000-4000-8000-000000000001', 'caja-us088@example.test'),
- ('88000000-0000-4000-8000-000000000002', 'otro-us088@example.test');
+ ('88000000-0000-4000-8000-000000000002', 'otro-us088@example.test'),
+ ('88000000-0000-4000-8000-000000000003', 'caja2-us088@example.test');
 insert into public.users(id, full_name) values
  ('88000000-0000-4000-8000-000000000001', 'Caja local US-088'),
- ('88000000-0000-4000-8000-000000000002', 'Otro restaurante local');
+ ('88000000-0000-4000-8000-000000000002', 'Otro restaurante local'),
+ ('88000000-0000-4000-8000-000000000003', 'Segunda caja local US-088');
 insert into public.staff_memberships(user_id, restaurant_id, role_id)
  select '88000000-0000-4000-8000-000000000001', '10000000-0000-0000-0000-000000000001', id from public.roles where code = 'CASHIER';
 insert into public.staff_memberships(user_id, restaurant_id, role_id)
  select '88000000-0000-4000-8000-000000000002', '10000000-0000-0000-0000-000000000002', id from public.roles where code = 'CASHIER';
+-- US-105: nadie verifica un pago que registró; la segunda caja verifica el Yape de la primera.
+insert into public.staff_memberships(user_id, restaurant_id, role_id)
+ select '88000000-0000-4000-8000-000000000003', '10000000-0000-0000-0000-000000000001', id from public.roles where code = 'CASHIER';
 insert into public.receipt_series(restaurant_id, series, next_number)
  values ('10000000-0000-0000-0000-000000000001', 'BBB1', 7);
 insert into public.table_sessions(id, restaurant_id, branch_id, dining_table_id, opened_by)
@@ -61,7 +66,9 @@ select * from public.registrar_pago('88000000-0000-4000-8000-000000000010', null
 do $$ begin
  if exists(select 1 from public.receipts) then raise exception 'FAIL Yape pendiente reservó boleta'; end if;
 end $$;
+select set_config('request.jwt.claim.sub', '88000000-0000-4000-8000-000000000003', true);
 select public.verificar_pago((select id from public.payments where idempotency_key = '88000000-0000-4000-8000-000000000021'), true);
+select set_config('request.jwt.claim.sub', '88000000-0000-4000-8000-000000000001', true);
 do $$ begin
  if (select count(*) from public.receipts where series = 'BBB1' and number = 7 and status = 'PENDIENTE') <> 1 then raise exception 'FAIL reserva al verificar Yape'; end if;
  if (select receipt_email from public.payments where idempotency_key = '88000000-0000-4000-8000-000000000021') <> 'cliente@example.test' then raise exception 'FAIL correo no persistido'; end if;

@@ -11,7 +11,14 @@ export function motivoRechazoCaptura(valor: unknown): string | null {
 export type CapturaPendiente = {
   id: string; titulo: string; wallet: Billetera; esperado: number; declarado: number;
   creadaEn: string; duplicada: boolean; eliminada: boolean;
+  // US-105: saldo de la cuenta ahora (céntimos); null si no se pudo consultar.
+  saldoActual?: number | null;
 };
+// US-105: cuánto excede lo declarado al saldo actual (0 si no excede o no se sabe).
+export function excedenteCaptura(captura: Pick<CapturaPendiente, "declarado" | "saldoActual">): number {
+  if (captura.saldoActual === null || captura.saldoActual === undefined) return 0;
+  return Math.max(0, captura.declarado - Math.max(0, captura.saldoActual));
+}
 export function dimensionesCaptura(ancho: number, alto: number) {
   if (!Number.isFinite(ancho) || !Number.isFinite(alto) || ancho <= 0 || alto <= 0) throw new Error("Imagen inválida");
   const escala = Math.min(1, 1280 / Math.max(ancho, alto));

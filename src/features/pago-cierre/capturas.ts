@@ -39,6 +39,10 @@ export async function guardarCaptura(cuenta: CuentaOnline, datos: {
     const { error: borrado } = await admin.storage.from(BUCKET).remove([ruta]);
     if (borrado) console.error("US-102: archivo sobrante pendiente de limpieza", borrado.name);
   }
+  // US-105: máximo 3 capturas por verificar en la misma cuenta.
+  if (error?.message === "TOO_MANY_PENDING_PROOFS") {
+    throw new Error("Ya hay 3 capturas esperando que caja las revise. Espera a que las verifique antes de subir otra.");
+  }
   if (error || !fila) throw new Error("No se pudo registrar. Reintenta con la misma captura; no confirmes otro pago.");
   return fila.captura_id;
 }
@@ -46,21 +50,44 @@ export async function guardarCaptura(cuenta: CuentaOnline, datos: {
 type FilaCaptura = {
   id: string; wallet: Billetera; expected_amount: number; declared_amount: number;
   created_at: string; duplicate: boolean; deleted_at: string | null;
+  table_session_id?: string | null; order_id?: string | null;
   table_sessions: { dining_tables: { number: number } | null } | null;
-  orders: { order_number: number } | null;
+  orders: { order_number: number; daily_number?: number | null; business_date?: string | null } | null;
 };
+
+// US-105: saldo actual de cada cuenta con capturas, para ver el excedente antes de confirmar.
+// Si no se puede consultar, la captura se muestra igual (la base vuelve a validar al confirmar).
+async function saldosActuales(db: Awaited<ReturnType<typeof crearClienteServidor>>, filas: FilaCaptura[]) {
+  const saldos = new Map<string, number | null>();
+  for (const fila of filas) {
+    const clave = `${fila.table_session_id ?? ""}|${fila.order_id ?? ""}`;
+    if (saldos.has(clave) || (!fila.table_session_id && !fila.order_id)) continue;
+    const { data, error } = await db.rpc("saldo_cuenta_caja", {
+      p_sesion_id: fila.table_session_id ?? null, p_pedido_id: fila.table_session_id ? null : fila.order_id ?? null,
+    });
+    saldos.set(clave, error || data === null || data === undefined ? null : Math.round(Number(data) * 100));
+  }
+  return (fila: FilaCaptura) => saldos.get(`${fila.table_session_id ?? ""}|${fila.order_id ?? ""}`) ?? null;
+}
+
+function tituloPedido(pedido: FilaCaptura["orders"]) {
+  if (!pedido) return "Pedido N.º ?";
+  return pedido.daily_number ? `Pedido N.º ${pedido.daily_number}` : `Pedido #${pedido.order_number}`;
+}
 export async function listarCapturas(restauranteId: string): Promise<CapturaPendiente[]> {
   const db = await crearClienteServidor();
   const resultado: CapturaPendiente[] = [];
   for (let desde = 0; ; desde += 500) {
     const { data, error } = await db.from("payment_proofs")
-      .select("id,wallet,expected_amount,declared_amount,created_at,duplicate,deleted_at,table_sessions(dining_tables(number)),orders(order_number)")
+      .select("id,wallet,expected_amount,declared_amount,created_at,duplicate,deleted_at,table_session_id,order_id,table_sessions(dining_tables(number)),orders(order_number,daily_number,business_date)")
       .eq("restaurant_id", restauranteId).eq("status", "PENDING").order("created_at").order("id").range(desde, desde + 499)
       .overrideTypes<FilaCaptura[], { merge: false }>();
     if (error) throw new Error("No se pudieron cargar las capturas.");
+    const saldoDe = await saldosActuales(db, data);
     resultado.push(...data.map(c => ({ id: c.id, wallet: c.wallet, esperado: Math.round(Number(c.expected_amount) * 100),
       declarado: Math.round(Number(c.declared_amount) * 100), creadaEn: c.created_at, duplicada: c.duplicate, eliminada: c.deleted_at !== null,
-      titulo: c.table_sessions ? `Mesa ${c.table_sessions.dining_tables?.number ?? "?"}` : `Pedido #${c.orders?.order_number ?? "?"}` })));
+      saldoActual: saldoDe(c),
+      titulo: c.table_sessions ? `Mesa ${c.table_sessions.dining_tables?.number ?? "?"}` : tituloPedido(c.orders) })));
     if (data.length < 500) return resultado;
   }
 }
