@@ -103,3 +103,6 @@ set ingredients = null,
     allergens = '{}'::text[]
 where restaurant_id = '10000000-0000-0000-0000-000000000001'
   and name = 'Inca Kola 500 ml';
+
+-- US-148: deja la carta del seed igual que en la base real tras la migración (misma función).
+select private.us148_estandarizar_categorias(id) from public.restaurants order by id;

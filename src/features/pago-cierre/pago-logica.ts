@@ -107,6 +107,8 @@ const MENSAJES_ERROR: Record<string, string> = {
   FORBIDDEN: "No tienes permiso para registrar pagos en esta cuenta.",
   ACCOUNT_NOT_FOUND: "La cuenta ya no está abierta. Vuelve a la caja y revisa.",
   NOTHING_TO_PAY: "Esta cuenta ya no tiene saldo pendiente.",
+  CASH_ORDER_BALANCE_CHANGED: "El saldo del pedido cambió. Actualiza la página y verifica el monto antes de cobrar.",
+  PAYMENT_IN_PROGRESS: "Este pedido tiene un pago en curso. Comprueba su estado antes de cobrar.",
   AMOUNT_EXCEEDS_BALANCE: "El monto supera el saldo pendiente. Actualiza la página: quizá alguien ya cobró una parte.",
   INSUFFICIENT_CASH: "El efectivo recibido no alcanza para cubrir el monto a cobrar.",
   INVALID_PAYMENT: "Los datos del pago no son válidos. Revisa los montos.",

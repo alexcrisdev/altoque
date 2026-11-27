@@ -17,15 +17,19 @@ const METODOS = [
 
 type Metodo = (typeof METODOS)[number]["valor"];
 
-export function CobrarCuenta({ cuenta, saldoCentimos }: { cuenta: CuentaACobrar; saldoCentimos: number }) {
+export function CobrarCuenta({ cuenta, saldoCentimos, pedidoDestino }: {
+  cuenta: CuentaACobrar; saldoCentimos: number; pedidoDestino?: { id: string; numero: number };
+}) {
   const [metodo, setMetodo] = useState<Metodo>("CASH");
   const [correo, setCorreo] = useState("");
 
   return (
     <section aria-labelledby="registrar-pago" className="formulario-cobro mt-6 rounded-2xl border border-marca bg-superficie p-5 sm:p-6">
-      <h2 id="registrar-pago" className="text-xl font-semibold">Registrar pago</h2>
+      <h2 id="registrar-pago" className="text-xl font-semibold">
+        {pedidoDestino ? `Cobrar en efectivo · Pedido N.º ${pedidoDestino.numero}` : "Registrar pago"}
+      </h2>
 
-      <fieldset className="mt-3">
+      {!pedidoDestino && <fieldset className="mt-3">
         <legend className="sr-only">Método de pago</legend>
         <div className="grid grid-cols-3 gap-1 rounded-xl border border-borde bg-superficie-suave p-1">
           {METODOS.map((opcion) => (
@@ -47,13 +51,14 @@ export function CobrarCuenta({ cuenta, saldoCentimos }: { cuenta: CuentaACobrar;
             </label>
           ))}
         </div>
-      </fieldset>
+      </fieldset>}
 
       <div className="mt-4">
         {saldoCentimos > 0 && <CorreoBoleta correo={correo} alCambiar={setCorreo} />}
-        {metodo === "CASH" && <RegistrarPagoEfectivo cuenta={cuenta} saldoCentimos={saldoCentimos} correo={correo} />}
-        {metodo === "YAPE" && <RegistrarPagoYape cuenta={cuenta} saldoCentimos={saldoCentimos} correo={correo} />}
-        {metodo === "CARD" && <RegistrarPagoTarjeta cuenta={cuenta} saldoCentimos={saldoCentimos} correo={correo} />}
+        {(pedidoDestino || metodo === "CASH") && <RegistrarPagoEfectivo cuenta={cuenta} saldoCentimos={saldoCentimos}
+          correo={correo} pedidoDestino={pedidoDestino?.id} />}
+        {!pedidoDestino && metodo === "YAPE" && <RegistrarPagoYape cuenta={cuenta} saldoCentimos={saldoCentimos} correo={correo} />}
+        {!pedidoDestino && metodo === "CARD" && <RegistrarPagoTarjeta cuenta={cuenta} saldoCentimos={saldoCentimos} correo={correo} />}
       </div>
     </section>
   );

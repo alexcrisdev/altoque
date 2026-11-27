@@ -10,13 +10,19 @@ import { CerrarCuenta } from "@/features/pago-cierre/cerrar-cuenta";
 import { evaluarCierre } from "@/features/pago-cierre/cierre-logica";
 import { ResumenCierre } from "@/features/pago-cierre/resumen-cierre";
 import { TotalBilletera } from "@/features/pago-cierre/total-billetera";
+import { obtenerPedidosPagoCajaAction } from "@/features/pago-cierre/pago-en-caja-actions";
 
-async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">) {
+async function CuentaParaLlevar({ params, searchParams }: PageProps<"/caja/pedido/[pedidoId]">) {
   const { pedidoId } = await params;
   const { restauranteId, puedeVerificar, autorizaExcepcion, usuarioId } = await contextoCaja();
   if (!esUuid(pedidoId)) notFound();
   const cuenta = await obtenerCuentaParaLlevar(restauranteId, pedidoId);
   if (!cuenta) notFound();
+  const { pagaEnCaja } = await searchParams;
+  const pedidoCaja = pagaEnCaja === cuenta.pedidoId
+    ? (await obtenerPedidosPagoCajaAction(cuenta.pedidoId).catch(() => []))
+      .find((pedido) => pedido.mesa_sesion_id === null)
+    : null;
 
   return (
     <main id="contenido-principal" className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
@@ -32,7 +38,14 @@ async function CuentaParaLlevar({ params }: PageProps<"/caja/pedido/[pedidoId]">
       {cuenta.cierre && <TotalBilletera restauranteId={restauranteId} />}
       {!cuenta.cierre && cuenta.pedidos.length > 0 && (
         <>
-          {cuenta.saldoCentimos > 0 && (
+          {pedidoCaja ? (
+            <CobrarCuenta cuenta={{ tipo: "PARA_LLEVAR", id: cuenta.pedidoId }} saldoCentimos={pedidoCaja.saldo_centimos}
+              pedidoDestino={{ id: pedidoCaja.pedido_id, numero: pedidoCaja.numero }} />
+          ) : pagaEnCaja !== undefined ? (
+            <p id="registrar-pago" role="status" className="mt-6 text-sm text-texto-suave">
+              Este pedido ya no está en la lista de pagos en caja. Revisa su estado en la cuenta.
+            </p>
+          ) : cuenta.saldoCentimos > 0 && (
             <CobrarCuenta cuenta={{ tipo: "PARA_LLEVAR", id: cuenta.pedidoId }} saldoCentimos={cuenta.saldoCentimos} />
           )}
           <CerrarCuenta

@@ -101,8 +101,35 @@ export function fechasHoyAyer(ahora: number): { hoy: string; ayer: string } {
 }
 
 /** Texto corto de la variación: "+12 % vs ayer", "Sin dato de ayer". */
-export function textoVariacion(c: Comparacion): string {
+export function textoVariacion(c: Comparacion, horaCorte?: string, sinBase = "Ayer sin datos"): string {
+  if (horaCorte !== undefined) {
+    if (c.hoy === null || c.ayer === null) return "Comparación no disponible";
+    if (c.ayer === 0) return `${sinBase} hasta las ${horaCorte}`;
+    if (c.variacionPct === 0) return `Igual que ayer hasta las ${horaCorte}`;
+    if (c.variacionPct === null) return "Comparación no disponible";
+    return `${c.variacionPct > 0 ? "+" : "−"}${Math.abs(c.variacionPct)} % vs. ayer hasta las ${horaCorte}`;
+  }
   if (c.variacionPct === null) return c.ayer === 0 ? "Ayer sin datos" : "Sin dato de ayer";
   if (c.variacionPct === 0) return "Igual que ayer";
   return `${c.variacionPct > 0 ? "+" : "−"}${Math.abs(c.variacionPct)} % vs ayer`;
+}
+
+/** Una sola instantánea; ambos intervalos incluyen medianoche y excluyen el corte. */
+export function corteComparacion(ahora: number) {
+  if (!Number.isFinite(ahora) || !Number.isFinite(new Date(ahora).getTime())) {
+    throw new Error("Instante de comparación inválido.");
+  }
+  const { hoy, ayer } = fechasHoyAyer(ahora);
+  const desdeHoy = Date.parse(`${hoy}T00:00:00-05:00`);
+  const desdeAyer = Date.parse(`${ayer}T00:00:00-05:00`);
+  return {
+    hoy, ayer,
+    desdeHoyUtc: new Date(desdeHoy).toISOString(),
+    desdeAyerUtc: new Date(desdeAyer).toISOString(),
+    corteHoyUtc: new Date(ahora).toISOString(),
+    corteAyerUtc: new Date(desdeAyer + ahora - desdeHoy).toISOString(),
+    horaCorte: new Intl.DateTimeFormat("es-PE", {
+      timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).format(new Date(ahora)),
+  };
 }
