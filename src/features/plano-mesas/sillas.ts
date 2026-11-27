@@ -4,7 +4,7 @@
 export const FORMAS_MESA = ["ROUND", "SQUARE"] as const;
 export type FormaMesa = (typeof FORMAS_MESA)[number];
 export const SILLAS_POR_DEFECTO = 4;
-export const SILLAS_MAXIMAS = 12;
+export const SILLAS_MAXIMAS = 8;
 
 // Lectura tolerante: si la base aún no tiene la columna shape o la mesa no tiene capacity,
 // se dibuja como siempre (redonda, 4 sillas).
@@ -19,19 +19,19 @@ export type ValidacionMesa =
   | { ok: true; forma: FormaMesa; sillas: number }
   | { ok: false; mensaje: string };
 
-// Validación del servidor: forma conocida y sillas como entero de 1 a 12 (sin decimales ni texto).
+// Validación del servidor: forma conocida y sillas como entero de 1 a 8 (sin decimales ni texto).
 export function validarFormaSillas(forma: unknown, sillas: unknown): ValidacionMesa {
   if (forma !== "ROUND" && forma !== "SQUARE") return { ok: false, mensaje: "Elige una forma válida: cuadrada o redonda." };
   const texto = typeof sillas === "string" ? sillas.trim() : "";
   if (!/^\d{1,2}$/.test(texto) || Number(texto) < 1 || Number(texto) > SILLAS_MAXIMAS) {
-    return { ok: false, mensaje: "Las sillas deben ser un número entero de 1 a 12." };
+    return { ok: false, mensaje: `Las sillas deben ser un número entero de 1 a ${SILLAS_MAXIMAS}.` };
   }
   return { ok: true, forma, sillas: Number(texto) };
 }
 
-// Una mesa lleva hasta 4 sillas; de 5 a 8 se dibujan 2 juntas y de 9 a 12, 3 juntas.
+// Una mesa real lleva hasta 4 sillas; con 5 o 6 se dibujan 2 mesas juntas y con 7 u 8, 3 juntas.
 export function mesasJuntas(sillas: number): 1 | 2 | 3 {
-  return sillas <= 4 ? 1 : sillas <= 8 ? 2 : 3;
+  return sillas <= 4 ? 1 : sillas <= 6 ? 2 : 3;
 }
 
 export type Lado = "arriba" | "abajo" | "izquierda" | "derecha";

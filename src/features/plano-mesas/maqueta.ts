@@ -137,7 +137,9 @@ export function mueblesMesa(asiento: Asiento) {
   }
   disposicion.mesas.forEach((mesa, i) => {
     const cx = x + mesa.x, cy = y + mesa.y;
-    const tablero = asiento.forma === "SQUARE"
+    // Las mesas juntas siempre son cuadradas en fila; la redonda solo aplica a 1 mesa sola.
+    const cuadrada = asiento.forma === "SQUARE" || disposicion.mesas.length > 1;
+    const tablero = cuadrada
       ? bloque(cx - t / 2, cy - t / 2, 27, t, t, 5, pintura.crema, pintura.madera, pintura.madera)
       : cilindro(cx, cy, 27, t / 2, 5, pintura.crema, pintura.madera);
     // Las servilletas están sobre la tapa y dejan libre su centro para el número (solo mesa sola).

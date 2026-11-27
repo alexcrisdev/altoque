@@ -33,14 +33,14 @@ const caja = (x: number, y: number, lado: number): Rect => ({ x1: x - lado / 2, 
 const FORMAS: FormaMesa[] = ["ROUND", "SQUARE"];
 
 describe("Plano: cuántas mesas se dibujan", () => {
-  it.each([[1, 1], [4, 1], [5, 2], [8, 2], [9, 3], [12, 3]])("%i sillas → %i mesa(s)", (sillas, mesas) => {
+  it.each([[1, 1], [4, 1], [5, 2], [6, 2], [7, 3], [8, 3]])("%i sillas → %i mesa(s)", (sillas, mesas) => {
     expect(mesasJuntas(sillas)).toBe(mesas);
     expect(disposicionMesa(sillas).mesas).toHaveLength(mesas);
   });
 });
 
 describe("Plano: reparto de sillas", () => {
-  for (let n = 1; n <= 12; n++) {
+  for (let n = 1; n <= 8; n++) {
     it(`${n} sillas: todas dibujadas, sin montarse entre sí ni con la mesa, dentro de la casilla`, () => {
       const { sillas, silla, mesas, tablero } = disposicionMesa(n);
       expect(sillas).toHaveLength(n);
@@ -58,8 +58,8 @@ describe("Plano: reparto de sillas", () => {
     });
   }
 
-  it.each(FORMAS)("con 12 sillas y forma %s, el dibujo 3D no sale de su casilla", (forma) => {
-    const vertices = mueblesMesa({ celda: 0, estado: "libre", forma, sillas: 12 })
+  it.each(FORMAS)("con 8 sillas y forma %s, el dibujo 3D no sale de su casilla", (forma) => {
+    const vertices = mueblesMesa({ celda: 0, estado: "libre", forma, sillas: 8 })
       .flatMap((m) => m.caras.flatMap((c) => c.vertices));
     expect(Math.min(...vertices.map((v) => v[0]))).toBeGreaterThanOrEqual(0);
     expect(Math.max(...vertices.map((v) => v[0]))).toBeLessThanOrEqual(120);
@@ -71,6 +71,14 @@ describe("Plano: reparto de sillas", () => {
     const tapa = (forma: FormaMesa) => mueblesMesa({ celda: 0, estado: "libre", forma, sillas: 2 }).at(-1)!.caras;
     expect(tapa("SQUARE").some((c) => c.vertices.length === 32)).toBe(false);
     expect(tapa("ROUND").some((c) => c.vertices.length === 32)).toBe(true);
+  });
+
+  it.each([5, 6, 7, 8])("con %i sillas las mesas juntas son cuadradas aunque se elija redonda", (sillas) => {
+    // El último mueble es la tapa de la última mesa (la base de la pata sí es redonda).
+    const tapa = mueblesMesa({ celda: 0, estado: "libre", forma: "ROUND", sillas }).at(-1)!.caras;
+    expect(tapa.some((c) => c.vertices.length === 32)).toBe(false);
+    expect(mueblesMesa({ celda: 0, estado: "libre", forma: "ROUND", sillas })).toEqual(
+      mueblesMesa({ celda: 0, estado: "libre", forma: "SQUARE", sillas }));
   });
 });
 
@@ -107,7 +115,7 @@ describe("Plano: mesa antigua y lectura tolerante", () => {
 });
 
 describe("Plano: validación del servidor", () => {
-  it.each([["0"], ["13"], ["2.5"], ["abc"], [""], [null], ["-3"], ["1e1"]])("rechaza sillas %j", (sillas) => {
+  it.each([["0"], ["9"], ["13"], ["2.5"], ["abc"], [""], [null], ["-3"], ["1e1"]])("rechaza sillas %j", (sillas) => {
     expect(validarFormaSillas("ROUND", sillas).ok).toBe(false);
   });
 
@@ -115,9 +123,14 @@ describe("Plano: validación del servidor", () => {
     expect(validarFormaSillas(forma, "4").ok).toBe(false);
   });
 
-  it("acepta de 1 a 12 en las dos formas", () => {
+  it("acepta de 1 a 8 en las dos formas", () => {
     expect(validarFormaSillas("ROUND", "1")).toEqual({ ok: true, forma: "ROUND", sillas: 1 });
-    expect(validarFormaSillas("SQUARE", " 12 ")).toEqual({ ok: true, forma: "SQUARE", sillas: 12 });
+    expect(validarFormaSillas("SQUARE", " 8 ")).toEqual({ ok: true, forma: "SQUARE", sillas: 8 });
+    expect(validarFormaSillas("SQUARE", "9")).toEqual({ ok: false, mensaje: "Las sillas deben ser un número entero de 1 a 8." });
+  });
+
+  it("si la base trae más de 8 sillas, se dibuja con 8", () => {
+    expect(formaYSillas({ shape: "SQUARE", capacity: 10 })).toEqual({ forma: "SQUARE", sillas: 8 });
   });
 
   describe("acciones", () => {
@@ -130,7 +143,7 @@ describe("Plano: validación del servidor", () => {
     beforeEach(() => vi.clearAllMocks());
 
     it("editar con datos inválidos no llega a la base", async () => {
-      for (const [forma, sillas] of [["ROUND", "13"], ["HEXAGONAL", "4"], ["SQUARE", "4.5"], ["ROUND", "0"]]) {
+      for (const [forma, sillas] of [["ROUND", "9"], ["HEXAGONAL", "4"], ["SQUARE", "4.5"], ["ROUND", "0"]]) {
         const r = await editarFormaMesaAction({ tipo: "inicial", mensaje: "" }, datos({ mesaId: MESA, forma, sillas }));
         expect(r.tipo).toBe("error");
       }
@@ -145,7 +158,7 @@ describe("Plano: validación del servidor", () => {
     });
 
     it("crear exige forma y sillas válidas", async () => {
-      expect((await crearMesaAction({ error: null }, datos({ localId: "l-1", numero: "7", forma: "ROUND", sillas: "13" }))).error).toBeTruthy();
+      expect((await crearMesaAction({ error: null }, datos({ localId: "l-1", numero: "7", forma: "ROUND", sillas: "9" }))).error).toBeTruthy();
       expect(mesasDatos.crearMesa).not.toHaveBeenCalled();
       expect((await crearMesaAction({ error: null }, datos({ localId: "l-1", numero: "7", forma: "SQUARE", sillas: "6" }))).error).toBeNull();
       expect(mesasDatos.crearMesa).toHaveBeenCalledWith("r-1", "l-1", 7, "SQUARE", 6);

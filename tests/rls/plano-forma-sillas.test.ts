@@ -57,8 +57,8 @@ describe("Plano: forma y sillas en la base", () => {
     expect(data.every((m) => m.shape === "ROUND")).toBe(true);
   });
 
-  it("rechaza 13 sillas, 0 sillas y una forma inválida", async () => {
-    for (const cambio of [{ capacity: 13 }, { capacity: 0 }, { shape: "TRIANGLE" }]) {
+  it("rechaza 9 sillas, 0 sillas y una forma inválida", async () => {
+    for (const cambio of [{ capacity: 9 }, { capacity: 0 }, { shape: "TRIANGLE" }]) {
       const { error } = await servicio.from("dining_tables").update(cambio).eq("id", mesaId!);
       expect(error?.code).toBe("23514");
     }
@@ -75,10 +75,10 @@ describe("Plano: forma y sillas en la base", () => {
 
   it("el dueño sí puede cambiarlas y siguen siendo una sola mesa", async () => {
     const dueno = await iniciar("dueno@demo.altoque.pe");
-    const { data, error } = await dueno.from("dining_tables").update({ shape: "ROUND", capacity: 12 }).eq("id", mesaId!).select("id");
+    const { data, error } = await dueno.from("dining_tables").update({ shape: "ROUND", capacity: 8 }).eq("id", mesaId!).select("id");
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
-    expect(await leerMesa()).toEqual({ shape: "ROUND", capacity: 12 });
+    expect(await leerMesa()).toEqual({ shape: "ROUND", capacity: 8 });
     const { count } = await servicio.from("qr_codes").select("id", { count: "exact", head: true }).eq("dining_table_id", mesaId!);
     expect(count).toBe(0);
   });
