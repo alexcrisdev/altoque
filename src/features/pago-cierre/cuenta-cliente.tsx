@@ -9,14 +9,17 @@ import { stripeConfigurado } from "./stripe";
 import { leerRetornoPago, validarMontoCheckout } from "./stripe-logica";
 import { titularBilletera } from "./capturas";
 import { SubirCaptura } from "./subir-captura";
+import { ElegirPagoEnCaja } from "./elegir-pago-en-caja";
+import type { EleccionCaja } from "./pago-en-caja-datos";
 
 // US-076: «Tu cuenta» en la vista del cliente: saldo y botón «Pagar con tarjeta».
 // Al volver de Stripe muestra «Procesando pago…» o «Pago cancelado».
-export async function CuentaCliente({ token, clave, pago, sesion }: {
+export async function CuentaCliente({ token, clave, pago, sesion, pagoEnCaja }: {
   token: string;
   clave: string | null;
   pago: unknown;
   sesion: unknown;
+  pagoEnCaja?: { clave: string; estado: EleccionCaja };
 }) {
   const retorno = leerRetornoPago(pago, sesion);
   const rutaBase = clave
@@ -36,7 +39,7 @@ export async function CuentaCliente({ token, clave, pago, sesion }: {
   if (!cuenta || cuenta.saldoCentimos <= 0) return null;
   const titular = await titularBilletera(cuenta.restauranteId).catch(() => null);
   const tarjetaDisponible = stripeConfigurado();
-  if (!titular && !tarjetaDisponible) return null;
+  if (!titular && !tarjetaDisponible && !pagoEnCaja) return null;
 
   const aviso = validarMontoCheckout(cuenta.saldoCentimos);
 
@@ -49,8 +52,9 @@ export async function CuentaCliente({ token, clave, pago, sesion }: {
       <p className="text-3xl font-bold tabular-nums">S/ {centimosATexto(cuenta.saldoCentimos)}</p>
     </div>
     {/* US-106: el efectivo lo recibe caja (el mesero ya no cobra). */}
-    <p className="text-sm text-texto-suave">Para pagar en efectivo, acércate a caja.</p>
-    {tarjetaDisponible && (aviso
+    {pagoEnCaja ? <ElegirPagoEnCaja token={token} {...pagoEnCaja} /> :
+      <p className="text-sm text-texto-suave">Para pagar en efectivo, acércate a caja.</p>}
+    {!pagoEnCaja?.estado.solicitado && tarjetaDisponible && (aviso
       ? <p className="text-sm text-texto-suave">{aviso}</p>
       : <>
         <BotonPagarTarjeta token={token} clave={clave} />
@@ -58,6 +62,6 @@ export async function CuentaCliente({ token, clave, pago, sesion }: {
           Pago seguro con Stripe. AlToque no ve ni guarda los datos de tu tarjeta.
         </p>
       </>)}
-    {titular && <SubirCaptura token={token} clavePedido={clave} saldo={cuenta.saldoCentimos} titular={titular} />}
+    {!pagoEnCaja?.estado.solicitado && titular && <SubirCaptura token={token} clavePedido={clave} saldo={cuenta.saldoCentimos} titular={titular} />}
   </Tarjeta>;
 }

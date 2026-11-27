@@ -56,7 +56,7 @@ test("US-106: QR, captura Yape, caja, cocina, entrega y liberación con su cuent
     const cuenta = page.locator(".cuenta-cliente");
     await expect(cuenta.getByRole("heading", { name: "Tu cuenta", exact: true })).toBeVisible();
     await expect(cuenta.getByText(/^S\/\s*\d+\.\d{2}$/)).toBeVisible();
-    await expect(cuenta.getByText("Para pagar en efectivo, acércate a caja.", { exact: true })).toBeVisible();
+    await expect(cuenta.getByRole("button", { name: "Pagar en caja", exact: true })).toBeVisible();
   });
 
   const mesero = await pedido.staff("mesero");

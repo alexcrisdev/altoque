@@ -20,10 +20,14 @@ import {
   TicketPedido,
 } from "@/features/pedidos/linea-tiempo-cliente";
 import { CuentaCliente } from "@/features/pago-cierre/cuenta-cliente";
+import { leerEleccionCaja } from "@/features/pago-cierre/pago-en-caja-datos";
 import { AvisoEstadoCliente } from "@/features/pedidos/aviso-estado-cliente";
 import { TemporizadorPagoCliente } from "@/features/pedidos/temporizador-pago-cliente";
 import { consultarCalificacionAction } from "@/features/pedidos/calificacion-actions";
 import { CalificacionPedido } from "@/features/pedidos/calificacion-pedido";
+import { leerEdicionPedidoCliente } from "@/features/pedidos/edicion-cliente-datos";
+import { EditarPedidoCliente } from "@/features/pedidos/editar-pedido-cliente";
+import { mensajeErrorEdicionCliente } from "@/features/pedidos/edicion-cliente-logica";
 
 export const metadata: Metadata = {
   title: "Estado de mi pedido | AlToque",
@@ -77,9 +81,11 @@ async function ContenidoPedido({ params, searchParams }: Props) {
   }
 
   // La opinión no debe interrumpir la línea de tiempo si su consulta falla.
-  const calificacion = pedido
-    ? await consultarCalificacionAction(token, clave).catch(() => null)
-    : null;
+  const [calificacion, edicion, pagoEnCaja] = await Promise.all([
+    pedido ? consultarCalificacionAction(token, clave).catch(() => null) : null,
+    pedido?.estado === "PENDING" ? leerEdicionPedidoCliente(token, clave).catch(() => null) : null,
+    pedido?.estado === "PENDING" ? leerEleccionCaja(token, clave).catch(() => null) : null,
+  ]);
 
   return (
     <section className="space-y-4">
@@ -102,7 +108,10 @@ async function ContenidoPedido({ params, searchParams }: Props) {
         />
       ) : pedido ? (
         <>
-          <ResumenPedido key={clave} pedido={pedido} />
+          <ResumenPedido key={clave} pedido={pedido} limitePago={pagoEnCaja?.limitePago ?? pedido.limitePago} />
+          {edicion && ("items" in edicion
+            ? <EditarPedidoCliente key={`edicion-${clave}`} token={token} clave={clave} edicion={edicion} />
+            : <p className="text-sm text-texto-suave">{mensajeErrorEdicionCliente(edicion.bloqueo)}</p>)}
           {calificacion?.disponible && !calificacion.calificada && (
             <CalificacionPedido key={`calificacion-${clave}`} token={token} clave={clave} />
           )}
@@ -112,6 +121,7 @@ async function ContenidoPedido({ params, searchParams }: Props) {
             clave={pedido.modalidad === "TAKEAWAY" ? clave : null}
             pago={pago}
             sesion={sesion}
+            pagoEnCaja={pagoEnCaja ? { clave, estado: pagoEnCaja } : undefined}
           />
         </>
       ) : (
@@ -133,7 +143,7 @@ async function ContenidoPedido({ params, searchParams }: Props) {
   );
 }
 
-function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
+function ResumenPedido({ pedido, limitePago }: { pedido: PedidoCliente; limitePago: string }) {
   return (
     <>
       {/* US-092: ticket con número, tiempo estimado y barra de avance. */}
@@ -167,7 +177,7 @@ function ResumenPedido({ pedido }: { pedido: PedidoCliente }) {
         )}
 
         {pedido.estado === "PENDING" && (
-          <TemporizadorPagoCliente limite={pedido.limitePago} pagoPendiente={pedido.pagoPendiente} />
+          <TemporizadorPagoCliente limite={limitePago} pagoPendiente={pedido.pagoPendiente} />
         )}
 
         <section aria-labelledby="productos-del-pedido">
