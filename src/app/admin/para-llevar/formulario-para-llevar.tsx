@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Boton } from "@/components/ui";
 import type { ConfigParaLlevar } from "@/features/pedidos/modalidad";
 import {
   guardarConfigParaLlevarAction,
@@ -26,12 +27,15 @@ export function FormularioParaLlevar({ config }: { config: ConfigParaLlevar }) {
       <p className="text-sm text-texto-suave">
         Si un dato no es obligatorio, el cliente igual puede dejarlo si quiere.
       </p>
-      <button
-        disabled={pendiente}
-        className="min-h-11 justify-self-start rounded bg-marca px-4 py-2 font-semibold text-white disabled:opacity-50"
+      <Boton
+        type="submit"
+        tamano="propio"
+        esquina="sm"
+        cargando={pendiente}
+        className="justify-self-start px-4 py-2 font-semibold"
       >
         {pendiente ? "Guardando…" : "Guardar"}
-      </button>
+      </Boton>
       {estado.mensaje && (
         <p role={estado.tipo === "error" ? "alert" : "status"} className={estado.tipo === "error" ? "text-peligro-texto" : "text-exito-texto"}>
           {estado.mensaje}
