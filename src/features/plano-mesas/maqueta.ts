@@ -1,8 +1,10 @@
+import { disposicionMesa, SILLAS_POR_DEFECTO, type FormaMesa } from "./sillas";
+
 // Unidades del modelo, con z vertical. La misma cámara proyecta los muebles y los botones.
 export type Punto3D = [number, number, number];
 export type Cara = { vertices: Punto3D[]; color: string };
 export type Mueble = { centro: Punto3D; caras: Cara[] };
-export type Asiento = { celda: number; estado: "libre" | "ocupada" | "espera" | "inactiva" };
+export type Asiento = { celda: number; estado: "libre" | "ocupada" | "espera" | "inactiva"; forma?: FormaMesa; sillas?: number };
 
 const pintura = {
   blanco: "var(--color-superficie)", crema: "var(--color-aviso-fondo)", madera: "var(--color-aviso-borde)",
@@ -86,8 +88,11 @@ export function sombras(asientos: Asiento[], mostrador: boolean): Cara[] {
   if (mostrador) return [cara(pintura.marino, [76, 65, 0], [230, 65, 0], [241, 120, 0], [83, 120, 0])];
   return asientos.map(a => {
     const [x, y] = centroCelda(a.celda);
+    // La sombra crece con el grupo de mesas juntas (con 1 mesa mide lo de siempre: 38 × 32).
+    const { tablero, silla, mesas } = disposicionMesa(a.sillas ?? SILLAS_POR_DEFECTO);
+    const rx = mesas.length * tablero / 2 + silla - 10, ry = Math.max(20, tablero / 2 + silla - 16);
     const vertices = Array.from({ length: 32 }, (_, i): Punto3D => [
-      x + 7 + 38 * Math.cos(i * Math.PI / 16), y + 9 + 32 * Math.sin(i * Math.PI / 16), 0,
+      x + 7 + rx * Math.cos(i * Math.PI / 16), y + 9 + ry * Math.sin(i * Math.PI / 16), 0,
     ]);
     return { color: pintura.marino, vertices };
   });
@@ -113,23 +118,37 @@ export function paredes(c: Camara): Cara[] {
   return piezas;
 }
 
+// Sin forma ni sillas (mesa antigua) se dibuja como siempre: redonda con 4 sillas.
 export function mueblesMesa(asiento: Asiento) {
   const [x, y] = centroCelda(asiento.celda);
   const tapiz = tapices[asiento.estado];
   const muebles: Mueble[] = [];
-  for (const [dx, dy] of [[0, -38], [0, 38], [-38, 0], [38, 0]]) {
-    const a = x + dx, b = y + dy;
-    muebles.push(bloque(a - 6, b - 6, 0, 12, 12, 12, pintura.marino, pintura.gris, pintura.sombra),
-      bloque(a - 10, b - 10, 12, 20, 20, 4, tapiz, pintura.sombra, pintura.sombra),
-      bloque(a + (dx > 0 ? 7 : -10), b + (dy > 0 ? 7 : -10), 15, dx === 0 ? 20 : 3, dy === 0 ? 20 : 3, 14, tapiz, tapiz, pintura.sombra));
+  const disposicion = disposicionMesa(asiento.sillas ?? SILLAS_POR_DEFECTO);
+  const t = disposicion.tablero, m = disposicion.silla / 2, pata = disposicion.silla * .3;
+  for (const silla of disposicion.sillas) {
+    const a = x + silla.x, b = y + silla.y;
+    const horizontal = silla.lado === "izquierda" || silla.lado === "derecha";
+    // El respaldo va en el lado de afuera de la silla.
+    const rx = silla.lado === "derecha" ? a + m - 3 : a - m;
+    const ry = silla.lado === "abajo" ? b + m - 3 : b - m;
+    muebles.push(bloque(a - pata, b - pata, 0, pata * 2, pata * 2, 12, pintura.marino, pintura.gris, pintura.sombra),
+      bloque(a - m, b - m, 12, m * 2, m * 2, 4, tapiz, pintura.sombra, pintura.sombra),
+      bloque(horizontal ? rx : a - m, horizontal ? b - m : ry, 15, horizontal ? 3 : m * 2, horizontal ? m * 2 : 3, 14, tapiz, tapiz, pintura.sombra));
   }
-  const tablero = cilindro(x, y, 27, 28, 5, pintura.crema, pintura.madera);
-  // Las servilletas están sobre la tapa y dejan libre su centro para el número.
-  const servicio = bloque(x - 19, y - 6, 32, 5, 12, .8, pintura.blanco, pintura.gris, pintura.gris);
-  tablero.caras.push(...servicio.caras);
-  muebles.push(cilindro(x, y, 0, 12, 3, pintura.sombra, pintura.marino),
-    bloque(x - 3, y - 3, 3, 6, 6, 24, pintura.sombra, pintura.marino, pintura.azul),
-    tablero);
+  disposicion.mesas.forEach((mesa, i) => {
+    const cx = x + mesa.x, cy = y + mesa.y;
+    const tablero = asiento.forma === "SQUARE"
+      ? bloque(cx - t / 2, cy - t / 2, 27, t, t, 5, pintura.crema, pintura.madera, pintura.madera)
+      : cilindro(cx, cy, 27, t / 2, 5, pintura.crema, pintura.madera);
+    // Las servilletas están sobre la tapa y dejan libre su centro para el número (solo mesa sola).
+    if (disposicion.mesas.length === 1 && i === 0) {
+      const servicio = bloque(cx - 19, cy - 6, 32, 5, 12, .8, pintura.blanco, pintura.gris, pintura.gris);
+      tablero.caras.push(...servicio.caras);
+    }
+    muebles.push(cilindro(cx, cy, 0, Math.min(12, t / 3), 3, pintura.sombra, pintura.marino),
+      bloque(cx - 3, cy - 3, 3, 6, 6, 24, pintura.sombra, pintura.marino, pintura.azul),
+      tablero);
+  });
   return muebles;
 }
 

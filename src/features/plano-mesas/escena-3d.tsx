@@ -38,5 +38,11 @@ export const Escena3D = memo(function Escena3D({ filas, grados, asientos, mostra
       {m.caras.sort((a, b) => profundidad(a) - profundidad(b)).map(poligono)}
     </g>)}
   </svg>;
-}, (a, b) => a.grados === b.grados && a.filas === b.filas && a.mostrador === b.mostrador &&
-  a.asientos.length === b.asientos.length && a.asientos.every((m, i) => m.celda === b.asientos[i].celda && m.estado === b.asientos[i].estado));
+}, mismaEscena);
+
+// Redibuja si cambia la cámara, la casilla, el estado, la forma o las sillas de alguna mesa.
+export function mismaEscena(a: Props, b: Props) {
+  return a.grados === b.grados && a.filas === b.filas && a.mostrador === b.mostrador &&
+    a.asientos.length === b.asientos.length && a.asientos.every((m, i) => m.celda === b.asientos[i].celda &&
+      m.estado === b.asientos[i].estado && m.forma === b.asientos[i].forma && m.sillas === b.asientos[i].sillas);
+}

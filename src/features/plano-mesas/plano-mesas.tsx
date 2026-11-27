@@ -10,9 +10,16 @@ import { etiquetas, type MesaPlano } from "./preparar-plano";
 import { FichaPlano } from "./vistas-plano";
 import { ControlCamara, Escena3D } from "./escena-3d";
 import { camara, centroCelda } from "./maqueta";
+import { SILLAS_POR_DEFECTO } from "./sillas";
 import "./plano-mesas.css";
 
 type Props = { restauranteId: string; mesas: MesaPlano[]; puedeEditar: boolean; detalles?: Record<string, ReactNode> };
+
+// Forma y sillas en texto (también para lectores de pantalla). Sin datos: redonda con 4 sillas.
+function textoSillas(mesa: MesaPlano) {
+  const sillas = mesa.sillas ?? SILLAS_POR_DEFECTO;
+  return `${sillas} ${sillas === 1 ? "silla" : "sillas"} · ${mesa.forma === "SQUARE" ? "Cuadrada" : "Redonda"}`;
+}
 
 function EstadoMesa({ mesa }: { mesa: MesaPlano }) {
   return <span className="plano-estado" data-estado={mesa.estado}>{etiquetas[mesa.estado]}</span>;
@@ -109,7 +116,7 @@ function Salon({ mesas, localId, puedeEditar, detalles }: Props & { localId: str
     {edicion && <p className="plano-instruccion">Arrastra una mesa o tócala y elige una casilla. Con teclado, usa las flechas.</p>}
     <div className="plano-suelo" style={{aspectRatio: c.w / c.h}} data-editando={!!edicion} ref={tablero}
       onKeyDown={e => { if (e.key === "Escape") { previsualizar(null); elegir(null); } }}>
-      <Escena3D filas={filasVisibles} grados={grados} asientos={visibles.map(m => ({ celda: posiciones[m.id]-inicio, estado: m.estado }))} />
+      <Escena3D filas={filasVisibles} grados={grados} asientos={visibles.map(m => ({ celda: posiciones[m.id]-inicio, estado: m.estado, forma: m.forma, sillas: m.sillas }))} />
       {edicion && Array.from({ length: filasVisibles * columnas }, (_, indice) => {
         const celda = inicio + indice;
         if (ocupadas.has(celda)) return null;
@@ -128,7 +135,7 @@ function Salon({ mesas, localId, puedeEditar, detalles }: Props & { localId: str
           onPointerEnter={e => { if (!edicion && e.pointerType === "mouse") previsualizar(mesa.id); }}
           onPointerLeave={() => previsualizar(null)}
           onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) previsualizar(null); }}>
-          <button type="button" className="plano-mesa" aria-label={`Mesa ${mesa.numero}, ${etiquetas[mesa.estado]}`}
+          <button type="button" className="plano-mesa" aria-label={`Mesa ${mesa.numero}, ${etiquetas[mesa.estado]}, ${textoSillas(mesa)}`}
             aria-pressed={edicion ? elegida === mesa.id : undefined} aria-haspopup={edicion ? undefined : "dialog"}
             aria-describedby={previa ? prefijo + mesa.id : undefined}
             onFocus={e => { if (!edicion && e.currentTarget.matches(":focus-visible")) previsualizar(mesa.id); }}
@@ -181,6 +188,7 @@ function Salon({ mesas, localId, puedeEditar, detalles }: Props & { localId: str
           {previa && <aside className="plano-previa" aria-label={`Vista previa de Mesa ${mesa.numero}`}>
             <strong>Mesa {mesa.numero}</strong>
             <span id={prefijo + mesa.id}>{mesa.local} · {etiquetas[mesa.estado]}</span>
+            <span>{textoSillas(mesa)}</span>
             {mesa.qr && <span>{mesa.activa && "Activa · "}{mesa.qr}</span>}
             {mesa.saldo !== null && <span>Saldo {formatearPrecio(mesa.saldo / 100)}</span>}
             <button type="button" onClick={e => {
@@ -203,7 +211,7 @@ function Salon({ mesas, localId, puedeEditar, detalles }: Props & { localId: str
     <FichaPlano abierta={!!activa} local={activa?.local ?? ""} titulo={activa ? `Mesa ${activa.numero}` : ""}
       cerrar={() => { abrirFicha(null); invocador.current?.focus({ preventScroll: true }); }}>
       {activa && <div key={activa.id} className="grid gap-3">
-        <div className="flex flex-wrap items-center gap-3"><EstadoMesa mesa={activa} />{activa.qr && <span>{activa.qr}</span>}</div>
+        <div className="flex flex-wrap items-center gap-3"><EstadoMesa mesa={activa} /><span>{textoSillas(activa)}</span>{activa.qr && <span>{activa.qr}</span>}</div>
         {detalles?.[activa.id]}
         {activa.href || activa.saldo !== null ? <div className="plano-cuenta">
           {activa.saldo !== null && <div><small>Saldo</small><strong>{formatearPrecio(activa.saldo / 100)}</strong></div>}

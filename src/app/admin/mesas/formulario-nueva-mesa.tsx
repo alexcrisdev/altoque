@@ -7,6 +7,7 @@ import {
   type EstadoNuevaMesa,
 } from "@/features/acceso-qr/actions";
 import type { Local } from "@/features/acceso-qr/mesas";
+import { CamposFormaMesa } from "./campos-forma-mesa";
 
 const inicial: EstadoNuevaMesa = { error: null };
 
@@ -54,6 +55,8 @@ export function FormularioNuevaMesa({
             className="min-h-11 w-24 rounded-xl border border-borde bg-superficie px-3 py-2 text-base text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
           />
         </label>
+
+        <CamposFormaMesa />
 
         <Boton
           type="submit"

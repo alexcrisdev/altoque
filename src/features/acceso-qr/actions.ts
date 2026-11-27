@@ -5,7 +5,11 @@ import { refresh } from "next/cache";
 import { requerirRol } from "@/features/auth/sesion";
 import { armarQr } from "./imagen-qr";
 import { generarToken, hashToken, tokenDeQr } from "./token";
-import { cambiarEstadoMesa, crearMesa, desactivarQr, reemplazarQr } from "./mesas";
+import { cambiarEstadoMesa, crearMesa, desactivarQr, editarFormaMesa, reemplazarQr } from "./mesas";
+import { validarFormaSillas } from "../plano-mesas/sillas";
+
+// Forma de UUID sin exigir versión: los IDs del seed no son v4 y Postgres valida el resto.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { desactivarQrMostrador, reemplazarQrMostrador } from "./mostrador";
 
 // Solo OWNER o ADMIN. Devuelve el restaurante que administra.
@@ -29,13 +33,37 @@ export async function crearMesaAction(
   if (!localId || !Number.isInteger(numero) || numero < 1 || numero > 999) {
     return { error: "Escribe un número de mesa entre 1 y 999." };
   }
+  const mesa = validarFormaSillas(formData.get("forma"), formData.get("sillas"));
+  if (!mesa.ok) return { error: mesa.mensaje };
 
-  const resultado = await crearMesa(restauranteId, localId, numero);
+  const resultado = await crearMesa(restauranteId, localId, numero, mesa.forma, mesa.sillas);
   if (resultado === "DUPLICADO") return { error: `La mesa ${numero} ya existe en ese local.` };
   if (resultado === "ERROR") return { error: "No se pudo crear la mesa. Intenta de nuevo." };
 
   refresh();
   return { error: null };
+}
+
+export type EstadoFormaMesa = { tipo: "inicial" | "exito" | "error"; mensaje: string };
+
+// Plano: dueño o admin cambian la forma y las sillas de una mesa de su restaurante.
+// Solo cambia el dibujo: la mesa sigue con su número, su QR y su cuenta.
+export async function editarFormaMesaAction(
+  _anterior: EstadoFormaMesa,
+  formData: FormData,
+): Promise<EstadoFormaMesa> {
+  const restauranteId = await restauranteDelAdmin();
+  const mesaId = String(formData.get("mesaId") ?? "");
+  if (!UUID.test(mesaId)) return { tipo: "error", mensaje: "No se pudo identificar la mesa." };
+  const mesa = validarFormaSillas(formData.get("forma"), formData.get("sillas"));
+  if (!mesa.ok) return { tipo: "error", mensaje: mesa.mensaje };
+
+  const resultado = await editarFormaMesa(restauranteId, mesaId, mesa.forma, mesa.sillas);
+  if (resultado === "NO_ENCONTRADA") return { tipo: "error", mensaje: "No se encontró la mesa en este restaurante." };
+  if (resultado === "ERROR") return { tipo: "error", mensaje: "No se pudo guardar la mesa. Intenta de nuevo." };
+
+  refresh();
+  return { tipo: "exito", mensaje: "Mesa actualizada en el plano." };
 }
 
 export type ResultadoQr =
