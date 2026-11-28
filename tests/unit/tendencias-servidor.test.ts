@@ -401,3 +401,23 @@ describe("consulta de tendencias US-019", () => {
     );
   });
 });
+
+// US-152: Toqui pide la lista completa para conocer los menos vendidos.
+describe("límite de productos (US-152)", () => {
+  const pedidoCon = (n: number) => crearPedido({
+    id: "pedido-varios",
+    order_items: Array.from({ length: n }, (_, i) => ({ product_id: `producto-${i}`, product_name: `Plato ${i}`, quantity: i + 1 })),
+  });
+
+  it("por defecto devuelve el top 5, como el dashboard", async () => {
+    simularConsulta([{ data: [pedidoCon(8)], error: null, count: 1 }]);
+    expect((await obtenerTendencias(restauranteId, desde, hasta)).productos).toHaveLength(5);
+  });
+
+  it("con limiteProductos devuelve la lista completa, de más a menos vendido", async () => {
+    simularConsulta([{ data: [pedidoCon(8)], error: null, count: 1 }]);
+    const { productos } = await obtenerTendencias(restauranteId, desde, hasta, undefined, 500);
+    expect(productos).toHaveLength(8);
+    expect(productos.at(-1)).toMatchObject({ nombre: "Plato 0", unidades: 1 });
+  });
+});

@@ -23,6 +23,8 @@ export async function obtenerTendencias(
   desde: string,
   hasta: string,
   idsDePrueba?: ReadonlySet<string>,
+  // US-152: Toqui pide la lista completa para saber los menos vendidos. Por defecto, top 5.
+  limiteProductos = 5,
 ): Promise<ResumenTendencias> {
   // Un rango inválido no llega a consultar la base.
   const { desdeUtc, hastaUtcExclusivo } = rangoLimaAUtc(
@@ -89,7 +91,7 @@ export async function obtenerTendencias(
           // Los cancelados cuentan por estado, pero no suman al top.
           const marcas = idsDePrueba ?? await obtenerIdsPedidosDePrueba(supabase, restauranteId);
           const reales = pedidos.filter((pedido) => !esPedidoDePrueba(pedido.id, marcas));
-          const productos = calcularProductosMasVendidos(reales);
+          const productos = calcularProductosMasVendidos(reales, limiteProductos);
           const { porEstado, total } = contarPedidosPorEstado(reales);
 
           return { productos, porEstado, total };
