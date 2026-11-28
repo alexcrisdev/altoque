@@ -48,8 +48,9 @@ function respuestaClaude(texto: string, extra: Partial<Anthropic.Message> = {}) 
   };
 }
 
-const errorApi = (Clase: typeof Anthropic.APIError, estado: number) =>
-  new Clase(estado, { type: "error" }, "mensaje con datos que no se deben registrar", new Headers());
+// El mensaje del error trae datos que nunca deben llegar al log.
+const DETALLE = "mensaje con datos que no se deben registrar";
+const cuerpoError = { type: "error" };
 
 let registros: string[];
 
@@ -128,10 +129,10 @@ describe("preguntarAClaude: respuesta correcta", () => {
 
 describe("preguntarAClaude: errores → «IA no disponible por ahora»", () => {
   it.each([
-    ["clave inválida", errorApi(Anthropic.AuthenticationError, 401), "clave-invalida"],
-    ["límite de la API", errorApi(Anthropic.RateLimitError, 429), "limite-api"],
-    ["petición inválida", errorApi(Anthropic.BadRequestError, 400), "peticion-invalida"],
-    ["servidor caído", errorApi(Anthropic.InternalServerError, 500), "api-500"],
+    ["clave inválida", new Anthropic.AuthenticationError(401, cuerpoError, DETALLE, new Headers()), "clave-invalida"],
+    ["límite de la API", new Anthropic.RateLimitError(429, cuerpoError, DETALLE, new Headers()), "limite-api"],
+    ["petición inválida", new Anthropic.BadRequestError(400, cuerpoError, DETALLE, new Headers()), "peticion-invalida"],
+    ["servidor caído", new Anthropic.InternalServerError(500, cuerpoError, DETALLE, new Headers()), "api-500"],
     ["timeout", new Anthropic.APIConnectionTimeoutError(), "timeout"],
     ["sin internet", new Anthropic.APIConnectionError({ message: "fallo" }), "sin-conexion"],
     ["error raro", new Error("algo con ana@correo.pe"), "desconocido"],
