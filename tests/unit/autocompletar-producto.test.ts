@@ -22,7 +22,7 @@ vi.mock("@anthropic-ai/sdk", async (importOriginal) => {
 import Anthropic from "@anthropic-ai/sdk";
 import { autocompletarProducto } from "../../src/features/ia/autocompletar-producto/actions";
 import {
-  buscarBebidaOpenFoodFacts, leerRespuestaOpenFoodFacts, USER_AGENT,
+  buscarBebidaOpenFoodFacts, elegirProducto, leerProducto, USER_AGENT,
 } from "../../src/features/ia/autocompletar-producto/open-food-facts";
 import {
   ESQUEMA_AUTOCOMPLETAR, MENSAJE_NO_PUDE, MENSAJE_NOMBRE, llenarSoloVacios, mlDelNombre, pareceBebidaEnvasada,
@@ -161,41 +161,56 @@ describe("llenarSoloVacios", () => {
 // ── Open Food Facts (simulado) ─────────────────────────────────────────────────────────
 
 describe("Open Food Facts", () => {
-  const RESPUESTA = {
-    products: [
-      { product_name: "Otra cosa", quantity: "1 kg" },
-      { product_name: "Cerveza Cusqueña Dorada", product_quantity: "620", product_quantity_unit: "ml", nutriments: { alcohol_100g: 5 }, allergens_tags: ["en:gluten"] },
+  const BUSQUEDA = {
+    hits: [
+      { code: "1111111111111", product_name: "Otra cosa", quantity: "1 kg" },
+      { code: "7750182000000", product_name: "Cerveza Cusqueña Dorada", product_quantity: "620", product_quantity_unit: "ml" },
     ],
   };
+  const FICHA = { status: 1, product: { product_name: "Cerveza Cusqueña Dorada", nutriments: { alcohol_100g: 5 }, allergens_tags: ["en:gluten"] } };
+  const responder = (url: URL) => new Response(JSON.stringify(url.hostname.startsWith("search.") ? BUSQUEDA : FICHA), { status: 200 });
 
-  it("toma el producto que se parece, con ml, % de alcohol y alérgenos", () => {
-    expect(leerRespuestaOpenFoodFacts(RESPUESTA, "Cusqueña 620 ml")).toEqual({
+  it("elige el producto que se parece y lee ml, % de alcohol y alérgenos", () => {
+    const elegido = elegirProducto(BUSQUEDA, "Cusqueña 620 ml");
+    expect(elegido?.code).toBe("7750182000000");
+    expect(leerProducto({ ...elegido, ...FICHA.product })).toEqual({
       nombre: "Cerveza Cusqueña Dorada", ml: 620, porcentajeAlcohol: 5, alergenos: ["Gluten"],
     });
   });
 
   it("sin coincidencias o con datos raros → null", () => {
-    expect(leerRespuestaOpenFoodFacts({ products: [{ product_name: "Leche" }] }, "Inca Kola")).toBeNull();
-    expect(leerRespuestaOpenFoodFacts({ nada: true }, "Inca Kola")).toBeNull();
+    expect(elegirProducto({ hits: [{ product_name: "Leche" }] }, "Inca Kola")).toBeNull();
+    expect(elegirProducto({ nada: true }, "Inca Kola")).toBeNull();
+    expect(leerProducto({ product_name: "X", product_quantity: 9000, product_quantity_unit: "ml", nutriments: { alcohol: 300 } }))
+      .toMatchObject({ ml: null, porcentajeAlcohol: null });
   });
 
-  it("usa User-Agent genérico (sin correos), timeout y solo manda el nombre", async () => {
-    const falso = vi.fn().mockResolvedValue(new Response(JSON.stringify(RESPUESTA), { status: 200 }));
-    await buscarBebidaOpenFoodFacts("Cusqueña 620 ml", falso as unknown as typeof fetch);
-    const [url, opciones] = falso.mock.calls[0] as [URL, RequestInit];
-    expect(url.hostname).toBe("world.openfoodfacts.org");
-    expect(url.searchParams.get("search_terms")).toBe("cusquena");
+  it("busca por nombre y luego pide la ficha por código; User-Agent genérico (sin correos) y timeout", async () => {
+    const falso = vi.fn((url: URL) => Promise.resolve(responder(url)));
+    const r = await buscarBebidaOpenFoodFacts("Cusqueña 620 ml", falso as unknown as typeof fetch);
+    expect(r).toEqual({ nombre: "Cerveza Cusqueña Dorada", ml: 620, porcentajeAlcohol: 5, alergenos: ["Gluten"] });
+    const [[busqueda, opciones], [ficha]] = falso.mock.calls as unknown as [URL, RequestInit][];
+    expect(busqueda.hostname).toBe("search.openfoodfacts.org");
+    expect(busqueda.searchParams.get("q")).toBe("cusquena");
+    expect(ficha.href).toContain("world.openfoodfacts.org/api/v2/product/7750182000000");
     expect((opciones.headers as Record<string, string>)["User-Agent"]).toBe(USER_AGENT);
     expect(USER_AGENT).not.toMatch(/@/);
     expect(opciones.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("si falla o tarda, devuelve null sin romper", async () => {
+  it("si la ficha falla, usa lo que trajo la búsqueda", async () => {
+    const falso = vi.fn((url: URL) => Promise.resolve(url.hostname.startsWith("search.")
+      ? new Response(JSON.stringify(BUSQUEDA), { status: 200 }) : new Response("", { status: 503 })));
+    expect(await buscarBebidaOpenFoodFacts("Cusqueña", falso as unknown as typeof fetch))
+      .toEqual({ nombre: "Cerveza Cusqueña Dorada", ml: 620, porcentajeAlcohol: null, alergenos: [] });
+  });
+
+  it("si la búsqueda falla o tarda, devuelve null sin romper", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const caido = vi.fn().mockRejectedValue(new DOMException("timeout", "TimeoutError"));
     expect(await buscarBebidaOpenFoodFacts("Inca Kola", caido as unknown as typeof fetch)).toBeNull();
-    const error500 = vi.fn().mockResolvedValue(new Response("", { status: 500 }));
-    expect(await buscarBebidaOpenFoodFacts("Inca Kola", error500 as unknown as typeof fetch)).toBeNull();
+    const error503 = vi.fn().mockResolvedValue(new Response("", { status: 503 }));
+    expect(await buscarBebidaOpenFoodFacts("Inca Kola", error503 as unknown as typeof fetch)).toBeNull();
   });
 });
 
@@ -207,7 +222,7 @@ describe("autocompletarProducto", () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-clave-falsa-de-prueba");
     vi.stubEnv("IA_SIMULADA", "");
     vi.stubGlobal("fetch", internet); // si algo intenta salir a internet, la prueba lo detecta
-    internet.mockResolvedValue(new Response(JSON.stringify({ products: [] }), { status: 200 }));
+    internet.mockResolvedValue(new Response(JSON.stringify({ hits: [] }), { status: 200 }));
     reservarConsulta.mockResolvedValue({ resultado: "OK", usoId: 1 });
     anotarTokens.mockResolvedValue(undefined);
     crear.mockResolvedValue(respuestaClaude(LOMO));
@@ -248,12 +263,12 @@ describe("autocompletarProducto", () => {
 
   it("bebida envasada: consulta primero Open Food Facts y le pasa sus datos a Claude", async () => {
     obtenerSesion.mockResolvedValue(sesionCon("OWNER"));
-    internet.mockResolvedValue(new Response(JSON.stringify({
-      products: [{ product_name: "Cusqueña", product_quantity: 620, product_quantity_unit: "ml", nutriments: { alcohol: 5 }, allergens_tags: ["en:gluten"] }],
-    }), { status: 200 }));
+    internet.mockImplementation((url: URL) => Promise.resolve(new Response(JSON.stringify(url.hostname.startsWith("search.")
+      ? { hits: [{ code: "7750182000000", product_name: "Cusqueña", product_quantity: 620, product_quantity_unit: "ml" }] }
+      : { status: 1, product: { nutriments: { alcohol: 5 }, allergens_tags: ["en:gluten"] } }), { status: 200 })));
     crear.mockResolvedValue(respuestaClaude({ ...LOMO, categoria: "Bebidas con alcohol", esBebidaConAlcohol: true, alergenosSugeridos: [], porcentajeAlcohol: 4.8 }));
     const r = await autocompletarProducto("Cusqueña 620 ml");
-    expect(internet).toHaveBeenCalledTimes(1);
+    expect(internet).toHaveBeenCalledTimes(2); // búsqueda + ficha
     expect(crear.mock.calls[0][0].messages[0].content).toContain("Open Food Facts");
     expect(r).toMatchObject({ ok: true, openFoodFacts: true, sugerencia: { categoria: "Bebidas con alcohol", porcentajeAlcohol: 5, ml: 620, alergenos: ["Gluten"] } });
   });
