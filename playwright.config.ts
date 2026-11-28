@@ -45,7 +45,8 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL ? undefined : {
     command: "npm run start",
     url: baseURL,
-    env: claveServidor ? { SUPABASE_SERVICE_ROLE_KEY: claveServidor } : undefined,
+    // US-151: la IA va en modo simulado aunque .env.local tenga ANTHROPIC_API_KEY.
+    env: { IA_SIMULADA: "1", ...(claveServidor ? { SUPABASE_SERVICE_ROLE_KEY: claveServidor } : {}) },
     reuseExistingServer: false,
     timeout: 120_000,
   },
