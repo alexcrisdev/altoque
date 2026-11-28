@@ -116,14 +116,8 @@ async function Contenido({ params, searchParams }: Props) {
         {(acceso.modalidad === "TAKEAWAY" || sesionId !== null) && <BotonLlamarMesero token={token} />}
       </Tarjeta>
 
-      {acceso.modalidad === "DINE_IN" && !sesionId && (
-        <MensajeEstado
-          tipo="vacio"
-          titulo="Esta mesa todavía no está habilitada"
-          descripcion="Pide al mesero que la abra para poder hacer tu pedido. Para llamar al personal, levanta la mano o haz una señal al mesero."
-        />
-      )}
-
+      {/* US-036: el aviso «Pide al mesero que habilite tu mesa» lo muestra la carta y se
+          actualiza solo cuando el mesero la habilita (sin recargar ni perder el carrito). */}
       <CartaRestaurante
         restauranteId={acceso.restauranteId}
         token={token}

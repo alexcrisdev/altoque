@@ -2,6 +2,7 @@
 
 import { ImagenProducto } from "../../components/imagen-producto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Boton,
   BotonEnlace,
@@ -43,6 +44,8 @@ import {
 import { LIMITES, type ItemCarrito } from "../pedidos/tipos";
 import { IconoCandado } from "../../components/icono-candado";
 import { consultarDisponibilidadAction } from "./disponibilidad-actions";
+import { consultarMesaHabilitadaAction } from "../acceso-qr/mesa-habilitada-actions";
+import { claveCarrito, leerCarritoGuardado, SEGUNDOS_REVISAR_MESA, serializarCarrito } from "../pedidos/carrito-sesion";
 import type {
   CategoriaConProductos,
   DisponibilidadProducto,
@@ -82,6 +85,14 @@ export function CartaInteractiva({
 
   const [items, setItems] = useState<ItemCarrito[]>([]);
   const [enviando, setEnviando] = useState(false);
+  const router = useRouter();
+
+  // US-036: mientras la mesa no esté habilitada se puede armar el carrito; se revisa cada 5 s
+  // si el mesero ya la habilitó y, al hacerlo, se puede confirmar SIN recargar.
+  const [habilitadaDetectada, setHabilitadaDetectada] = useState(false);
+  const habilitada = pedidosHabilitados || habilitadaDetectada;
+  const [mesaRecienHabilitada, setMesaRecienHabilitada] = useState(false);
+  const carritoRestaurado = useRef(false);
   const [resultado, setResultado] =
     useState<ResultadoRegistroPedido | null>(null);
 
@@ -169,6 +180,63 @@ export function CartaInteractiva({
     };
   }, [consultarStock]);
 
+  // US-036: revisa si la mesa ya fue habilitada (solo mesas, solo con la pestaña visible).
+  const revisandoMesa = useRef(false);
+  useEffect(() => {
+    if (habilitada || pedido.modalidadQr !== "DINE_IN") return;
+    let activo = true;
+    async function revisar() {
+      if (!activo || revisandoMesa.current || document.visibilityState !== "visible") return;
+      revisandoMesa.current = true;
+      try {
+        const { habilitada: lista } = await consultarMesaHabilitadaAction(token);
+        if (lista && activo) {
+          setHabilitadaDetectada(true);
+          setMesaRecienHabilitada(true);
+          router.refresh(); // actualiza cuenta y «Llamar al mesero»; el carrito no se toca
+        }
+      } catch {
+        // Sin red: se vuelve a intentar en la siguiente vuelta.
+      } finally {
+        revisandoMesa.current = false;
+      }
+    }
+    const intervalo = window.setInterval(revisar, SEGUNDOS_REVISAR_MESA * 1000);
+    document.addEventListener("visibilitychange", revisar);
+    return () => {
+      activo = false;
+      window.clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", revisar);
+    };
+  }, [habilitada, pedido.modalidadQr, token, router]);
+
+  // US-036: recupera el carrito guardado en esta pestaña (si recargó la página).
+  useEffect(() => {
+    const temporizador = window.setTimeout(() => {
+      let guardado: ItemCarrito[] = [];
+      try {
+        guardado = leerCarritoGuardado(window.sessionStorage.getItem(claveCarrito(token)), pedidosHabilitados, Date.now());
+      } catch {
+        // Sin almacenamiento: el carrito empieza vacío.
+      }
+      carritoRestaurado.current = true;
+      if (guardado.length) setItems((actuales) => (actuales.length ? actuales : guardado));
+    }, 0);
+    return () => window.clearTimeout(temporizador);
+  }, [token, pedidosHabilitados]);
+
+  // US-036: guarda el carrito en cada cambio; vacío (al confirmar) se borra.
+  useEffect(() => {
+    if (!carritoRestaurado.current) return;
+    try {
+      const texto = serializarCarrito(items, habilitada, Date.now());
+      if (texto) window.sessionStorage.setItem(claveCarrito(token), texto);
+      else window.sessionStorage.removeItem(claveCarrito(token));
+    } catch {
+      // Sin almacenamiento: el carrito sigue en pantalla.
+    }
+  }, [items, habilitada, token]);
+
   const productoSeleccionado = seleccionado
     ? productos.find((producto) => producto.id === seleccionado.id) ?? seleccionado
     : null;
@@ -253,7 +321,7 @@ export function CartaInteractiva({
   async function confirmar() {
     if (
       envioEnCurso.current ||
-      !pedidosHabilitados ||
+      !habilitada ||
       items.length === 0 ||
       hayLineasConProblema(items, productos) ||
       faltaDato || !validarAlergia(alergia).ok
@@ -395,6 +463,20 @@ export function CartaInteractiva({
 
   return (
     <div className="pt-4 pb-28">
+      {/* US-036: aviso de mesa por habilitar / recién habilitada (se actualiza solo). */}
+      <div aria-live="polite">
+        {pedido.modalidadQr === "DINE_IN" && !habilitada && (
+          <p className="mb-3 rounded-2xl border border-aviso-borde bg-aviso-fondo px-4 py-3 text-sm text-aviso-texto">
+            <strong>Pide al mesero que habilite tu mesa.</strong> Mientras tanto, elige tus platos: tu pedido queda
+            guardado y podrás confirmarlo apenas la habilite.
+          </p>
+        )}
+        {mesaRecienHabilitada && habilitada && (
+          <p className="mb-3 rounded-2xl border border-exito-borde bg-exito-fondo px-4 py-3 text-sm font-semibold text-exito-texto">
+            ¡Tu mesa ya está habilitada! Ya puedes confirmar tu pedido.
+          </p>
+        )}
+      </div>
       <nav
         aria-label="Categorías de la carta"
         className="carta-categorias sticky top-0 z-20 -mx-4 mb-4 flex gap-2 overflow-x-auto border-y border-borde bg-superficie px-4 py-2 sm:-mx-6 sm:px-6"
@@ -493,7 +575,7 @@ export function CartaInteractiva({
                     type="button"
                     variante="primario"
                     aria-label={`Agregar ${producto.name} al carrito`}
-                    disabled={!pedidosHabilitados || sinMas}
+                    disabled={sinMas}
                     onClick={() => agregarProducto(producto)}
                     className="absolute right-3 top-3 min-w-11 px-0 text-xl"
                   >
@@ -517,7 +599,7 @@ export function CartaInteractiva({
         onEliminar={eliminarProducto}
         onDejarDisponible={dejarDisponible}
         onCambiarObservacion={cambiarObservacion}
-        pedidosHabilitados={pedidosHabilitados}
+        pedidosHabilitados={habilitada}
         enviando={enviando}
         resultado={resultado}
         seguimientoHref={claveConfirmada

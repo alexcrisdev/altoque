@@ -5,6 +5,11 @@ import { createElement } from "react";
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/features/pedidos/actions", () => ({ registrarPedidoQrAction: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ crearClienteAdmin: vi.fn() }));
+// US-036: la carta pregunta si la mesa ya está habilitada y refresca la página al habilitarse.
+vi.mock("../../src/features/acceso-qr/mesa-habilitada-actions", () => ({
+  consultarMesaHabilitadaAction: vi.fn(async () => ({ habilitada: false })),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { obtenerCarta } from "../../src/features/carta/carta";
