@@ -15,11 +15,17 @@ export type ProductoAdmin = {
   active: boolean;
   ingredients: string | null;
   allergens: string[];
+  // US-156: bebidas con alcohol (null en los demás productos).
+  alcohol_percent: number | null;
+  volume_ml: number | null;
 };
 
 export type ResultadoCambioProducto = "OK" | "DUPLICADO" | "ERROR" | "NO_ENCONTRADO";
 
-type FilaProducto = Omit<ProductoAdmin, "price"> & { price: number | string };
+type FilaProducto = Omit<ProductoAdmin, "price" | "alcohol_percent"> & { price: number | string; alcohol_percent: number | string | null };
+
+const COLUMNAS_PRODUCTO = "id, category_id, name, description, price, image_url, available, active, ingredients, allergens";
+const COLUMNA_INEXISTENTE = "42703";
 
 function registrarCodigo(error: { code?: string }): void {
   if (error.code) console.error(error.code);
@@ -27,19 +33,45 @@ function registrarCodigo(error: { code?: string }): void {
 
 export async function listarProductosAdmin(restauranteId: string): Promise<ProductoAdmin[]> {
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase
+  const consultar = (columnas: string) => supabase
     .from("products")
-    .select("id, category_id, name, description, price, image_url, available, active, ingredients, allergens")
+    .select(columnas)
     .eq("restaurant_id", restauranteId)
     .order("name")
     .returns<FilaProducto[]>();
 
-  if (error) {
-    registrarCodigo(error);
+  let { data, error } = await consultar(`${COLUMNAS_PRODUCTO}, alcohol_percent, volume_ml`);
+  // US-156: mientras la migración de bebidas con alcohol no esté aplicada, la lista sigue
+  // funcionando sin esas columnas (quedan null).
+  if (error?.code === COLUMNA_INEXISTENTE) ({ data, error } = await consultar(COLUMNAS_PRODUCTO));
+
+  if (error || !data) {
+    if (error) registrarCodigo(error);
     throw new Error("No se pudieron cargar los productos.");
   }
 
-  return data.map((producto) => ({ ...producto, price: Number(producto.price) }));
+  return data.map((producto) => ({
+    ...producto,
+    price: Number(producto.price),
+    alcohol_percent: producto.alcohol_percent == null ? null : Number(producto.alcohol_percent),
+    volume_ml: producto.volume_ml ?? null,
+  }));
+}
+
+/** US-156: nombre de una categoría del restaurante (para saber si es «Bebidas con alcohol»). */
+export async function nombreCategoria(restauranteId: string, categoriaId: string): Promise<string | null> {
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("name")
+    .eq("id", categoriaId)
+    .eq("restaurant_id", restauranteId)
+    .maybeSingle();
+  if (error) {
+    registrarCodigo(error);
+    throw new Error("No se pudo consultar la categoría.");
+  }
+  return data?.name ?? null;
 }
 
 export async function listarCategorias(restauranteId: string): Promise<CategoriaAdmin[]> {
@@ -86,6 +118,8 @@ function datosDeProducto(restauranteId: string, producto: ProductoValidado) {
     image_url: producto.imageUrl,
     ingredients: producto.ingredients,
     allergens: producto.allergens,
+    alcohol_percent: producto.alcoholPercent,
+    volume_ml: producto.volumeMl,
   };
 }
 

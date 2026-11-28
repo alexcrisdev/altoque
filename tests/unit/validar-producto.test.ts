@@ -23,6 +23,8 @@ describe("validarProducto", () => {
         ingredients: "Pescado, limón",
         allergens: ["Pescado", "limón"],
         imageUrl: "https://example.com/ceviche.jpg",
+        alcoholPercent: null,
+        volumeMl: null,
       },
     });
   });
@@ -77,5 +79,33 @@ describe("validarProducto", () => {
     expect(validarProducto({ ...entradaBase, imageUrl: "  " })).toMatchObject({ ok: true, producto: { imageUrl: null } });
     expect(validarProducto({ ...entradaBase, imageUrl: "http://example.com/a.jpg" })).toMatchObject({ ok: false, errores: { imageUrl: expect.any(String) } });
     expect(validarProducto({ ...entradaBase, imageUrl: "not a url" })).toMatchObject({ ok: false, errores: { imageUrl: expect.any(String) } });
+  });
+});
+
+// US-156: bebidas con alcohol.
+describe("validarProducto: bebidas con alcohol", () => {
+  const cerveza = { ...entradaBase, nombre: "Cusqueña 620 ml", porcentajeAlcohol: "5", ml: "620" };
+
+  it("en «Bebidas con alcohol» pide % y ml y los guarda", () => {
+    expect(validarProducto(cerveza, { conAlcohol: true })).toMatchObject({ ok: true, producto: { alcoholPercent: 5, volumeMl: 620 } });
+    expect(validarProducto({ ...cerveza, porcentajeAlcohol: "4,8" }, { conAlcohol: true })).toMatchObject({ ok: true, producto: { alcoholPercent: 4.8 } });
+  });
+
+  it.each([
+    [{ porcentajeAlcohol: "" }, "porcentajeAlcohol"],
+    [{ porcentajeAlcohol: "101" }, "porcentajeAlcohol"],
+    [{ porcentajeAlcohol: "5.25" }, "porcentajeAlcohol"],
+    [{ porcentajeAlcohol: "-1" }, "porcentajeAlcohol"],
+    [{ ml: "" }, "ml"],
+    [{ ml: "0" }, "ml"],
+    [{ ml: "5001" }, "ml"],
+    [{ ml: "620.5" }, "ml"],
+  ])("rechaza %o", (cambio, campo) => {
+    expect(validarProducto({ ...cerveza, ...cambio }, { conAlcohol: true })).toMatchObject({ ok: false, errores: { [campo]: expect.any(String) } });
+  });
+
+  it("en otra categoría ignora % y ml (se guardan null)", () => {
+    expect(validarProducto(cerveza)).toMatchObject({ ok: true, producto: { alcoholPercent: null, volumeMl: null } });
+    expect(validarProducto({ ...cerveza, ml: "basura" })).toMatchObject({ ok: true, producto: { volumeMl: null } });
   });
 });

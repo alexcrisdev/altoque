@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { Boton } from "@/components/ui";
 import { PersonajeToqui } from "./personaje";
+import { MensajeFormateado } from "./formato";
 import { historialParaIA, type Linea, type MensajeToqui, type RespuestaToqui } from "./historial";
 import "./toqui.css";
 
@@ -230,9 +231,16 @@ export function Toqui({
           {lineas.map((l, i) => (
             <div key={i} className="toqui-fila" data-de={l.de}>
               {l.de !== "usuario" && <span className="toqui-avatar toqui-avatar-chico"><PersonajeToqui /></span>}
-              <p className="toqui-burbuja">
-                <span className="sr-only">{l.de === "usuario" ? "Tú: " : `${nombre}: `}</span>{l.texto}
-              </p>
+              {l.de === "asistente" ? (
+                // Respuesta de Toqui: negritas y viñetas (elementos de React, sin HTML crudo).
+                <div className="toqui-burbuja toqui-formateado">
+                  <span className="sr-only">{`${nombre}: `}</span><MensajeFormateado texto={l.texto} />
+                </div>
+              ) : (
+                <p className="toqui-burbuja">
+                  <span className="sr-only">{l.de === "usuario" ? "Tú: " : `${nombre}: `}</span>{l.texto}
+                </p>
+              )}
             </div>
           ))}
           {pensando && (

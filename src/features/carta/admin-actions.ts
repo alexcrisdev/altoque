@@ -7,7 +7,9 @@ import {
   cambiarDisponibilidad,
   crearProducto,
   editarProducto,
+  nombreCategoria,
 } from "./admin-productos";
+import { CATEGORIA_CON_ALCOHOL } from "./bebidas-alcohol";
 import { validarProducto } from "./validar-producto";
 import { descartarFotoProducto, subirFotoProducto } from "./fotos-productos-datos";
 
@@ -38,6 +40,8 @@ function entradaFormulario(formData: FormData) {
     ingredientes: formData.get("ingredientes"),
     alergenos: formData.get("alergenos"),
     imageUrl: formData.get("imageUrl"),
+    porcentajeAlcohol: formData.get("porcentajeAlcohol"),
+    ml: formData.get("ml"),
   };
 }
 
@@ -49,7 +53,18 @@ export async function guardarProductoAction(
   const foto = formData.get("fotoProducto");
   const archivo = foto instanceof File && (foto.name || foto.size) ? foto : null;
   const entrada = entradaFormulario(formData);
-  const validacion = validarProducto(archivo ? { ...entrada, imageUrl: null } : entrada);
+  // US-156: en «Bebidas con alcohol», % y ml son obligatorios. La categoría se busca en la base
+  // (del restaurante de la sesión), nunca se confía en lo que diga el navegador.
+  const categoriaId = typeof entrada.categoriaId === "string" ? entrada.categoriaId.trim() : "";
+  let conAlcohol = false;
+  if (UUID.test(categoriaId)) {
+    try {
+      conAlcohol = (await nombreCategoria(restauranteId, categoriaId)) === CATEGORIA_CON_ALCOHOL;
+    } catch {
+      return { tipo: "error", mensaje: "No se pudo guardar el producto. Intenta de nuevo." };
+    }
+  }
+  const validacion = validarProducto(archivo ? { ...entrada, imageUrl: null } : entrada, { conAlcohol });
   if (!validacion.ok) {
     return {
       tipo: "error",

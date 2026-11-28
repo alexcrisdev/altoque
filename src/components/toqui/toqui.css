@@ -33,6 +33,12 @@
 .toqui-fila[data-de="asistente"] .toqui-burbuja { border: 1px solid var(--color-borde); border-bottom-left-radius: .25rem; background: var(--color-superficie-suave); }
 .toqui-fila[data-de="usuario"] .toqui-burbuja { border-bottom-right-radius: .25rem; background: var(--color-marca); color: var(--color-texto-inverso); }
 .toqui-fila[data-de="aviso"] .toqui-burbuja { border: 1px solid var(--color-aviso-borde); border-bottom-left-radius: .25rem; background: var(--color-aviso-fondo); color: var(--color-aviso-texto); }
+/* US-152: respuestas con párrafos, negritas y viñetas. */
+.toqui-formateado { white-space: normal; }
+.toqui-formateado > :is(p, ul) + :is(p, ul) { margin-top: .375rem; }
+.toqui-formateado ul { padding-left: 1.125rem; list-style: disc; }
+.toqui-formateado li + li { margin-top: .125rem; }
+.toqui-formateado strong { font-weight: 700; }
 .toqui-avatar { display: block; width: 2.5rem; height: 2.75rem; flex-shrink: 0; }
 .toqui-avatar-chico { width: 1.75rem; height: 2rem; }
 .toqui-chip {

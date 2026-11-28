@@ -23,6 +23,14 @@ export type PreguntaIA = {
   uso: UsoIA;
   /** "low" por defecto (más barato). Sube a "medium" solo si la respuesta sale floja. */
   esfuerzo?: EsfuerzoIA;
+  /**
+   * OPCIONAL (US-156): salida estructurada. Claude responde SIEMPRE un JSON con este esquema
+   * (output_config.format, type "json_schema") y `texto` trae ese JSON. Igual valídalo en el servidor.
+   * Reglas del esquema: todo objeto con additionalProperties: false; sin minimum/maximum ni minLength.
+   */
+  formato?: { esquema: Record<string, unknown> };
+  /** OPCIONAL (US-156): texto que devuelve el modo simulado para esta HU (por ejemplo, un JSON de prueba). */
+  respuestaSimulada?: string;
 };
 
 type EventoIA = { evento: "ia"; funcion: string; modelo: string; resultado: string; tokens: TokensIA | null };
@@ -69,7 +77,7 @@ export async function preguntarAClaude(pregunta: PreguntaIA): Promise<RespuestaI
   // Modo simulado: CI, pruebas y quien no tiene clave. No llama a Claude ni a la base.
   if (esModoSimulado(process.env)) {
     registrar({ funcion, resultado: "simulada", tokens: null });
-    return { ok: true, texto: RESPUESTA_SIMULADA, tokens: { entrada: 0, salida: 0 }, simulada: true };
+    return { ok: true, texto: pregunta.respuestaSimulada ?? RESPUESTA_SIMULADA, tokens: { entrada: 0, salida: 0 }, simulada: true };
   }
 
   // Sin datos personales: se quitan correos y teléfonos de lo que escribe el usuario.
@@ -107,7 +115,10 @@ export async function preguntarAClaude(pregunta: PreguntaIA): Promise<RespuestaI
       max_tokens: maxTokens,
       system: [{ type: "text", text: pregunta.instrucciones, cache_control: { type: "ephemeral" } }],
       messages: mensajes,
-      output_config: { effort: pregunta.esfuerzo ?? ESFUERZO_POR_DEFECTO },
+      output_config: {
+        effort: pregunta.esfuerzo ?? ESFUERZO_POR_DEFECTO,
+        ...(pregunta.formato ? { format: { type: "json_schema" as const, schema: pregunta.formato.esquema } } : {}),
+      },
     });
 
     const u = respuesta.usage;
