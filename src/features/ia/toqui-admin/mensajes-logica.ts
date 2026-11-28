@@ -24,12 +24,17 @@ export function ultimosMensajes(mensajes: unknown): MensajeIA[] {
  * de la base de IA, quita primero los mensajes más viejos (la pregunta actual siempre va).
  */
 export function armarMensajes(mensajes: MensajeIA[], fotoJson: string): MensajeIA[] {
+  return armarMensajesCon(mensajes, (pregunta) => `FOTO DE MÉTRICAS (calculada por la base):\n${fotoJson}\n\nPREGUNTA: ${pregunta}`);
+}
+
+/**
+ * US-153: igual que armarMensajes, pero la última pregunta la arma quien llama (por ejemplo,
+ * con los comentarios o el manual que encontró la base vectorial).
+ */
+export function armarMensajesCon(mensajes: MensajeIA[], construir: (pregunta: string) => string): MensajeIA[] {
   const pregunta = mensajes.at(-1);
   if (!pregunta || pregunta.rol !== "usuario") return [];
-  const ultimo: MensajeIA = {
-    rol: "usuario",
-    texto: `FOTO DE MÉTRICAS (calculada por la base):\n${fotoJson}\n\nPREGUNTA: ${pregunta.texto}`,
-  };
+  const ultimo: MensajeIA = { rol: "usuario", texto: construir(pregunta.texto) };
   let anteriores = mensajes.slice(0, -1);
   const largo = () => INSTRUCCIONES_TOQUI_ADMIN.length + ultimo.texto.length + anteriores.reduce((s, m) => s + m.texto.length, 0);
   while (anteriores.length > 0 && largo() > MAX_CARACTERES) {

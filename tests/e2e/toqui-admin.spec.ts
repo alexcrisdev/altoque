@@ -35,3 +35,14 @@ test("US-152: el mesero no ve a Toqui", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Panel mesero", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: TOQUI })).toHaveCount(0);
 });
+
+// US-153: opiniones de clientes con la base vectorial (en modo simulado no se busca ni se llama a Claude).
+test("US-153: el admin pregunta de qué se quejan sus clientes y recibe la respuesta simulada", async ({ page }) => {
+  await page.goto("/login");
+  await iniciarSesion(page, "admin");
+  await expect(page).toHaveURL(/\/admin$/);
+  await page.getByRole("button", { name: TOQUI }).click();
+  const chat = page.getByRole("dialog", { name: "Toqui" });
+  await chat.getByRole("button", { name: "¿De qué se quejan mis clientes?", exact: true }).click();
+  await expect(chat.getByText(/Respuesta simulada de Toqui/)).toBeVisible({ timeout: 30_000 });
+});

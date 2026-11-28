@@ -20,8 +20,9 @@ export const REINTENTOS = 1;
 export const LIMITE_POR_USUARIO_HORA = 30;
 export const LIMITE_POR_RESTAURANTE_DIA = 300;
 
-/** Texto máximo que se manda en una consulta (suma de instrucciones y mensajes). */
-export const MAX_CARACTERES = 8000;
+/** Texto máximo que se manda en una consulta (suma de instrucciones y mensajes). ≈ 3 500 tokens.
+ * US-153: subió de 8000 a 12000 porque Toqui del admin suma instrucciones, foto o fragmentos y chat. */
+export const MAX_CARACTERES = 12000;
 
 export const MENSAJE_NO_DISPONIBLE = "IA no disponible por ahora";
 export const MENSAJE_LIMITE = "Toqui descansa un rato, intenta más tarde";
