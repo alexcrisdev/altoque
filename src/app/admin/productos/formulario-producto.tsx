@@ -146,7 +146,7 @@ export function FormularioProducto({
       {producto && <input type="hidden" name="productoId" value={producto.id} />}
       <div className="grid gap-1">
         <label htmlFor={`${id}-nombre`}>Nombre</label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             id={`${id}-nombre`}
             name="nombre"
@@ -155,7 +155,7 @@ export function FormularioProducto({
             value={nombre}
             onChange={(evento) => setNombre(evento.target.value)}
             aria-describedby={`${id}-ia`}
-            className={`${CLASE_CAMPO} flex-1`}
+            className={`${CLASE_CAMPO.replace("min-w-0", "min-w-48")} flex-1`}
           />
           <Boton type="button" variante="secundario" cargando={pensando} disabled={nombre.trim().length < 2}
             onClick={autocompletar} className="shrink-0">
