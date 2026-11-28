@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 25
     env:
       NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # US-151: la IA siempre en modo simulado; el E2E nunca llama a Claude.
+      IA_SIMULADA: "1"
     steps:
       - name: Obtener código
         uses: actions/checkout@v7.0.1
