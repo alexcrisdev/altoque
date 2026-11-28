@@ -16,7 +16,7 @@ Qué significa cada parte de la foto:
 - "hoy": desde las 00:00 hasta la hora indicada en "periodo"; "anterior" es ayer hasta la misma hora.
 - "ultimos7Dias" y "ultimos30Dias": incluyen hoy; "anterior" son los 7 o 30 días previos.
 - "ventas" y "ticketPromedio": soles cobrados (pagos confirmados, sin devoluciones). "pedidos": sin cancelados. "cancelados": pedidos cancelados.
-- "horaPico" / "horaPicoVentas" / "franjaPico": la hora con más pedidos o ventas.
+- "horaPico" / "horaPicoVentas" / "franjaPico": la hora con más pedidos o ventas. En "horaPico", "pedidos" es el total de pedidos de esa hora en todo el período.
 - "masVendidos" y "menosVendidos": platos con sus unidades vendidas (entre los que se vendieron al menos una vez).
 - "cocinaMinutos" / "cocinaMinutosPromedio": minutos promedio de preparación en cocina.
 - "satisfaccionEstrellas": promedio de estrellas del servicio (1 a 5).

@@ -124,7 +124,7 @@ describe("armarFotoMetricas con datos", () => {
     expect(s.cancelados).toBe(5);
     expect(s.cuentasPagadas).toBe(90);
     expect(s.cocinaMinutosPromedio).toBe(15);
-    expect(s.horaPico).toEqual({ hora: "13:00–14:00", pedidosPromedioPorDia: 3.4 });
+    expect(s.horaPico).toEqual({ hora: "13:00–14:00", pedidos: 24, pedidosPromedioPorDia: 3.4 });
     expect(s.franjaPico).toBe("viernes 13:00–14:00");
   });
 
@@ -202,7 +202,7 @@ describe("sin datos personales", () => {
 
 describe("horaPico", () => {
   it("suma todos los días por hora y elige la de más pedidos", () => {
-    expect(horaPico(celdas({ "0:12": 3, "1:12": 3, "2:19": 5 }), 7).hora).toEqual({ hora: "12:00–13:00", pedidosPromedioPorDia: 0.9 });
+    expect(horaPico(celdas({ "0:12": 3, "1:12": 3, "2:19": 5 }), 7).hora).toEqual({ hora: "12:00–13:00", pedidos: 6, pedidosPromedioPorDia: 0.9 });
   });
   it("sin pedidos no hay hora pico", () => {
     expect(horaPico(celdas({}), 7)).toEqual({ hora: null, franja: null });

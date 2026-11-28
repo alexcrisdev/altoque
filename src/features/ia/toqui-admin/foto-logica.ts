@@ -109,7 +109,7 @@ export type ResumenPeriodo = {
   pedidos: number | null; // sin cancelados
   cancelados: number | null;
   cocinaMinutosPromedio: number | null;
-  horaPico: { hora: string; pedidosPromedioPorDia: number } | null;
+  horaPico: { hora: string; pedidos: number; pedidosPromedioPorDia: number } | null; // pedidos = total del período en esa hora
   franjaPico: string | null; // día de la semana y hora con más pedidos
   masVendidos: Plato[] | null;
   menosVendidos: Plato[] | null;
@@ -144,7 +144,7 @@ export function horaPico(celdas: readonly FranjaMapa[], dias: number) {
   const celda = celdas.filter((c) => c.diasEnRango > 0 && c.pedidos > 0)
     .reduce<FranjaMapa | null>((m, c) => (!m || c.promedio > m.promedio ? c : m), null);
   return {
-    hora: mejor ? { hora: franjaHora(mejor.hora), pedidosPromedioPorDia: redondear1(mejor.pedidos / dias) } : null,
+    hora: mejor ? { hora: franjaHora(mejor.hora), pedidos: mejor.pedidos, pedidosPromedioPorDia: redondear1(mejor.pedidos / dias) } : null,
     franja: celda ? `${DIAS_MAPA[celda.dia]} ${franjaHora(celda.hora)}` : null,
   };
 }
