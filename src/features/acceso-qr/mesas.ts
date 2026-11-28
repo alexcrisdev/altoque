@@ -1,5 +1,6 @@
 import "server-only";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { SILLAS_POR_DEFECTO, type FormaMesa } from "../plano-mesas/sillas";
 
 // Capa de datos de mesas y QR para el panel admin.
 // Usa la sesión del usuario (no la clave secreta): así RLS también protege cada operación.
@@ -74,17 +75,45 @@ export async function listarLocales(restauranteId: string): Promise<Local[]> {
 export async function crearMesa(
     restauranteId: string,
     localId: string,
-    numero: number
+    numero: number,
+    forma: FormaMesa = "ROUND",
+    sillas: number = SILLAS_POR_DEFECTO,
 ): Promise<"OK" | "DUPLICADO" | "ERROR"> {
     const supabase = await crearClienteServidor();
+    // Redonda es el valor por defecto de la base: solo se envía la forma si es cuadrada.
     const { error } = await supabase
         .from("dining_tables")
-        .insert({ restaurant_id: restauranteId, branch_id: localId, number: numero });
+        .insert({
+            restaurant_id: restauranteId, branch_id: localId, number: numero, capacity: sillas,
+            ...(forma === "SQUARE" ? { shape: forma } : {}),
+        });
 
     if(!error) return "OK";
     if(error.code === "23505") return "DUPLICADO";
     console.error("crearMesa", error.code);
     return "ERROR";
+}
+
+// Plano: cambia la forma y las sillas. RLS solo deja actualizar a dueño o admin del restaurante.
+export async function editarFormaMesa(
+    restauranteId: string,
+    mesaId: string,
+    forma: FormaMesa,
+    sillas: number,
+): Promise<"OK" | "NO_ENCONTRADA" | "ERROR"> {
+    const supabase = await crearClienteServidor();
+    const { data, error } = await supabase
+        .from("dining_tables")
+        .update({ shape: forma, capacity: sillas })
+        .eq("id", mesaId)
+        .eq("restaurant_id", restauranteId)
+        .select("id");
+
+    if (error) {
+        console.error("editarFormaMesa", error.code);
+        return "ERROR";
+    }
+    return data.length === 1 ? "OK" : "NO_ENCONTRADA";
 }
 
 export async function cambiarEstadoMesa(

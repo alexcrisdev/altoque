@@ -21,6 +21,7 @@ import {
 import { BotonDesactivarQr } from "./boton-desactivar-qr";
 import { BotonQr } from "./boton-qr";
 import { FormularioNuevaMesa } from "./formulario-nueva-mesa";
+import { FormularioFormaMesa } from "./formulario-forma-mesa";
 import { QrGuardado } from "./qr-guardado";
 import { PlanoMostrador } from "./plano-mostrador";
 import "./zonas.css";
@@ -85,6 +86,7 @@ async function PanelMesas({ searchParams }: Pick<PageProps<"/admin/mesas">, "sea
   const enMostrador = vista === "mostrador";
   const { restauranteId, locales, mesas, mostradores, plano } = await obtenerPanelMesasAdmin(!anterior && !enMostrador);
   const porId = new Map(mesas.map(mesa => [mesa.id, mesa]));
+  const planoPorId = new Map(plano.map(mesa => [mesa.id, mesa]));
   return (
     <>
       {anterior ? <FormularioNuevaMesa locales={locales} /> : (
@@ -129,7 +131,10 @@ async function PanelMesas({ searchParams }: Pick<PageProps<"/admin/mesas">, "sea
             </details>}
             <details className="plano-opciones">
               <summary>Más opciones</summary>
-              <ControlesMesa mesa={mesa} />
+              <div className="grid gap-4">
+                <FormularioFormaMesa mesaId={mesa.id} forma={planoPorId.get(mesa.id)?.forma} sillas={planoPorId.get(mesa.id)?.sillas} />
+                <ControlesMesa mesa={mesa} />
+              </div>
             </details>
           </div>]))} />
         ) : (

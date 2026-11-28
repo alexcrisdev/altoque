@@ -1,7 +1,11 @@
 import type { MesaConSesion } from "@/features/mesero/sesiones";
 import type { CuentaAbierta } from "@/features/pago-cierre/cuentas";
+import type { FormaMesa } from "./sillas";
 
-type MesaSalon = { id: string; numero: number; activa: boolean; celda: number | null; local: string; localId: string };
+type MesaSalon = {
+  id: string; numero: number; activa: boolean; celda: number | null; local: string; localId: string;
+  forma?: FormaMesa; sillas?: number;
+};
 export const etiquetas = { libre: "Libre", ocupada: "Ocupada", espera: "Esperando pago", inactiva: "Inactiva" } as const;
 export type MesaPlano = MesaSalon & {
   estado: keyof typeof etiquetas;
