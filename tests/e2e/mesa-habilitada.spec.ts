@@ -30,7 +30,7 @@ test("US-036: el cliente confirma su pedido cuando el mesero habilita la mesa, s
     await page.reload();
     await page.getByRole("button", { name: /^Ver carrito:/ }).click();
     const carrito = page.getByRole("dialog", { name: "Tu carrito" });
-    await expect(carrito.getByText(producto.name)).toBeVisible();
+    await expect(carrito.getByText(producto.name, { exact: true })).toBeVisible();
     await expect(carrito.getByLabel(/^Observaciones para/)).toHaveValue(pedido.marca);
     await page.keyboard.press("Escape");
   });
@@ -42,7 +42,7 @@ test("US-036: el cliente confirma su pedido cuando el mesero habilita la mesa, s
     await expect(page.getByText("¡Tu mesa ya está habilitada!")).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: /^Ver carrito:/ }).click();
     const carrito = page.getByRole("dialog", { name: "Tu carrito" });
-    await expect(carrito.getByText(producto.name)).toBeVisible();
+    await expect(carrito.getByText(producto.name, { exact: true })).toBeVisible();
     await carrito.getByRole("button", { name: "No", exact: true }).click();
     await expect(carrito.getByRole("button", { name: "Confirmar pedido", exact: true })).toBeEnabled();
     await confirmarYVerificar(page, pedido);
