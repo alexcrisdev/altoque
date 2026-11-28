@@ -159,7 +159,7 @@ describe("preguntarAToquiAdmin: llamada a Claude", () => {
 describe("armarMensajes y ultimosMensajes", () => {
   it("si no cabe en el tope, quita primero los mensajes viejos y empieza por el usuario", () => {
     const viejos: MensajeIA[] = [
-      { rol: "usuario", texto: "a".repeat(3000) }, { rol: "asistente", texto: "b".repeat(3000) },
+      { rol: "usuario", texto: "a".repeat(MAX_CARACTERES / 2) }, { rol: "asistente", texto: "b".repeat(MAX_CARACTERES / 2) },
       { rol: "usuario", texto: "¿Y la semana?" },
     ];
     const r = armarMensajes(viejos, JSON.stringify({ dato: "x".repeat(2000) }));

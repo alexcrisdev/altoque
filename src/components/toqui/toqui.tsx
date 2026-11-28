@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { Boton } from "@/components/ui";
 import { PersonajeToqui } from "./personaje";
+import { useCerrarDialogoAlOcultar } from "../../lib/cerrar-dialogo-al-ocultar";
 import { MensajeFormateado } from "./formato";
 import { historialParaIA, type Linea, type MensajeToqui, type RespuestaToqui } from "./historial";
 import "./toqui.css";
@@ -44,6 +45,7 @@ export function Toqui({
   const envoltura = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
   const dialogo = useRef<HTMLDialogElement>(null);
+  useCerrarDialogoAlOcultar(dialogo); // US-127: no dejar la página nueva inerte al navegar
   const fin = useRef<HTMLDivElement>(null);
   const gesto = useRef<{ x: number; y: number; izq: number; arr: number; movido: boolean } | null>(null);
   // true si el puntero ya manejó el gesto: el «click» que sigue se ignora (algunos

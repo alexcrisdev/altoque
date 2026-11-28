@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useCerrarDialogoAlOcultar } from "../../lib/cerrar-dialogo-al-ocultar";
 
 export function FichaPlano({ abierta, cerrar, titulo, local, children }: {
   abierta: boolean; cerrar: () => void; titulo: string; local: string; children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  useCerrarDialogoAlOcultar(ref); // US-127: no dejar la página nueva inerte al navegar
   const id = useId();
   useEffect(() => {
     const el = ref.current;

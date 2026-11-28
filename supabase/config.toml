@@ -387,6 +387,10 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# US-153: la protege un secreto propio (EMBEBER_SECRETO), no el JWT del usuario.
+[functions.embeber]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

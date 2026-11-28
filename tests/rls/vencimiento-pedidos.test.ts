@@ -172,14 +172,24 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
     }
   });
 
+  // US-097: el pedido se vence con su plazo de pago (el mismo límite que usa la base,
+  // private.us150_limite_pago) en vez de mover created_at 16 minutos atrás. Así el pedido y su
+  // stock siguen en el mismo día de Lima aunque la prueba corra entre las 00:00 y las 00:16
+  // (antes el created_at caía en el día anterior y el stock se devolvía a otra fecha).
+  const plazoVencido = () => new Date(Date.now() - 60_000).toISOString();
+  async function vencerPlazo(ids: string[]) {
+    const resultado = await servicio.from("orders").update({ pago_en_caja_hasta: plazoVencido() }).in("id", ids).select("id");
+    if (resultado.error) throw new Error(resultado.error.message);
+    expect(resultado.data).toHaveLength(ids.length);
+  }
+
   it("vence un pedido de 16 minutos, registra el motivo y devuelve el stock", async () => {
     const id = await crearPedido();
     const antes = exigir(await servicio.from("product_daily_stock").select("sold")
       .eq("product_id", productoId).eq("stock_date", fechaStock).single<{ sold: number }>()).sold;
     expect(antes).toBe(1);
 
-    const fechaAntigua = new Date(Date.now() - 16 * 60_000).toISOString();
-    exigir(await servicio.from("orders").update({ created_at: fechaAntigua }).eq("id", id).select("id").single());
+    await vencerPlazo([id]);
     exigir(await servicio.rpc("vencer_pedidos_sin_pago", { p_restaurante: restauranteId }));
 
     expect(exigir(await servicio.from("orders").select("status").eq("id", id)
@@ -201,8 +211,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
       idempotency_key: crypto.randomUUID(), created_by: usuarioId,
     }).select("id").single<{ id: string }>());
     pagos.push(pago.id);
-    exigir(await servicio.from("orders").update({ created_at: new Date(Date.now() - 16 * 60_000).toISOString() })
-      .eq("id", id).select("id").single());
+    await vencerPlazo([id]);
 
     exigir(await servicio.rpc("vencer_pedidos_sin_pago", { p_restaurante: restauranteId }));
     expect(exigir(await servicio.from("orders").select("status").eq("id", id)
@@ -219,7 +228,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
     await crearPedido();
     const reasignados = exigir(await servicio.from("orders").update({
       qr_code_id: qrId,
-      created_at: new Date(Date.now() - 16 * 60_000).toISOString(),
+      pago_en_caja_hasta: plazoVencido(),
     }).in("id", [primero, segundo]).select("id").order("id"));
     expect(reasignados).toHaveLength(2);
 
@@ -316,8 +325,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
 
     const sesion = `cs_test_${crypto.randomUUID().replaceAll("-", "")}`;
     exigir(await servicio.rpc("vincular_checkout_stripe", { p_checkout_id: inicio.checkout_id, p_session_id: sesion }));
-    const antiguo = new Date(Date.now() - 16 * 60_000).toISOString();
-    exigir(await servicio.from("orders").update({ created_at: antiguo }).eq("id", pedido).select("id").single());
+    await vencerPlazo([pedido]);
     exigir(await servicio.rpc("vencer_pedidos_sin_pago", { p_restaurante: restauranteId }));
     expect(exigir(await servicio.from("orders").select("status").eq("id", pedido)
       .single<{ status: string }>()).status).toBe("PENDING");
@@ -357,7 +365,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
   it("una orden vencida antes de iniciar Checkout se cancela y devuelve stock", async () => {
     const pedido = await crearPedido();
     exigir(await servicio.from("orders").update({
-      created_at: new Date(Date.now() - 16 * 60_000).toISOString(),
+      pago_en_caja_hasta: plazoVencido(),
     }).eq("id", pedido).select("id").single());
     const checkout = await servicio.rpc("iniciar_checkout_stripe", { p_sesion_id: null, p_pedido_id: pedido });
     expect(checkout.error).toBeNull();
@@ -372,7 +380,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
     const vencido = await crearPedidoMesa();
     const vigente = await crearPedidoMesa();
     exigir(await servicio.from("orders").update({
-      created_at: new Date(Date.now() - 16 * 60_000).toISOString(),
+      pago_en_caja_hasta: plazoVencido(),
     }).eq("id", vencido).select("id").single());
 
     const checkout = exigir(await servicio.rpc("iniciar_checkout_stripe", {
@@ -400,9 +408,7 @@ describe.skipIf(!local || !anonKey || !serviceKey)("US-097 · vencimiento RLS lo
     exigir(await servicio.rpc("vincular_checkout_stripe", {
       p_checkout_id: inicio.checkout_id, p_session_id: sesionStripe,
     }));
-    const antiguo = new Date(Date.now() - 16 * 60_000).toISOString();
-    exigir(await servicio.from("orders").update({ created_at: antiguo }).in("id", [original, posterior])
-      .select("id").order("id"));
+    await vencerPlazo([original, posterior]);
     exigir(await servicio.rpc("vencer_pedidos_sin_pago", { p_restaurante: restauranteId }));
     const estadoOriginal = exigir(await servicio.from("orders").select("status").eq("id", original)
       .single<{ status: string }>()).status;

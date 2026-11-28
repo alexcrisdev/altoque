@@ -9,6 +9,7 @@ import {
   Tarjeta,
 } from "../../components/ui";
 import { Carrito } from "./carrito";
+import { useCerrarDialogoAlOcultar } from "../../lib/cerrar-dialogo-al-ocultar";
 import { calcularTotalCentimos, hayLineasConProblema } from "./carrito-logica";
 import { formatearPrecio } from "../carta/formato";
 import type { ResultadoRegistroPedido } from "./actions";
@@ -31,6 +32,7 @@ type Props = Omit<ComponentProps<typeof Carrito>, "enPanel"> & {
 
 export function PanelCarrito(props: Props) {
   const dialogo = useRef<HTMLDialogElement>(null);
+  useCerrarDialogoAlOcultar(dialogo); // US-127: no dejar la página nueva inerte al navegar
   const enlaceSeguimiento = useRef<HTMLAnchorElement>(null);
   const validacionAlergia = validarAlergia(props.alergia);
   const confirmado = props.resultado?.ok ? props.resultado : null;

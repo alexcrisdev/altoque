@@ -1,3 +1,5 @@
 # Falsos positivos revisados a mano (formato: commit:archivo:regla:línea)
 # US-064: contraseña de ejemplo en un curl de documentación, no es una clave real
 f17c2ab84be5a581cd8a6fde8d9f8b9e3ab34be6:docs/pruebas/evidencias/us064-validacion.txt:generic-api-key:36
+# US-153: secreto de prueba en una prueba unitaria, no es una clave real
+d0d7c63ef08df72dbd79f479298e56c7195ee07e:tests/unit/base-vectorial.test.ts:generic-api-key:36

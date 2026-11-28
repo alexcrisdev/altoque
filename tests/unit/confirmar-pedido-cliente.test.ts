@@ -33,6 +33,11 @@ vi.mock("../../src/features/carta/detalle-producto", () => ({ DetalleProducto: (
 vi.mock("../../src/features/carta/disponibilidad-actions", () => ({
   consultarDisponibilidadAction: vi.fn().mockResolvedValue({ ok: false }),
 }));
+// US-036: la carta pregunta si la mesa ya está habilitada y refresca la página al habilitarse.
+vi.mock("../../src/features/acceso-qr/mesa-habilitada-actions", () => ({
+  consultarMesaHabilitadaAction: vi.fn(async () => ({ habilitada: false })),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
 import { registrarPedidoQrAction } from "../../src/features/pedidos/actions";
 import { CartaInteractiva } from "../../src/features/carta/carta-interactiva";

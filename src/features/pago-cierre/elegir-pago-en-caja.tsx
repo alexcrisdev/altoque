@@ -6,10 +6,12 @@ import { Boton, Tarjeta } from "@/components/ui";
 import { elegirPagoEnCajaAction } from "./pago-en-caja-actions";
 import type { EleccionCaja } from "./pago-en-caja-datos";
 import { centimosATexto } from "./pago-logica";
+import { useCerrarDialogoAlOcultar } from "../../lib/cerrar-dialogo-al-ocultar";
 
 export function ElegirPagoEnCaja({ token, clave, estado }: { token: string; clave: string; estado: EleccionCaja }) {
   const router = useRouter();
   const dialogo = useRef<HTMLDialogElement>(null);
+  useCerrarDialogoAlOcultar(dialogo); // US-127: no dejar la página nueva inerte al navegar
   const titulo = useId();
   const [mensaje, setMensaje] = useState("");
   const [guardando, guardar] = useTransition();

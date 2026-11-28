@@ -15,7 +15,8 @@
     "smoke": "node scripts/smoke.mjs",
     "test:e2e": "playwright test",
     "demo:abrir": "node scripts/abrir-demo.mjs",
-    "ia:probar": "node --env-file=.env.local scripts/probar-ia.mjs"
+    "ia:probar": "node --env-file=.env.local scripts/probar-ia.mjs",
+    "ia:indexar-manual": "node --env-file=.env.local scripts/indexar-manual.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",

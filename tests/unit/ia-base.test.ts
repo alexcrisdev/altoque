@@ -121,7 +121,7 @@ describe("preguntarAClaude: respuesta correcta", () => {
   });
 
   it("rechaza textos muy largos sin gastar", async () => {
-    const r = await preguntarAClaude({ ...PREGUNTA, mensajes: [{ rol: "usuario", texto: "a".repeat(9000) }] });
+    const r = await preguntarAClaude({ ...PREGUNTA, mensajes: [{ rol: "usuario", texto: "a".repeat(13000) }] });
     expect(r).toEqual({ ok: false, motivo: MENSAJE_MUY_LARGO });
     expect(crear).not.toHaveBeenCalled();
   });

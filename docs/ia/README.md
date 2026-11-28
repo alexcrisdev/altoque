@@ -83,7 +83,7 @@ Qué devuelve (nunca lanza errores):
 - `{ ok: false, motivo }`: muestra `motivo` tal cual. Es un mensaje listo para la pantalla:
   - «IA no disponible por ahora»: error de la API, timeout, sin internet, clave mala.
   - «Toqui descansa un rato, intenta más tarde»: se pasó el límite de uso.
-  - «El texto es muy largo, resúmelo un poco.»: más de 8000 caracteres.
+  - «El texto es muy largo, resúmelo un poco.»: más de 12000 caracteres (instrucciones + mensajes).
 
 Parámetros:
 
@@ -186,7 +186,40 @@ solo cuenta para el límite del restaurante.
 **Dónde ver el consumo:** Claude Console → **Gastos y uso → Uso de la API** (por clave y por
 día). Por restaurante: tabla `ai_usage`.
 
-## 7. Pruebas
+## 7. Base vectorial (US-153): opiniones y manual
+
+Toqui del admin también responde **qué opinan los clientes** y **cómo se usa AlToque**, buscando por
+significado («demora» encuentra «esperé 40 minutos»). Es un chatbot con base vectorial (RAG):
+
+1. **Indexar:** cada comentario de `order_ratings` (sin correos, teléfonos ni nombres) y cada sección
+   de `docs/manual/*.md` se convierte en un vector de 384 números con el modelo **gte-small** de
+   Supabase (Edge Function `supabase/functions/embeber`) y se guarda en `ai_fragments` (pgvector).
+2. **Preguntar:** la pregunta del dueño también se convierte en vector.
+3. **Buscar:** `buscar_fragmentos_ia` devuelve los fragmentos más parecidos (coseno, índice HNSW),
+   **solo del restaurante** del dueño (el manual es común).
+4. **Responder:** Claude agrupa las opiniones por tema (o da los pasos del manual) usando SOLO esos
+   fragmentos. Si no hay parecidos: «Aún no tengo comentarios sobre eso» / «No encuentro eso en el manual».
+
+| Qué | Dónde |
+|---|---|
+| ¿Opiniones, manual o métricas? (sin IA) | `src/features/ia/vectorial/reglas.ts` → `elegirFuente` |
+| Vectores (Edge Function, timeout 10 s, simulada en pruebas) | `src/features/ia/vectorial/embeber.ts` |
+| Guardar y buscar fragmentos (funciones fijas) | `src/features/ia/vectorial/fragmentos.ts` |
+| Tabla, RLS y funciones | `supabase/migrations/20261128120000_us153_base_vectorial.sql` |
+| Cargar el manual | `npm run ia:indexar-manual -- --dry-run` (cuenta) / `npm run ia:indexar-manual` |
+
+- Los comentarios nuevos se indexan solos antes de cada pregunta de opiniones (máximo 50 por vez).
+- Si cambias el manual, vuelve a correr `npm run ia:indexar-manual` (borra las secciones que ya no existen).
+- gte-small está entrenado sobre todo en inglés: con textos en español funciona, pero con menos
+  precisión (todo sale «parecido», entre 0.79 y 0.85). Por eso el manual usa un mínimo de 0.84, solo las
+  secciones cercanas a la mejor y máximo 3 (`filtrarFragmentos` en `vectorial/reglas.ts`, calibrado con
+  la prueba real); las opiniones, mínimo 0.70 y hasta 12.
+
+**Despliegue (lo hace Alexander):** `npx supabase functions deploy embeber --no-verify-jwt --project-ref <ref>`
+y `npx supabase secrets set EMBEBER_SECRETO=<32+ caracteres> --project-ref <ref>`. El mismo
+`EMBEBER_SECRETO` va en `.env.local` y en Vercel (solo servidor, nunca `NEXT_PUBLIC_`).
+
+## 8. Pruebas
 
 - `tests/unit/ia-base.test.ts`: respuesta correcta, errores de la API, timeout, límite,
   modo simulado, que CI no tenga la clave y `quitarDatosPersonales`.

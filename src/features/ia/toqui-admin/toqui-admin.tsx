@@ -10,6 +10,7 @@ export const SUGERENCIAS_TOQUI_ADMIN = [
   "¿Cuál es mi hora pico?",
   "¿Qué se agotó?",
   "¿Cuánto debo preparar mañana?",
+  "¿De qué se quejan mis clientes?", // US-153: base vectorial de opiniones
 ];
 
 export async function ToquiAdmin() {
