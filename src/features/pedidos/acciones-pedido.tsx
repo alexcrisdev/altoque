@@ -40,7 +40,8 @@ export function AccionesPedido({ pedidoId, estado, roles, items, pagado = false 
     });
   }
 
-  if (!puedeEditar && !puedeCancelar) return null;
+  // Tras cancelar, el pedido ya no tiene acciones: igual se muestra la confirmación.
+  if (!puedeEditar && !puedeCancelar) return mensaje ? <p role="status" className="mt-8">{mensaje}</p> : null;
   return (
     <section className="mt-8 rounded-2xl border border-borde bg-superficie p-5 sm:p-6" aria-label="Acciones del pedido">
       <h2 className="text-xl font-semibold">Modificar pedido</h2>
