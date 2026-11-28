@@ -6,6 +6,7 @@ import { ETIQUETA_TIPO_INCIDENCIA, puedeMarcarEntregado, type TipoIncidencia } f
 import { registrarIncidenciaAction, resolverIncidenciaAction } from "./incidencias-actions";
 import type { IncidenciaPedido } from "./incidencias-servidor";
 import type { EstadoPedido } from "./estados";
+import { Boton } from "@/components/ui";
 
 const TODOS_LOS_TIPOS = Object.keys(ETIQUETA_TIPO_INCIDENCIA) as TipoIncidencia[];
 
@@ -47,7 +48,7 @@ export function IncidenciasPanel({ pedidoId, estado, incidencias, soloLectura = 
 
   return <section className="mt-8 rounded-2xl border border-borde bg-superficie p-5 sm:p-6" aria-label="Entrega e incidencias">
     <h2 className="text-xl font-semibold">Entrega e incidencias</h2>
-    {!soloLectura && puedeMarcarEntregado(estado) && <button type="button" disabled={guardando} onClick={marcarEntregado} className="mt-4 min-h-14 w-full rounded-lg bg-marca px-5 py-3 text-lg font-semibold text-white disabled:opacity-50">{guardando ? "Guardando…" : "Confirmar entrega"}</button>}
+    {!soloLectura && puedeMarcarEntregado(estado) && <Boton type="button" tamano="xl" esquina="lg" cargando={guardando} onClick={marcarEntregado} className="mt-4 w-full">{guardando ? "Guardando…" : "Confirmar entrega"}</Boton>}
     {estado === "CANCELLED" && <p className="mt-4 rounded-lg bg-aviso-fondo p-3 text-aviso-texto">No se pueden registrar incidencias en pedidos cancelados.</p>}
     {!soloLectura && estado !== "CANCELLED" && <div className="mt-5 space-y-3">
       <h3 className="font-semibold">Registrar incidencia</h3>
@@ -68,7 +69,7 @@ export function IncidenciasPanel({ pedidoId, estado, incidencias, soloLectura = 
         <div className="flex flex-wrap items-center gap-2"><strong>{ETIQUETA_TIPO_INCIDENCIA[incidencia.tipo]}</strong><span className={`rounded-full px-2 py-1 text-sm ${incidencia.estado === "OPEN" ? "bg-aviso-fondo text-aviso-texto" : "bg-exito-fondo text-exito-texto"}`}>{incidencia.estado === "OPEN" ? "Abierta" : "Resuelta"}</span></div>
         <p className="mt-2">{incidencia.descripcion}</p><p className="mt-2 text-sm text-texto-suave">Registrada por {incidencia.creadaPor} · {fecha(incidencia.creadaEn)}</p>
         {incidencia.resueltaPor && incidencia.resueltaEn && <p className="mt-1 text-sm text-texto-suave">Resuelta por {incidencia.resueltaPor} · {fecha(incidencia.resueltaEn)}</p>}
-        {!soloLectura && incidencia.estado === "OPEN" && tipos.includes(incidencia.tipo) && <button type="button" disabled={guardando} onClick={() => resolver(incidencia.id)} className="mt-3 min-h-11 rounded-xl border border-borde px-3 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca disabled:opacity-50">Marcar resuelta</button>}
+        {!soloLectura && incidencia.estado === "OPEN" && tipos.includes(incidencia.tipo) && <Boton type="button" variante="contorno" tamano="propio" disabled={guardando} onClick={() => resolver(incidencia.id)} className="mt-3 px-3 text-texto">Marcar resuelta</Boton>}
       </li>)}
     </ul>}
   </section>;

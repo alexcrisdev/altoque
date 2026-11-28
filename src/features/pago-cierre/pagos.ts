@@ -24,10 +24,19 @@ async function registrarPago(
   pago: DatosPago,
   clave: string,
   correo: string | null = null,
+  pedidoDestino?: string,
 ): Promise<ResultadoPago> {
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase
-    .rpc("registrar_pago", {
+  const rpc = pedidoDestino
+    ? supabase.rpc("registrar_efectivo_pedido_caja", {
+      p_pedido_id: pedidoDestino,
+      p_sesion_id: cuenta.tipo === "MESA" ? cuenta.id : null,
+      p_monto: centimosATexto(pago.montoCentimos),
+      p_recibido: pago.recibidoCentimos === null ? null : centimosATexto(pago.recibidoCentimos),
+      p_clave: clave,
+      p_receipt_email: correo,
+    })
+    : supabase.rpc("registrar_pago", {
       p_sesion_id: cuenta.tipo === "MESA" ? cuenta.id : null,
       p_pedido_id: cuenta.tipo === "PARA_LLEVAR" ? cuenta.id : null,
       p_metodo: pago.metodo,
@@ -37,8 +46,8 @@ async function registrarPago(
       p_aprobado: pago.aprobado,
       p_clave: clave,
       p_receipt_email: correo,
-    })
-    .single()
+    });
+  const { data, error } = await rpc.single()
     .overrideTypes<{ pago_id: string; estado: string; vuelto: number | string | null }, { merge: false }>();
 
   if (error || !data) {
@@ -55,9 +64,10 @@ export function registrarPagoEfectivo(
   recibidoCentimos: number,
   clave: string,
   correo: string | null = null,
+  pedidoDestino?: string,
 ): Promise<ResultadoPago> {
   return registrarPago("registrarPagoEfectivo", cuenta,
-    { metodo: "CASH", montoCentimos, recibidoCentimos, referencia: null, aprobado: null }, clave, correo);
+    { metodo: "CASH", montoCentimos, recibidoCentimos, referencia: null, aprobado: null }, clave, correo, pedidoDestino);
 }
 
 // US-023: el pago Yape queda "Por verificar" (PENDING): no baja el saldo hasta que

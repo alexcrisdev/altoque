@@ -8,10 +8,10 @@ export type Asiento = { celda: number; estado: "libre" | "ocupada" | "espera" | 
 
 const pintura = {
   blanco: "var(--color-superficie)", crema: "var(--color-aviso-fondo)", madera: "var(--color-aviso-borde)",
-  azul: "var(--v2-coral)", marino: "var(--v2-pizarra)", claro: "var(--v2-azul-suave)",
-  sombra: "var(--color-info-borde)", gris: "var(--v2-borde)", verde: "var(--v2-salvia)",
+  azul: "var(--marca)", marino: "var(--texto)", claro: "var(--info-suave)",
+  sombra: "var(--color-info-borde)", gris: "var(--borde)", verde: "var(--exito)",
 };
-const tapices = { libre: pintura.verde, ocupada: pintura.azul, espera: "var(--v2-ambar)", inactiva: "var(--color-neutro-texto)" };
+const tapices = { libre: pintura.verde, ocupada: pintura.azul, espera: "var(--aviso)", inactiva: "var(--color-neutro-texto)" };
 
 export function camara(filas: number, grados: number, mostrador = false) {
   const ancho = mostrador ? 300 : 360;
@@ -78,7 +78,7 @@ export function mosaico(c: Camara) {
   const piezas: Cara[] = [];
   for (let x = 0; x < c.ancho; x += 30) for (let y = 0; y < c.fondo; y += 30) {
     const x2 = Math.min(x + 30, c.ancho), y2 = Math.min(y + 30, c.fondo);
-    const color = (x + y) % 60 === 0 ? pintura.blanco : "var(--v2-gris-frio)";
+    const color = (x + y) % 60 === 0 ? pintura.blanco : "var(--fondo-suave)";
     piezas.push(cara(color, [x, y, 0], [x2, y, 0], [x2, y2, 0], [x, y2, 0]));
   }
   return piezas;

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { mensajeEstadoCliente } from "./estado-cliente";
 import type { EstadoPedido } from "./estados";
+import { Boton } from "../../components/ui";
 
 export function AvisoEstadoCliente({ estado, modalidad }: {
   estado: EstadoPedido | null;
@@ -68,10 +69,10 @@ export function AvisoEstadoCliente({ estado, modalidad }: {
         </p>
       </div>
       {estado !== "READY" && estado !== "DELIVERED" && estado !== "CANCELLED" && (
-        <button type="button" onClick={activarSonido} disabled={sonidoActivo}
-          className="rounded-lg border border-borde px-4 py-2 text-sm font-semibold disabled:opacity-60">
+        <Boton type="button" variante="contorno" tamano="propio" esquina="lg" onClick={activarSonido} disabled={sonidoActivo}
+          className="px-4 py-2 text-sm font-semibold">
           {sonidoActivo ? "Sonido activado" : "Activar sonido del aviso"}
-        </button>
+        </Boton>
       )}
     </div>
   );

@@ -60,9 +60,14 @@ export async function registrarPagoEfectivoAction(
   recibido: unknown,
   clave: unknown,
   correo: unknown = null,
+  pedidoDestino?: string,
 ): Promise<RespuestaPago> {
   if (!(await puedeCobrar())) return { ok: false, mensaje: mensajeErrorPago("FORBIDDEN") };
   if (!datosValidos(cuenta, clave)) return { ok: false, mensaje: mensajeErrorPago("INVALID_PAYMENT") };
+  if (pedidoDestino !== undefined && (!esUuid(pedidoDestino) ||
+    (cuenta.tipo === "PARA_LLEVAR" && cuenta.id !== pedidoDestino))) {
+    return { ok: false, mensaje: mensajeErrorPago("INVALID_PAYMENT") };
+  }
 
   const email = leerCorreoBoleta(correo);
   if (!email.ok) return email;
@@ -72,7 +77,9 @@ export async function registrarPagoEfectivoAction(
   const invalido = validarPagoEfectivo(montoCentimos, recibidoCentimos, Number.MAX_SAFE_INTEGER);
   if (invalido) return { ok: false, mensaje: invalido };
 
-  const resultado = await registrarPagoEfectivo(cuenta, montoCentimos!, recibidoCentimos!, clave, email.correo);
+  const resultado = pedidoDestino
+    ? await registrarPagoEfectivo(cuenta, montoCentimos!, recibidoCentimos!, clave, email.correo, pedidoDestino)
+    : await registrarPagoEfectivo(cuenta, montoCentimos!, recibidoCentimos!, clave, email.correo);
   if (!resultado.ok) return { ok: false, mensaje: mensajeErrorPago(resultado.codigo) };
 
   refrescarCaja(cuenta);

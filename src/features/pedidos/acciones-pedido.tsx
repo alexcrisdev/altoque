@@ -6,6 +6,7 @@ import { modificarPedido } from "./modificar-actions";
 import { calcularNuevoTotalCentimos, puedeModificar, requiereMotivoModificacion, type CambioPedido, type ItemModificable } from "./modificacion";
 import { puedeCancelarPedido, type EstadoPedido } from "./estados";
 import type { Rol } from "@/features/auth/permisos";
+import { Boton } from "@/components/ui";
 
 const moneda = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
 
@@ -55,10 +56,10 @@ export function AccionesPedido({ pedidoId, estado, roles, items, pagado = false 
                 </label>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" aria-label={`Reducir ${item.nombre}`} className="h-11 w-11 rounded-xl border border-borde bg-superficie text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" onClick={() => setCantidades({ ...cantidades, [item.id]: Math.max(0, cantidad - 1) })}>−</button>
+                <Boton type="button" variante="secundario" tamano="icono" aria-label={`Reducir ${item.nombre}`} onClick={() => setCantidades({ ...cantidades, [item.id]: Math.max(0, cantidad - 1) })}>−</Boton>
                 <span className="min-w-8 text-center">{cantidad}</span>
-                <button type="button" aria-label={`Aumentar ${item.nombre}`} className="h-11 w-11 rounded-xl border border-borde bg-superficie text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" onClick={() => setCantidades({ ...cantidades, [item.id]: Math.min(20, cantidad + 1) })}>+</button>
-                <button type="button" className="min-h-11 rounded-xl border border-borde px-3 text-sm text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca" onClick={() => setCantidades({ ...cantidades, [item.id]: 0 })}>Quitar</button>
+                <Boton type="button" variante="secundario" tamano="icono" aria-label={`Aumentar ${item.nombre}`} onClick={() => setCantidades({ ...cantidades, [item.id]: Math.min(20, cantidad + 1) })}>+</Boton>
+                <Boton type="button" variante="contorno" tamano="propio" className="px-3 text-sm text-texto" onClick={() => setCantidades({ ...cantidades, [item.id]: 0 })}>Quitar</Boton>
               </div>
             </li>;
           })}
@@ -67,10 +68,10 @@ export function AccionesPedido({ pedidoId, estado, roles, items, pagado = false 
           <textarea className="mt-1 min-h-20 w-full rounded border p-3" maxLength={200} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
         </label>
         <p className="mt-4 font-semibold">Nuevo total: {moneda.format(totalCentimos / 100)}</p>
-        <button type="button" disabled={guardando || (requiereMotivoModificacion(estado) && !motivo.trim())} onClick={guardar} className="mt-4 min-h-11 rounded-lg bg-marca px-4 py-2 font-medium text-white disabled:opacity-50">{guardando ? "Guardando…" : "Guardar cambios"}</button>
+        <Boton type="button" tamano="propio" esquina="lg" cargando={guardando} disabled={requiereMotivoModificacion(estado) && !motivo.trim()} onClick={guardar} className="mt-4 px-4 py-2 font-medium">{guardando ? "Guardando…" : "Guardar cambios"}</Boton>
       </>}
       {puedeCancelar && <div className="mt-4">
-        <button type="button" disabled={guardando} onClick={cancelar} className="min-h-11 rounded-lg border border-peligro-borde px-4 py-2 text-peligro-texto disabled:opacity-50">Cancelar pedido</button>
+        <Boton type="button" variante="peligro-contorno" tamano="propio" esquina="lg" disabled={guardando} onClick={cancelar} className="px-4 py-2">Cancelar pedido</Boton>
       </div>}
       {mensaje && <p role="status" className="mt-3">{mensaje}</p>}
     </section>

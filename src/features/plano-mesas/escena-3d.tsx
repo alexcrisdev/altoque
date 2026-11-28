@@ -30,7 +30,7 @@ export const Escena3D = memo(function Escena3D({ filas, grados, asientos, mostra
   const lado = grados >= 0 ? w : 0;
   return <svg className="maqueta-dibujo" viewBox={`${c.izquierda} ${c.arriba} ${c.w} ${c.h}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
     {poligono({ color: "var(--color-info-borde)", vertices: [[lado, 0, -8], [lado, d, -8], [lado, d, 0], [lado, 0, 0]] }, 0)}
-    {poligono({ color: "var(--v2-coral-oscuro)", vertices: [[0, d, -8], [w, d, -8], [w, d, 0], [0, d, 0]] }, 1)}
+    {poligono({ color: "var(--marca-oscuro)", vertices: [[0, d, -8], [w, d, -8], [w, d, 0], [0, d, 0]] }, 1)}
     <g>{mosaico(c).map(poligono)}</g>
     <g opacity=".12">{sombras(asientos, mostrador).map(poligono)}</g>
     <g>{paredes(c).map(poligono)}</g>
