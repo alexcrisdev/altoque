@@ -13,6 +13,7 @@ import {
 import { formatearPrecio } from "./formato";
 import { ordenarProductos } from "./orden-productos";
 import { DetalleProducto } from "./detalle-producto";
+import { useCerrarDialogoAlOcultar } from "../../lib/cerrar-dialogo-al-ocultar";
 import { PanelCarrito } from "../pedidos/panel-carrito";
 import { ALERGIA_INICIAL, validarAlergia, type AlergiaFormulario } from "../pedidos/alergias";
 import {
@@ -81,6 +82,7 @@ export function CartaInteractiva({
     null,
   );
   const dialogo = useRef<HTMLDialogElement>(null);
+  useCerrarDialogoAlOcultar(dialogo); // US-127: no dejar la página nueva inerte al navegar
   const enlacePedidoConfirmado = useRef<HTMLAnchorElement>(null);
 
   const [items, setItems] = useState<ItemCarrito[]>([]);
