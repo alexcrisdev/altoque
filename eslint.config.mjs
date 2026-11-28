@@ -19,6 +19,8 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "blob-report/**",
     "next-env.d.ts",
+    // US-153: Edge Functions de Supabase (Deno), con sus propias reglas.
+    "supabase/functions/**",
   ]),
 ]);
 
