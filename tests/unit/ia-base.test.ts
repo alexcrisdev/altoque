@@ -230,3 +230,35 @@ describe("quitarDatosPersonales", () => {
     expect(quitarDatosPersonales(texto)).toBe(texto);
   });
 });
+
+// US-156: salida estructurada OPCIONAL (retrocompatible).
+describe("preguntarAClaude: salida estructurada opcional", () => {
+  const ESQUEMA = {
+    type: "object",
+    properties: { categoria: { type: "string" } },
+    required: ["categoria"],
+    additionalProperties: false,
+  };
+
+  it("con formato manda output_config.format json_schema y devuelve el JSON como texto", async () => {
+    crear.mockResolvedValue(respuestaClaude('{"categoria":"Platos de fondo"}'));
+    const r = await preguntarAClaude({ ...PREGUNTA, formato: { esquema: ESQUEMA } });
+    expect(crear.mock.calls[0][0].output_config).toEqual({ effort: "low", format: { type: "json_schema", schema: ESQUEMA } });
+    expect(r).toMatchObject({ ok: true, texto: '{"categoria":"Platos de fondo"}' });
+  });
+
+  it("sin formato la llamada queda igual que antes (US-152 y demás HU no cambian)", async () => {
+    crear.mockResolvedValue(respuestaClaude("ok"));
+    await preguntarAClaude(PREGUNTA);
+    expect(crear.mock.calls[0][0].output_config).toEqual({ effort: "low" });
+    expect(crear.mock.calls[0][0].output_config).not.toHaveProperty("format");
+  });
+
+  it("en modo simulado devuelve la respuestaSimulada de la HU (o la fija si no hay)", async () => {
+    vi.stubEnv("IA_SIMULADA", "1");
+    expect(await preguntarAClaude({ ...PREGUNTA, respuestaSimulada: '{"categoria":"Postres"}' }))
+      .toMatchObject({ ok: true, texto: '{"categoria":"Postres"}', simulada: true });
+    expect(await preguntarAClaude(PREGUNTA)).toMatchObject({ texto: RESPUESTA_SIMULADA });
+    expect(crear).not.toHaveBeenCalled();
+  });
+});

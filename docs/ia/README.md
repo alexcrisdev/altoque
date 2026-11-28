@@ -94,6 +94,8 @@ Parámetros:
 | `maxTokens` | Tope de la respuesta (por defecto 1024, máximo 4096). Ponlo bajo: menos gasto. |
 | `uso` | `restauranteId`, `usuarioId` (null para el cliente sin cuenta) y `funcion` (código corto de tu HU, ej. `resumen-resenas`). |
 | `esfuerzo` | `"low"` por defecto. Sube a `"medium"` solo si la respuesta sale floja. |
+| `formato` | Opcional (US-156). `{ esquema }`: Claude responde **siempre** un JSON con ese esquema (salida estructurada). `texto` trae el JSON: haz `JSON.parse` y valida cada campo en el servidor. |
+| `respuestaSimulada` | Opcional (US-156). Lo que devuelve el modo simulado para tu HU (por ejemplo, un JSON de prueba), para que tu E2E tenga datos. |
 
 Ya lo hace la función por ti:
 
@@ -102,6 +104,10 @@ Ya lo hace la función por ti:
   `quitarDatosPersonales` antes de ponerlo en `mensajes` o `instrucciones`.
 - Revisa el **límite de uso** antes de llamar.
 - Registra en el log del servidor solo el tipo de resultado, el modelo y los tokens.
+
+Reglas del esquema de `formato`: todo objeto con `additionalProperties: false` y todos sus campos en `required`;
+sin `minimum`, `maximum`, `minLength` ni `maxLength` (la API no los acepta: esos rangos se validan en tu código).
+Para "puede faltar" usa `anyOf: [{ type: "string" }, { type: "null" }]`. Ejemplo real: `src/features/ia/autocompletar-producto/reglas.ts`.
 
 No hagas (Haiku 5.5 responde error 400): `temperature`, `top_p`, `top_k`, "prefill" (que
 el último mensaje sea del asistente) ni `thinking` con `budget_tokens`.
