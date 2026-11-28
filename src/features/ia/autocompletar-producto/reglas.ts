@@ -159,12 +159,19 @@ export type CampoAutocompletable = keyof CamposAutocompletables;
 /**
  * Llena SOLO los campos vacíos (no pisa lo que el dueño ya escribió) y dice cuáles llenó,
  * para marcarlos con ✨. Los alérgenos no se llenan: vuelven como sugeridos, sin los que ya estén.
+ * Si ya hay una categoría elegida y la sugerida es otra, se devuelve aparte (`categoriaDistinta`)
+ * para ofrecer «Usar esta categoría» sin cambiarla sola.
  */
 export function llenarSoloVacios(
   actual: CamposAutocompletables & { alergenos: string },
   sugerencia: Sugerencia,
   categorias: readonly { id: string; name: string; active: boolean }[],
-): { cambios: Partial<CamposAutocompletables>; sugeridos: CampoAutocompletable[]; alergenosSugeridos: string[] } {
+): {
+  cambios: Partial<CamposAutocompletables>;
+  sugeridos: CampoAutocompletable[];
+  alergenosSugeridos: string[];
+  categoriaDistinta: { id: string; nombre: string } | null;
+} {
   const cambios: Partial<CamposAutocompletables> = {};
   const vacio = (campo: CampoAutocompletable) => !actual[campo].trim();
   const poner = (campo: CampoAutocompletable, valor: string | null) => {
@@ -182,5 +189,7 @@ export function llenarSoloVacios(
     cambios,
     sugeridos: Object.keys(cambios) as CampoAutocompletable[],
     alergenosSugeridos: sugerencia.alergenos.filter((a) => !yaEstan.has(a.toLocaleLowerCase("es-PE"))),
+    categoriaDistinta: categoria && !vacio("categoriaId") && actual.categoriaId !== categoria.id
+      ? { id: categoria.id, nombre: categoria.name } : null,
   };
 }

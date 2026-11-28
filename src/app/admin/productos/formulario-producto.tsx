@@ -52,6 +52,7 @@ export function FormularioProducto({
   const [alergenos, setAlergenos] = useState(producto?.allergens.join(", ") ?? "");
   const [sugeridos, setSugeridos] = useState<CampoAutocompletable[]>([]);
   const [alergenosSugeridos, setAlergenosSugeridos] = useState<string[]>([]);
+  const [categoriaSugerida, setCategoriaSugerida] = useState<{ id: string; nombre: string } | null>(null);
   const [avisoIa, setAvisoIa] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [pensando, iniciarAutocompletar] = useTransition();
   const id = useId();
@@ -65,6 +66,15 @@ export function FormularioProducto({
   function cambiarCampo(campo: CampoAutocompletable, valor: string) {
     setCampos((actuales) => ({ ...actuales, [campo]: valor }));
     setSugeridos((lista) => lista.filter((c) => c !== campo)); // al editarlo deja de ser sugerencia
+    if (campo === "categoriaId") setCategoriaSugerida(null);
+  }
+
+  // La categoría ya venía elegida: la sugerida solo se aplica si el dueño la acepta.
+  function usarCategoriaSugerida() {
+    if (!categoriaSugerida) return;
+    setCampos((actuales) => ({ ...actuales, categoriaId: categoriaSugerida.id }));
+    setSugeridos((lista) => [...new Set([...lista, "categoriaId" as const])]);
+    setCategoriaSugerida(null);
   }
 
   // El dueño confirma cada alérgeno sugerido: se agrega (o se quita) del campo de alérgenos.
@@ -87,12 +97,13 @@ export function FormularioProducto({
         setAvisoIa({ tipo: "error", texto: resultado.motivo });
         return;
       }
-      const { cambios, sugeridos: nuevos, alergenosSugeridos: chips } =
+      const { cambios, sugeridos: nuevos, alergenosSugeridos: chips, categoriaDistinta } =
         llenarSoloVacios({ ...campos, alergenos }, resultado.sugerencia, categorias);
       setCampos((actuales) => ({ ...actuales, ...cambios }));
       setSugeridos((lista) => [...new Set([...lista, ...nuevos])]);
       setAlergenosSugeridos(chips);
-      setAvisoIa(nuevos.length || chips.length
+      setCategoriaSugerida(categoriaDistinta);
+      setAvisoIa(nuevos.length || chips.length || categoriaDistinta
         ? { tipo: "ok", texto: "Revisa lo sugerido antes de guardar." }
         : { tipo: "error", texto: "No había campos vacíos que llenar." });
     });
@@ -116,6 +127,7 @@ export function FormularioProducto({
         setImagen(producto ? resultado.imagenGuardada ?? "" : "");
         setSugeridos([]);
         setAlergenosSugeridos([]);
+        setCategoriaSugerida(null);
         setAvisoIa(null);
         if (!producto) {
           // Producto nuevo creado: el formulario queda limpio para el siguiente.
@@ -167,6 +179,7 @@ export function FormularioProducto({
             className="min-h-11 w-full min-w-0 rounded-xl border border-borde bg-superficie p-2 text-texto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
           />
         </label>
+        <div className="grid gap-1">
         <label className="grid gap-1">
           <Etiqueta sugerido={sugeridos.includes("categoriaId")}>Categoría</Etiqueta>
           <select
@@ -184,6 +197,16 @@ export function FormularioProducto({
             ))}
           </select>
         </label>
+          {categoriaSugerida && (
+            <span className="flex flex-wrap items-center gap-2 text-sm">
+              <span><span aria-hidden="true">✨</span> Sugiero «{categoriaSugerida.nombre}».</span>
+              <Boton type="button" variante="enlace" tamano="propio" esquina="ninguna" className="w-fit text-sm font-semibold text-marca"
+                onClick={usarCategoriaSugerida}>
+                Usar esta categoría
+              </Boton>
+            </span>
+          )}
+        </div>
       </div>
       {conAlcohol && (
         <fieldset className="grid min-w-0 gap-3 rounded-xl border border-borde p-3">

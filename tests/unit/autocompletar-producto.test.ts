@@ -281,3 +281,23 @@ describe("autocompletarProducto", () => {
     expect(internet).not.toHaveBeenCalled();
   });
 });
+
+describe("categoría ya elegida", () => {
+  const categorias = [
+    { id: "c-fondo", name: "Platos de fondo", active: true },
+    { id: "c-alcohol", name: "Bebidas con alcohol", active: true },
+  ];
+  const cerveza: Sugerencia = { categoria: "Bebidas con alcohol", descripcion: null, ingredientes: null, alergenos: [], porcentajeAlcohol: 5, ml: 620 };
+  const base = { descripcion: "", ingredientes: "", porcentajeAlcohol: "", ml: "", alergenos: "" };
+
+  it("si la sugerida es otra, no la cambia: la ofrece aparte", () => {
+    const r = llenarSoloVacios({ ...base, categoriaId: "c-fondo" }, cerveza, categorias);
+    expect(r.cambios).toEqual({ porcentajeAlcohol: "5", ml: "620" });
+    expect(r.categoriaDistinta).toEqual({ id: "c-alcohol", nombre: "Bebidas con alcohol" });
+  });
+
+  it("si es la misma o estaba vacía, no hay nada aparte", () => {
+    expect(llenarSoloVacios({ ...base, categoriaId: "c-alcohol" }, cerveza, categorias).categoriaDistinta).toBeNull();
+    expect(llenarSoloVacios({ ...base, categoriaId: "" }, cerveza, categorias).categoriaDistinta).toBeNull();
+  });
+});
