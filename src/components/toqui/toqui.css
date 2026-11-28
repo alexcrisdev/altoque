@@ -1,0 +1,80 @@
+/* US-151: estilos de Toqui (componente común). Usa los colores de globals.css. */
+.toqui-flotante { position: fixed; right: 1rem; bottom: 1rem; z-index: 50; touch-action: none; }
+.toqui-boton {
+  display: block; width: 4.25rem; height: 4.75rem; padding: 0; border: 0; border-radius: 1.25rem; background: transparent;
+  cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none;
+  filter: drop-shadow(0 4px 10px rgb(16 46 70 / .22));
+}
+.toqui-flotante[data-arrastrando] .toqui-boton { cursor: grabbing; }
+.toqui-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.toqui-globo {
+  position: absolute; bottom: calc(100% + .5rem); width: max-content; max-width: min(16rem, calc(100vw - 2rem));
+  padding: .625rem .875rem; border: 1px solid var(--color-borde); border-radius: 1rem;
+  background: var(--color-superficie); color: var(--color-texto); font-size: .875rem; font-weight: 600; line-height: 1.4;
+  box-shadow: 0 6px 20px rgb(16 46 70 / .18);
+}
+.toqui-globo[data-lado="derecha"] { right: 0; border-bottom-right-radius: .25rem; }
+.toqui-globo[data-lado="izquierda"] { left: 0; border-bottom-left-radius: .25rem; }
+
+/* Chat junto a Toqui (escritorio) o casi a pantalla completa (celular). */
+.toqui-chat {
+  position: fixed; inset: auto; margin: 0; padding: 0; max-width: none; max-height: none;
+  border: 1px solid var(--color-borde); border-radius: 1.25rem;
+  background: var(--color-superficie); color: var(--color-texto); box-shadow: 0 12px 40px rgb(16 46 70 / .25);
+}
+.toqui-chat[open] { display: flex; flex-direction: column; }
+.toqui-chat[data-celular="true"] { inset: .5rem; width: auto; height: auto; }
+.toqui-chat::backdrop { background: rgb(16 46 70 / .2); }
+.toqui-mensajes { min-height: 0; flex: 1; overflow-y: auto; display: grid; align-content: start; gap: .75rem; padding: 1rem .75rem; }
+.toqui-fila { display: flex; align-items: flex-end; gap: .5rem; }
+.toqui-fila[data-de="usuario"] { justify-content: flex-end; }
+.toqui-burbuja { max-width: 85%; padding: .5rem .75rem; border-radius: 1rem; font-size: .875rem; white-space: pre-line; overflow-wrap: anywhere; }
+.toqui-fila[data-de="asistente"] .toqui-burbuja { border: 1px solid var(--color-borde); border-bottom-left-radius: .25rem; background: var(--color-superficie-suave); }
+.toqui-fila[data-de="usuario"] .toqui-burbuja { border-bottom-right-radius: .25rem; background: var(--color-marca); color: var(--color-texto-inverso); }
+.toqui-fila[data-de="aviso"] .toqui-burbuja { border: 1px solid var(--color-aviso-borde); border-bottom-left-radius: .25rem; background: var(--color-aviso-fondo); color: var(--color-aviso-texto); }
+.toqui-avatar { display: block; width: 2.5rem; height: 2.75rem; flex-shrink: 0; }
+.toqui-avatar-chico { width: 1.75rem; height: 2rem; }
+.toqui-chip {
+  min-height: 2.25rem; padding: .25rem .75rem; border: 1px solid var(--color-borde); border-radius: 999px;
+  background: var(--color-superficie); color: var(--color-texto); font-size: .8125rem; font-weight: 600; text-align: left;
+}
+.toqui-chip:hover:not(:disabled) { border-color: var(--color-marca); background: var(--color-superficie-suave); }
+.toqui-chip:disabled { opacity: .5; }
+.toqui-puntos { display: inline-flex; gap: .25rem; align-items: center; height: 1.25rem; }
+.toqui-puntos span { width: .45rem; height: .45rem; border-radius: 999px; background: var(--color-texto-suave); }
+
+@media (max-width: 639px) {
+  .toqui-boton { width: 3.5rem; height: 3.9rem; }
+  .toqui-flotante { right: 0; bottom: .75rem; }
+  /* En su esquina, Toqui se asoma desde el borde para no tapar botones. Al tocarlo
+     sale completo; si lo arrastras, queda donde lo dejes. */
+  .toqui-flotante:not([data-movido]) { transform: translateX(55%); }
+  .toqui-flotante:not([data-movido]):is([data-saludando="true"], [data-pensando="true"], :focus-within) { transform: translateX(-.5rem); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toqui-cuerpo { animation: toqui-flotar 3s ease-in-out infinite alternate; }
+  .toqui-flotante { transition: transform .25s ease-out; }
+  .toqui-sombra { transform-box: fill-box; transform-origin: center; animation: toqui-sombra 3s ease-in-out infinite alternate; }
+  .toqui-ojos { transform-box: fill-box; transform-origin: center; animation: toqui-parpadeo 4.5s infinite; }
+  .toqui-mano { transform-box: view-box; transform-origin: 47px 46px; }
+  .toqui-boton:hover .toqui-mano, .toqui-boton:focus-visible .toqui-mano,
+  .toqui-flotante[data-saludando="true"] .toqui-mano { animation: toqui-saludar .35s ease-in-out infinite alternate; }
+  .toqui-flotante[data-arrastrando] .toqui-cuerpo { animation-play-state: paused; }
+  .toqui-globo { animation: toqui-globo .25s ease-out; }
+  .toqui-chat[open] { animation: toqui-globo .2s ease-out; }
+  .toqui-puntos span { animation: toqui-escribir 1s ease-in-out infinite; }
+  .toqui-puntos span:nth-child(2) { animation-delay: .15s; }
+  .toqui-puntos span:nth-child(3) { animation-delay: .3s; }
+  .toqui-flotante[data-pensando="true"] .toqui-ojos { animation-duration: 1.2s; }
+
+  @keyframes toqui-flotar { from { transform: translateY(1px); } to { transform: translateY(-4px); } }
+  @keyframes toqui-sombra { from { transform: scaleX(1); } to { transform: scaleX(.8); } }
+  @keyframes toqui-parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+  @keyframes toqui-saludar { from { transform: rotate(-12deg); } to { transform: rotate(28deg); } }
+  @keyframes toqui-globo { from { opacity: 0; transform: translateY(.375rem); } }
+  @keyframes toqui-escribir { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-.25rem); opacity: 1; } }
+}
+@media (forced-colors: active) {
+  .toqui-boton { border: 2px solid ButtonText; }
+}
