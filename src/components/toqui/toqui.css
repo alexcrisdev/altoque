@@ -1,5 +1,6 @@
 /* US-151: estilos de Toqui (componente común). Usa los colores de globals.css. */
-.toqui-flotante { position: fixed; right: 1rem; bottom: 1rem; z-index: 50; touch-action: none; }
+/* --toqui-abajo y --toqui-abajo-movil: cada pantalla puede subir a Toqui sobre sus barras fijas. */
+.toqui-flotante { position: fixed; right: 1rem; bottom: var(--toqui-abajo, 1rem); z-index: 50; touch-action: none; }
 .toqui-boton {
   display: block; width: 4.25rem; height: 4.75rem; padding: 0; border: 0; border-radius: 1.25rem; background: transparent;
   cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none;
@@ -45,7 +46,7 @@
 
 @media (max-width: 639px) {
   .toqui-boton { width: 3.5rem; height: 3.9rem; }
-  .toqui-flotante { right: 0; bottom: .75rem; }
+  .toqui-flotante { right: 0; bottom: var(--toqui-abajo-movil, .75rem); }
   /* En su esquina, Toqui se asoma desde el borde para no tapar botones. Al tocarlo
      sale completo; si lo arrastras, queda donde lo dejes. */
   .toqui-flotante:not([data-movido]) { transform: translateX(55%); }

@@ -59,3 +59,5 @@
   .area-gestion .stock-formulario button[type="submit"] { width: 100%; }
   .area-gestion .mesa-admin > div:last-child { width: 100%; }
 }
+/* US-152: en celular, Toqui queda sobre la barra fija «Guardar» de Stock (y otras barras de abajo). */
+.area-gestion { --toqui-abajo-movil: 5.75rem; }
