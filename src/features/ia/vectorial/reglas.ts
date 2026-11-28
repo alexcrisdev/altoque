@@ -14,9 +14,17 @@ export const DIMENSIONES = 384;
 export const MAX_TEXTOS_EMBEBER = 20;
 export const MAX_CARACTERES_FRAGMENTO = 1000;
 export const COMENTARIOS_POR_VEZ = 50;
-/** Cuántos fragmentos se mandan a Claude y desde qué parecido cuentan (0 a 1). Ajustables. */
-export const CANTIDAD_FRAGMENTOS = 10;
-export const SIMILITUD_MINIMA: Record<FuenteIA, number> = { REVIEW: 0.7, MANUAL: 0.72 };
+/**
+ * Qué fragmentos se mandan a Claude (similitud de 0 a 1). Calibrado con la prueba real (28/11/2026):
+ * con gte-small en español todas las secciones del manual salen entre 0.79 y 0.85, y la correcta
+ * sale primera con 0.87 a 0.93; una pregunta que el manual no cubre llega a 0.825 como mucho.
+ * - Manual: mínimo 0.84, solo las que están a 0.06 o menos de la mejor, máximo 3.
+ * - Opiniones: mínimo 0.70 y hasta 12 (Claude las agrupa por tema y descarta las que no tratan del tema).
+ */
+export const CANTIDAD_FRAGMENTOS = 12; // cuántos pide a la base (el máximo de las dos fuentes)
+export const SIMILITUD_MINIMA: Record<FuenteIA, number> = { REVIEW: 0.7, MANUAL: 0.84 };
+export const MARGEN_DESDE_EL_MEJOR: Record<FuenteIA, number> = { REVIEW: 1, MANUAL: 0.06 };
+export const MAX_FRAGMENTOS: Record<FuenteIA, number> = { REVIEW: 12, MANUAL: 3 };
 
 export const SIN_COMENTARIOS = "Aún no tengo comentarios sobre eso.";
 export const SIN_MANUAL = "No encuentro eso en el manual.";
@@ -90,6 +98,14 @@ export function armarMensajeConFragmentos(pregunta: string, fuente: FuenteIA, fr
   }
   const secciones = fragmentos.map((f) => `[${f.source_id}]\n${f.content}`);
   return `MANUAL DE ALTOQUE (secciones más parecidas a la pregunta):\n${secciones.join("\n\n")}\n\nPREGUNTA: ${pregunta}`;
+}
+
+/** Deja solo los fragmentos que valen la pena (vienen ordenados de más a menos parecido). */
+export function filtrarFragmentos<T extends { similitud: number }>(fragmentos: readonly T[], fuente: FuenteIA): T[] {
+  const mejor = fragmentos[0]?.similitud ?? 0;
+  return fragmentos
+    .filter((f) => f.similitud >= SIMILITUD_MINIMA[fuente] && f.similitud >= mejor - MARGEN_DESDE_EL_MEJOR[fuente])
+    .slice(0, MAX_FRAGMENTOS[fuente]);
 }
 
 /** Respuesta fija cuando no hay fragmentos parecidos: no se llama a Claude ni se inventa nada. */

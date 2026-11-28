@@ -195,7 +195,7 @@ significado («demora» encuentra «esperé 40 minutos»). Es un chatbot con bas
    de `docs/manual/*.md` se convierte en un vector de 384 números con el modelo **gte-small** de
    Supabase (Edge Function `supabase/functions/embeber`) y se guarda en `ai_fragments` (pgvector).
 2. **Preguntar:** la pregunta del dueño también se convierte en vector.
-3. **Buscar:** `buscar_fragmentos_ia` devuelve los 10 fragmentos más parecidos (coseno, índice HNSW),
+3. **Buscar:** `buscar_fragmentos_ia` devuelve los fragmentos más parecidos (coseno, índice HNSW),
    **solo del restaurante** del dueño (el manual es común).
 4. **Responder:** Claude agrupa las opiniones por tema (o da los pasos del manual) usando SOLO esos
    fragmentos. Si no hay parecidos: «Aún no tengo comentarios sobre eso» / «No encuentro eso en el manual».
@@ -211,7 +211,9 @@ significado («demora» encuentra «esperé 40 minutos»). Es un chatbot con bas
 - Los comentarios nuevos se indexan solos antes de cada pregunta de opiniones (máximo 50 por vez).
 - Si cambias el manual, vuelve a correr `npm run ia:indexar-manual` (borra las secciones que ya no existen).
 - gte-small está entrenado sobre todo en inglés: con textos en español funciona, pero con menos
-  precisión. Ajusta `SIMILITUD_MINIMA` en `vectorial/reglas.ts` si trae muy poco o demasiado.
+  precisión (todo sale «parecido», entre 0.79 y 0.85). Por eso el manual usa un mínimo de 0.84, solo las
+  secciones cercanas a la mejor y máximo 3 (`filtrarFragmentos` en `vectorial/reglas.ts`, calibrado con
+  la prueba real); las opiniones, mínimo 0.70 y hasta 12.
 
 **Despliegue (lo hace Alexander):** `npx supabase functions deploy embeber --no-verify-jwt --project-ref <ref>`
 y `npx supabase secrets set EMBEBER_SECRETO=<32+ caracteres> --project-ref <ref>`. El mismo

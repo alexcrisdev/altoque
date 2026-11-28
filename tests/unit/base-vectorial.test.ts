@@ -23,7 +23,7 @@ vi.mock("@anthropic-ai/sdk", async (importOriginal) => {
 });
 
 import {
-  armarMensajeConFragmentos, DIMENSIONES, elegirFuente, limpiarComentario, quitarNombres, respuestaSinFragmentos,
+  armarMensajeConFragmentos, DIMENSIONES, elegirFuente, filtrarFragmentos, limpiarComentario, quitarNombres, respuestaSinFragmentos,
   SIN_COMENTARIOS, SIN_MANUAL, VECTOR_SIMULADO, vectorATexto, type FragmentoEncontrado,
 } from "../../src/features/ia/vectorial/reglas";
 import { embeberTextos, urlEmbeber } from "../../src/features/ia/vectorial/embeber";
@@ -317,5 +317,31 @@ describe("manual de uso (docs/manual)", () => {
       expect(s.contenido.length).toBeLessThanOrEqual(1000);
     }
     expect(readFileSync("docs/manual/manual-admin.md", "utf8")).not.toMatch(/@|\b9\d{8}\b/);
+  });
+});
+
+// Calibración con las similitudes reales de la prueba del 28/11/2026 (gte-small, español).
+describe("filtrarFragmentos", () => {
+  const con = (pares: [string, number][]) => pares.map(([source_id, similitud]) => ({ ...FRAGMENTOS[0], source_id, similitud }));
+
+  it("manual: deja la sección correcta y descarta las que solo se parecen un poco", () => {
+    const qr = con([["mesas", 0.927], ["pedidos", 0.851], ["stock", 0.821], ["roles", 0.796]]);
+    expect(filtrarFragmentos(qr, "MANUAL").map((f) => f.source_id)).toEqual(["mesas"]);
+    const cuenta = con([["cuentas", 0.877], ["toqui", 0.838], ["pedidos", 0.837]]);
+    expect(filtrarFragmentos(cuenta, "MANUAL").map((f) => f.source_id)).toEqual(["cuentas"]);
+  });
+
+  it("manual: si el manual no lo cubre (boleta, máx. 0.825), no queda nada", () => {
+    expect(filtrarFragmentos(con([["productos", 0.825], ["pedidos", 0.824]]), "MANUAL")).toEqual([]);
+  });
+
+  it("manual: como mucho 3 secciones", () => {
+    expect(filtrarFragmentos(con([["a", 0.9], ["b", 0.89], ["c", 0.88], ["d", 0.87]]), "MANUAL")).toHaveLength(3);
+  });
+
+  it("opiniones: hasta 12 desde 0.70 (Claude agrupa por tema)", () => {
+    const muchas = con(Array.from({ length: 15 }, (_, i) => [`r${i}`, 0.9 - i * 0.01] as [string, number]));
+    expect(filtrarFragmentos(muchas, "REVIEW")).toHaveLength(12);
+    expect(filtrarFragmentos(con([["r1", 0.69]]), "REVIEW")).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import { esModoSimulado, MENSAJE_NO_DISPONIBLE, type MensajeIA, type RespuestaIA
 import { embeberTextos } from "../vectorial/embeber";
 import { buscarFragmentos, indexarComentariosPendientes } from "../vectorial/fragmentos";
 import {
-  armarMensajeConFragmentos, CANTIDAD_FRAGMENTOS, elegirFuente, MAX_CARACTERES_FRAGMENTO, respuestaSinFragmentos,
+  armarMensajeConFragmentos, CANTIDAD_FRAGMENTOS, elegirFuente, filtrarFragmentos, MAX_CARACTERES_FRAGMENTO, respuestaSinFragmentos,
   SIMILITUD_MINIMA, type FuenteIA,
 } from "../vectorial/reglas";
 import { obtenerFotoMetricas } from "./foto";
@@ -82,7 +82,10 @@ async function responderConBaseVectorial(
 
   let fragmentos;
   try {
-    fragmentos = await buscarFragmentos(uso.restauranteId, fuente, vectores[0], CANTIDAD_FRAGMENTOS, SIMILITUD_MINIMA[fuente]);
+    fragmentos = filtrarFragmentos(
+      await buscarFragmentos(uso.restauranteId, fuente, vectores[0], CANTIDAD_FRAGMENTOS, SIMILITUD_MINIMA[fuente]),
+      fuente,
+    );
   } catch {
     return { ok: false, motivo: MENSAJE_NO_DISPONIBLE };
   }
