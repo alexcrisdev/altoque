@@ -1,4 +1,5 @@
 import { esUrlImagenProducto } from "./foto-producto";
+import { ALCOHOL_MAXIMO, ML_MAXIMO, mlValidos, porcentajeAlcoholValido } from "./bebidas-alcohol";
 
 export type EntradaProducto = {
   nombre: unknown;
@@ -8,6 +9,9 @@ export type EntradaProducto = {
   ingredientes: unknown;
   alergenos: unknown;
   imageUrl: unknown;
+  // US-156: solo cuentan en la categoría «Bebidas con alcohol».
+  porcentajeAlcohol?: unknown;
+  ml?: unknown;
 };
 
 export type ProductoValidado = {
@@ -18,6 +22,8 @@ export type ProductoValidado = {
   ingredients: string | null;
   allergens: string[];
   imageUrl: string | null;
+  alcoholPercent: number | null;
+  volumeMl: number | null;
 };
 
 export type CampoProducto = keyof EntradaProducto;
@@ -29,6 +35,8 @@ export type ResultadoValidacionProducto =
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PRECIO_SOLES = /^\d+(?:\.\d{1,2})?$/;
 const PRECIO_MAXIMO = 99_999_999.99;
+const PORCENTAJE = /^\d{1,3}(?:\.\d)?$/;
+const ENTERO = /^\d{1,4}$/;
 
 function textoOpcional(valor: unknown): string | null | undefined {
   if (typeof valor !== "string") return undefined;
@@ -36,7 +44,14 @@ function textoOpcional(valor: unknown): string | null | undefined {
   return texto || null;
 }
 
-export function validarProducto(entrada: EntradaProducto): ResultadoValidacionProducto {
+/**
+ * US-156: con `conAlcohol` (la categoría elegida es «Bebidas con alcohol»), el % de alcohol
+ * (0 a 100, 1 decimal) y los ml (1 a 5000) son obligatorios. En otra categoría se guardan null.
+ */
+export function validarProducto(
+  entrada: EntradaProducto,
+  opciones: { conAlcohol?: boolean } = {},
+): ResultadoValidacionProducto {
   const errores: Partial<Record<CampoProducto, string>> = {};
 
   const nombre = typeof entrada.nombre === "string" ? entrada.nombre.trim() : "";
@@ -88,6 +103,20 @@ export function validarProducto(entrada: EntradaProducto): ResultadoValidacionPr
     }
   }
 
+  let alcoholPercent: number | null = null;
+  let volumeMl: number | null = null;
+  if (opciones.conAlcohol) {
+    const porcentajeTexto = typeof entrada.porcentajeAlcohol === "string" ? entrada.porcentajeAlcohol.trim().replace(",", ".") : "";
+    const porcentaje = PORCENTAJE.test(porcentajeTexto) ? Number(porcentajeTexto) : Number.NaN;
+    if (!porcentajeAlcoholValido(porcentaje)) errores.porcentajeAlcohol = `Escribe el % de alcohol (0 a ${ALCOHOL_MAXIMO}, con hasta 1 decimal).`;
+    else alcoholPercent = porcentaje;
+
+    const mlTexto = typeof entrada.ml === "string" ? entrada.ml.trim() : "";
+    const ml = ENTERO.test(mlTexto) ? Number(mlTexto) : Number.NaN;
+    if (!mlValidos(ml)) errores.ml = `Escribe los ml de la bebida (número entero de 1 a ${ML_MAXIMO}).`;
+    else volumeMl = ml;
+  }
+
   if (Object.keys(errores).length) return { ok: false, errores };
 
   return {
@@ -100,6 +129,8 @@ export function validarProducto(entrada: EntradaProducto): ResultadoValidacionPr
       ingredients: ingredientes ?? null,
       allergens: alergenos,
       imageUrl,
+      alcoholPercent,
+      volumeMl,
     },
   };
 }
