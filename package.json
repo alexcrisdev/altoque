@@ -14,7 +14,8 @@
     "test:integracion": "node scripts/exigir-supabase-local.mjs && vitest run tests/rls --no-file-parallelism",
     "smoke": "node scripts/smoke.mjs",
     "test:e2e": "playwright test",
-    "demo:abrir": "node scripts/abrir-demo.mjs"
+    "demo:abrir": "node scripts/abrir-demo.mjs",
+    "ia:probar": "node --env-file=.env.local scripts/probar-ia.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",
